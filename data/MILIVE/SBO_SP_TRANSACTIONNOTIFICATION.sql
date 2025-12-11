@@ -8747,7 +8747,7 @@ DECLARE Srs Nvarchar(250);
 
 END IF;
 
-IF object_type = '60' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
+/*IF object_type = '60' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
 DECLARE CNT Int;
 DECLARE Comments Nvarchar(500);
 DECLARE Srs Nvarchar(500);
@@ -8761,7 +8761,7 @@ DECLARE Srs Nvarchar(500);
 		CNT:= 0;
 	END IF;
 END IF;
-
+*/
 
 
 /*IF object_type = '59' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
