@@ -565,14 +565,14 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
             error_message := N'Wrong Customer Ref No ..';
         END IF;
 
-        -- Validation 30031: Exchange Rate Check
+       /* -- Validation 30031: Exchange Rate Check
         IF (CardCode LIKE 'C_E%' and Country <> 'RU') THEN
             SELECT T0."Rate" INTO SOExrate FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SOdate;
             IF SOExrate <> SOrate THEN
                 error := 30031;
                 error_message := N'Not allowed to change exchange rate.';
             END IF;
-        END IF;
+        END IF;*/
     END IF;
     -- ===================================================
     -- SECTION 4: LINE LEVEL VALIDATIONS - COMBINED LOOP
