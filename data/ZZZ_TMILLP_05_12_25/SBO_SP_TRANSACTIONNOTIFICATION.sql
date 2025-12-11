@@ -496,7 +496,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     END IF;
 
     -- Validation 30012-30017: Export Document Fields Check
-    IF CardCode LIKE 'C_E%' THEN
+    /*IF CardCode LIKE 'C_E%' THEN
         IF CNPJ IS NULL THEN
         	error := 30012;
         	error_message := N'Please Enter CNPJ No.';
@@ -521,7 +521,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         	error := 30017;
         	error_message := N'Please Enter Notify CEP No.';
         END IF;
-    END IF;
+    END IF;*/
 
     -- Validation 30018: Final Destination Check
     IF CardCode LIKE 'C_E%' AND City IS NULL THEN
