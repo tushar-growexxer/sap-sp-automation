@@ -19,3 +19,8 @@ uv.*
 *.log
 
 config.*
+
+/tools/
+
+.vscode/
+changes_*.txt
