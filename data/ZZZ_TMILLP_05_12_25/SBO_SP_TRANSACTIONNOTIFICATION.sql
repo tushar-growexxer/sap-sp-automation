@@ -509,7 +509,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         	error := 30014;
         	error_message := N'Please Enter CUIT No.';
         END IF;
-        IF TaxID IS NULL THEN
+        IF IFNULL(TaxID,'')='' THEN
         	error := 30015;
         	error_message := N'Please Enter Tax ID.';
         END IF;
