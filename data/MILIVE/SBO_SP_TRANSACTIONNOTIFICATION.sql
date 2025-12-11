@@ -4154,7 +4154,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4176,7 +4176,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -5154,7 +5154,7 @@ DECLARE Creator nvarchar(50);
 			error_message := 'You are not allowed to cancel/close the document';
 		END IF;
 END IF;*/
-
+/*
 If Object_Type = 'GPass' and (:transaction_type='A') then
 Declare date1 Date;
 
@@ -5165,7 +5165,7 @@ Declare date1 Date;
 	   	error_message := N'Gate pass Not allowed in back date ';
 	END IF;
 end if;
-
+*/
 If Object_Type = 'GPass' and (:transaction_type='A') then
 Declare date1 Date;
 Declare Srss Nvarchar(50);
@@ -10715,7 +10715,7 @@ Declare InvDDPl2 date;
 Declare InvDet1 Int;
 Declare dayss Int;
 Declare VesselETD date;
-Declare VesselETA nvarchar(100);
+Declare VesselETA nvarchar(200);
 Declare TransitDays INT;
 
 		SELECT "U_BLDate" INTO BLDate FROM "@SHIPMASTER" T0 WHERE T0."Code" = list_of_cols_val_tab_del;
