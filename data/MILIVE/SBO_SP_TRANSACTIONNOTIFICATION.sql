@@ -4154,7 +4154,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4176,7 +4176,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -5392,29 +5392,6 @@ IF Object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     END IF;
 END IF;
 
-/*IF Object_type = '13' and (:transaction_type ='A' ) Then
-DECLARE ARrate decimal;
-DECLARE ARExrate decimal;
-DECLARE ARDocCur Nvarchar(50);
-DECLARE ARdate date;
-DECLARE ARCardCode Nvarchar(50);
-DECLARE ARSeries Nvarchar(50);
-		SELECT T0."DocRate" into ARrate FROM OINV T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		SELECT T0."DocDate" into ARdate FROM OINV T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		SELECT T0."DocCur" into ARDocCur FROM OINV T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		SELECT T0."CardCode" into ARCardCode FROM OINV T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		(SELECT T1."SeriesName" into ARSeries FROM OINV T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry"= :list_of_cols_val_tab_del);
-
-		IF ARCardCode LIKE 'C_E%' and ARSeries NOT LIKE 'CL%' THEN
-
-			SELECT T0."Rate" into ARExrate FROM ORTT T0 WHERE T0."Currency" = ARDocCur and T0."RateDate" = ARdate;
-			IF ARExrate <> ARrate THEN
-				error :=131;
-				error_message := N'Not allowed to change exchange rate.' || ARrate;
-			END IF;
-		END IF;
-End If;*/
-
 IF object_type = '203' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE MinARD Int;
 DECLARE MaxARD Int;
@@ -5457,7 +5434,7 @@ DECLARE Nopltibc Nvarchar(50);
 			error :=132;
 			error_message := N'Please enter packing type';
 		END IF;
-		IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
+		/*IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
 		 pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
 			error :=132;
 			error_message := N'Please select proper packing type';
@@ -5471,13 +5448,13 @@ DECLARE Nopltibc Nvarchar(50);
 			error :=132;
 			error_message := N'Please enter proper word Type of pallets/IBC';
 		END IF;
-		IF lictype IS NULL  then
-			error :=132;
-			error_message := N'Please enter License Type';
-		END IF;
 		IF pltibc IS NULL  then
 			error :=132;
 			error_message := N'Please enter Pallates/IBC';
+		END IF;*/
+		IF lictype IS NULL  then
+			error :=132;
+			error_message := N'Please enter License Type';
 		END IF;
 		IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
 			error :=132;
@@ -6007,7 +5984,7 @@ END IF;
 
 
 ----------------Qc dept can transfer rejected material only to QC related warehouse---------
-IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
+/*IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
 
 Declare Usr nvarchar(50);
 Declare Frmwhs nvarchar(50);
@@ -6036,12 +6013,10 @@ DECLARE MaxLineITQ Int;
 
 		MinLineITQ := MinLineITQ+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 ----------------------------Branch Transfer is allowed to store dept only-------------
-
 IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
-
 Declare Usr nvarchar(50);
 Declare Frmwhs nvarchar(50);
 Declare ToWhs nvarchar(50);
@@ -6060,7 +6035,7 @@ DECLARE MaxLineITQ Int;
 		and WTR1."VisOrder"=MinLineITQ;
 
 			IF Frmwhs LIKE '%BT' THEN
-				If (Usr <> 'engg02' AND Usr <> 'engg07' AND Usr <> 'store01') then
+				If (Usr <> 'engg02' AND Usr <> 'engg07' AND Usr <> 'store01' AND Usr <> 'manager') then
 				    error :=14503;
 				    error_message := N'You are not allowed to do inventory transfer from BT Warehouse'||MinLineITQ;
 				END IF;
@@ -10262,7 +10237,7 @@ IF object_type IN ('19') AND (:transaction_type = 'A' or :transaction_type='U') 
 DECLARE Comments Int;
 
 			SELECT LENGTH(T0."Comments") into Comments FROM ORPC T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-				IF (Comments < 50 OR Comments IS NULL) THEN
+				IF (Comments IS NULL OR Comments < 50) THEN
 				error :=355;
 				error_message := N'Please mention remark with minimum 20 words';
 		END IF;
@@ -18718,7 +18693,7 @@ END IF;
 END IF;
 
 
-If object_type = '112' and (:transaction_type = 'A' OR :transaction_type = 'U') then
+/*If object_type = '112' and (:transaction_type = 'A' OR :transaction_type = 'U') then
 
 	DECLARE itemCodeSO varchar(50);
 	DECLARE itemCodeDL varchar(50);
@@ -18758,7 +18733,7 @@ if DraftObj = 15 THEN
 		END WHILE;
 	END IF;
 END IF;
-END IF;
+END IF;*/
 
 IF Object_type='112' and (:transaction_type ='A' OR :transaction_type ='U' ) Then
 
@@ -19597,10 +19572,10 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1024;
             error_message := 'The PCFG from 2PC-QC cannot be moved to any warehouse other than 2PC-FLOR,2PC-QCR';
         end if;
-		if FromWhs = '2PC-QCR' and ToWhs not in ('2EX1QCR','2BT') then
+		/*if FromWhs = '2PC-QCR' and ToWhs not in ('2EX1QCR','2BT') then
             error := -1025;
             error_message := 'The PCFG from 2PC-QCR cannot be moved to any warehouse other than 2EX1QCR,2BT';
-        end if;
+        end if;*/
 		if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-FG','2EX1PCFG','2PC-FLOR','2PC-QCR','2EX1QCR') then
             error := -1026;
             error_message := 'The PCFG from 2BT cannot be moved to any warehouse other than 1BT,2PC-FG,2EX1PCFG,2PC-FLOR,2PC-QCR,2EX1QCR';
@@ -21598,6 +21573,10 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     SELECT T0."NumAtCard", T0."U_BP_TotalQty", T0."DocDate", T0."TaxDate" INTO CustomerRef, TotalQty, SODate, CustomerRefDate
     FROM ORDR T0 WHERE T0."CardCode" LIKE 'C%' AND T0."DocEntry" = :list_of_cols_val_tab_del;
 
+    IF SODate >= '2025-09-30' THEN
+	    CustomerRef := CustomerRef || '_' || TO_NVARCHAR(CustomerRefDate,'DD/MM/YYYY');
+	END IF;
+
     IF SODate < '2025-09-30' THEN
 
 		SELECT SUM(T1."Quantity") INTO SumQty FROM ORDR H INNER JOIN RDR1 T1 ON H."DocEntry" = T1."DocEntry" WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N';
@@ -21617,10 +21596,9 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 	        error_message := 'Customer Total Quantity must match across all Sales Orders with the same Customer Reference No. ( '|| OtherTotalQty || ' Qty).';
 	    END IF;
 	ELSE
-		CombinedRef := CustomerRef || '_' || TO_NVARCHAR(CustomerRefDate, 'DD/MM/YYYY');
 
-		SELECT SUM(T1."Quantity") INTO SumQty FROM ORDR H INNER JOIN RDR1 T1 ON H."DocEntry" = T1."DocEntry" WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CombinedRef AND H."CANCELED" = 'N';
-		SELECT MAX(H."U_BP_TotalQty") INTO OtherTotalQty FROM ORDR H WHERE H."NumAtCard" = CombinedRef AND H."CANCELED" = 'N' AND H."DocEntry" <> :list_of_cols_val_tab_del;
+		SELECT SUM(T1."Quantity") INTO SumQty FROM ORDR H INNER JOIN RDR1 T1 ON H."DocEntry" = T1."DocEntry" WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N';
+		SELECT MAX(H."U_BP_TotalQty") INTO OtherTotalQty FROM ORDR H WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."DocEntry" <> :list_of_cols_val_tab_del;
 
 		IF IFNULL(CustomerRefDate,'')='' THEN
 			error := -1225;
@@ -21637,7 +21615,7 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 	        error_message := 'Customer Total Quantity cannot be empty.';
 	    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
 	        error := -1228;
-	        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CombinedRef||' PO Qty: '|| TotalQty ||' ) - By '|| (IFNULL(SumQty,0) - IFNULL(TotalQty,0)) ||'.';
+	        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| (IFNULL(SumQty,0) - IFNULL(TotalQty,0)) ||'.';
 	    END IF;
 
 	    IF OtherTotalQty IS NOT NULL AND IFNULL(OtherTotalQty,0) <> IFNULL(TotalQty,0) THEN
@@ -21663,9 +21641,12 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         DECLARE ApprovalEntry INT;
         DECLARE SODate DATE;
         DECLARE CustomerRefDate DATE;
-        DECLARE CombinedRef NVARCHAR(150);
 
 	    SELECT T0."NumAtCard", T0."U_BP_TotalQty", T0."DocDate", T0."TaxDate" INTO CustomerRef, TotalQty, SODate, CustomerRefDate FROM ODRF T0 WHERE T0."CardCode" LIKE 'C%' AND T0."DocEntry" = :list_of_cols_val_tab_del and T0."ObjType" = 17;
+
+	    IF SODate >= '2025-09-30' THEN
+	    	CustomerRef := CustomerRef || '_' || TO_NVARCHAR(CustomerRefDate,'DD/MM/YYYY');
+	    END IF;
 
 	    IF :transaction_type = 'A' THEN
 
@@ -21739,14 +21720,13 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 		        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| IFNULL(SumQty,0) - IFNULL(TotalQty,0) ||'.';
 		    END IF;
 		ELSE
-		    CombinedRef := CustomerRef || '_' || TO_NVARCHAR(CustomerRefDate,'DD/MM/YYYY');
 
 		    -- Draft Qty (exclude Rejected drafts from WDD1, Drafts punched and then rejected) --
 		    SELECT COALESCE(SUM(T1."Quantity"),0) INTO DraftQty
 	        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
 	        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
 	        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-	        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CombinedRef AND H."CANCELED" = 'N' AND H."ObjType" = 17
+	        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17
 	        AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N';
 
 	        -- Approved Draft Qty --
@@ -21754,17 +21734,17 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 	        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
 	        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
 	        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-	        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CombinedRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'Y' AND O."DocEntry" IS NULL;
+	        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'Y' AND O."DocEntry" IS NULL;
 
 		    -- Confirmed order quantities --
 	        SELECT COALESCE(SUM(R1."Quantity"),0) INTO OrderQty
 	        FROM ORDR R0 INNER JOIN RDR1 R1 ON R1."DocEntry" = R0."DocEntry"
-	        WHERE (R0."NumAtCard" || '_' || TO_NVARCHAR(R0."TaxDate",'DD/MM/YYYY')) = CombinedRef AND IFNULL(R0."CANCELED",'N') = 'N'
+	        WHERE (R0."NumAtCard" || '_' || TO_NVARCHAR(R0."TaxDate",'DD/MM/YYYY')) = CustomerRef AND IFNULL(R0."CANCELED",'N') = 'N'
 	        AND R0."DocEntry" NOT IN (SELECT W."DocEntry"
 	        							FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
 								        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
 								        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-								        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CombinedRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N'
+								        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N'
 								        GROUP BY W."DocEntry");
 			SumQty := DraftQty + OrderQty + ApprovedDraftQty;
 			IF IFNULL(CustomerRefDate,'')='' THEN
@@ -21782,7 +21762,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 		        error_message := 'Customer Total Quantity cannot be empty.';
 		    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
 		        error := -1236;
-		        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CombinedRef||' PO Qty: '|| TotalQty ||' ) - By '|| IFNULL(SumQty,0) - IFNULL(TotalQty,0) ||'.';
+		        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| IFNULL(SumQty,0) - IFNULL(TotalQty,0) ||'.';
 		    END IF;
 
 		END IF;

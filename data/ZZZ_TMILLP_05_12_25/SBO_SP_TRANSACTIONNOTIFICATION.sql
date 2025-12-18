@@ -20011,7 +20011,7 @@ DECLARE PRO Nvarchar(50);
 END IF;
 
 --------------------------Same Batch in Invoice as Sales Order Validation------30-01-2025---------
-IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type = 'U' ) THEN
+/*IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type = 'U' ) THEN
     DECLARE wrong_batch NVARCHAR(100);
     DECLARE batch_count INTEGER;
 BEGIN
@@ -20157,7 +20157,7 @@ BEGIN
         END IF;
     END IF;
 END;
-END IF;
+END IF;*/
 
 IF Object_Type = 'GPass' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE Sent_ItemCode NVARCHAR(50);
