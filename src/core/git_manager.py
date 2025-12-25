@@ -168,6 +168,7 @@ class GitManager:
 
             with open(per_schema_file, "a", encoding="utf-8", newline="\n") as f:
                 f.write("\n".join(log_entry))
+            
         except Exception:
             logger.exception(f"Failed to write per-schema change file for {schema}/{filename}")
 

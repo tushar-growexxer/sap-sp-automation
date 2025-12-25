@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     ENV: str = "dev"
 
     # Paths
-    BASE_DIR: Path = Path(__file__).parent.parent.parent
+    BASE_DIR: Path = Field(default_factory=lambda: Path(__file__).parent.parent.parent)
     DATA_DIR: Path = Field(default_factory=lambda: Path(__file__).parent.parent.parent / "data")
     
     # Secrets
@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     SMTP_USER: str
     SMTP_PASSWORD: SecretStr
 
+    # Email recipients (global)
+    email_recipients: list[str] = Field(default_factory=list)
+
     targets: list[Target] = Field(default_factory=list)
     
     def model_post_init(self, __context):
@@ -45,7 +48,7 @@ class Settings(BaseSettings):
         self._load_targets()
     
     def _load_targets(self):
-        """Load targets from the config.json file"""
+        """Load targets and email recipients from the config.json file"""
         config_path = Path(__file__).parent / "config.json"
 
         self.logger.debug(f"Reading configuration from: {config_path}")
@@ -56,8 +59,12 @@ class Settings(BaseSettings):
                 with open(config_path, "r") as f:
                     config = json.load(f)
                     self.targets = [Target(**target) for target in config.get("targets", [])]
+                    # Load global email recipients
+                    self.email_recipients = config.get("email_recipients", [])
 
                 self.logger.info(f"Successfully loaded {len(self.targets)} schema targets from config.json")
+                if self.email_recipients:
+                    self.logger.info(f"Loaded {len(self.email_recipients)} email recipients")
             except json.JSONDecodeError as e:
                 self.logger.critical(f"Invalid JSON in config.json: {e}")
                 raise

@@ -24,3 +24,5 @@ config.*
 
 .vscode/
 changes_*.txt
+
+.notifier_state.json
