@@ -70,7 +70,7 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
             error_message := N'Please fill Chemical Name URL';
         END IF;
     END IF;
-    /*
+
     IF ItemCode LIKE 'NU%' THEN
         IF UsrCod NOT IN ('sap01', 'sap02', 'manager') THEN
             error := -10006;
@@ -82,7 +82,7 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
             error_message := N'Please select Y/N in Is Fixed Asset.';
         END IF;
     END IF;
-    */
+
     IF ItemType = 'I' AND UsrCod NOT IN ('account1','account2','prof01', 'dipurchase', 'purchase01', 'purchase02', 'manager', 'sap01','sap02', 'engg01', 'engg02', 'engg04', 'engg05', 'engg06', 'engg07') THEN
     	error := -10008;
         error_message := N'You are not allowed to add/update Item Master';
