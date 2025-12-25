@@ -604,17 +604,16 @@ IF (:object_type = '191' AND (:transaction_type = 'A' /*or :transaction_type = '
 
 	select count(T0."callID") INTO Temp from OSCL T0 WHERE T0."callID"=:list_of_cols_val_tab_del;
 
-	SELECT
-	    STRING_AGG("Email", ',') INTO EmailCC
-	FROM (
-	    SELECT T2."Email" AS "Email"
-	    FROM OSCL T0 JOIN OCRD T1 ON T0."customer" = T1."CardCode"
+	SELECT STRING_AGG("Email", ',') INTO EmailCC FROM
+
+		(SELECT T2."Email" AS "Email" FROM OSCL T0
+		JOIN OCRD T1 ON T0."customer" = T1."CardCode"
 	    JOIN OSLP T2 ON T2."SlpCode" = T1."SlpCode"
 	    WHERE T0."callID"=:list_of_cols_val_tab_del
 
 	    UNION ALL
-	    SELECT 'saleshead@matangiindustries.com,salesmgr@matangiindustries.com' from dummy
-	) E;
+
+	    SELECT 'saleshead@matangiindustries.com,salesmgr@matangiindustries.com' from dummy) E;
 
 
 	If :Temp > 0 then
@@ -623,7 +622,7 @@ IF (:object_type = '191' AND (:transaction_type = 'A' /*or :transaction_type = '
 
 		MailID = 'qaqcmgr@matangiindustries.com,qa@matangiindustries.com';
 		Mobile := '';
-		--EmailCC := 'saleshead@matangiindustries.com,salesmgr@matangiindustries.com';
+		EmailCC := 'unithead1@matangiindustries.com,unithead2@matangiindustries.com,productionmgr2@matangiindustries.com,mgrproductionpc2@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'C';
 		Mobi_TYPE := 'Customer Complain';
@@ -634,7 +633,6 @@ IF (:object_type = '191' AND (:transaction_type = 'A' /*or :transaction_type = '
 	End If;
 End If;
 --------------------------------------------------------------------------------------------------------------------------------
-
 --- Direct Purchase Order Generated : PC,SC/DI,OF ----
 IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
 
