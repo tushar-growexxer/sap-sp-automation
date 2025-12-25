@@ -57,7 +57,7 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         error := -10003;
         error_message := N'Please Select Proper Item Group';
     END IF;
-    /*
+
     -- item group 105 - Finish Goods--
     IF ItemGrpCode = '105' AND ValidFor1 = 'Y' THEN
         IF IFNULL(BrandName,'') = '' THEN
@@ -70,7 +70,7 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
             error_message := N'Please fill Chemical Name URL';
         END IF;
     END IF;
-    */
+
     IF ItemCode LIKE 'NU%' THEN
         IF UsrCod NOT IN ('sap01', 'sap02', 'manager') THEN
             error := -10006;
