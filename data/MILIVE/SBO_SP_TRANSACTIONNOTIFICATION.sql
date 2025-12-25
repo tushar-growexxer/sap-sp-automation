@@ -19574,7 +19574,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1025;
             error_message := 'The PCFG from 2PC-QCR cannot be moved to any warehouse other than 2EX1QCR,2BT';
         end if;
-		if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-FG','2EX1PCFG','2PC-FLOR','2PC-QCR','2EX1QCR') then
+		if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-FG','2EX1PCFG','2PC-FLOR','2PC-QCR','2EX1QCR','2PC-TRD') then
             error := -1026;
             error_message := 'The PCFG from 2BT cannot be moved to any warehouse other than 1BT,2PC-FG,2EX1PCFG,2PC-FLOR,2PC-QCR,2EX1QCR';
         end if;
