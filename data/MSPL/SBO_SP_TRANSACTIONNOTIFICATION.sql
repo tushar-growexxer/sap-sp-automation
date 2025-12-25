@@ -588,14 +588,14 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             -- Get all line-level data in a single, efficient query
             SELECT
                 T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt",
-                T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
+                T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), count(T1."U_TOPLT"),
                 T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                 T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS"
             INTO
                 SOEntryType, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, Freetext,
-                SOName, SOPckCode, SOPackType, SOOtherPackng, HASCOM, Commission,
+                SOName, SOPckCode, SOPackType, Capacity, SOOtherPackng, HASCOM, Commission,
                 CommissionPer, BatchCount,
                 SOItemGrpCode, SOItemCategory, SOItemSubCategory, typpltibc,
                 U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, Freetext, PSS
@@ -604,7 +604,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO AND ODRF."ObjType" = 17
             GROUP BY
                 T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt",
-                T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
+                T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''),
                 T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
@@ -790,35 +790,35 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 					END IF;
 
 
-		            IF SOPackng = Pack1 then
+		            IF SOPckCode = Pack1 then
 					else
-						IF SOPackng = U_Pack15 then
+						IF SOPckCode = U_Pack15 then
 						else
-							IF SOPackng = Pack2 then
+							IF SOPckCode = Pack2 then
 							else
-								IF SOPackng = U_Pack3 then
+								IF SOPckCode = U_Pack3 then
 								else
-									IF SOPackng = U_Pack4 then
+									IF SOPckCode = U_Pack4 then
 									else
-										IF SOPackng = U_Pack5 then
+										IF SOPckCode = U_Pack5 then
 										else
-											IF SOPackng = U_Pack6 then
+											IF SOPckCode = U_Pack6 then
 											else
-												IF SOPackng = U_Pack7 then
+												IF SOPckCode = U_Pack7 then
 												else
-													IF SOPackng = U_Pack8 then
+													IF SOPckCode = U_Pack8 then
 													else
-														IF SOPackng = U_Pack9 then
+														IF SOPckCode = U_Pack9 then
 														else
-															IF SOPackng = U_Pack10 then
+															IF SOPckCode = U_Pack10 then
 															else
-																IF SOPackng = U_Pack11 then
+																IF SOPckCode = U_Pack11 then
 																else
-																	IF SOPackng = U_Pack12 then
+																	IF SOPckCode = U_Pack12 then
 																	else
-																		IF SOPackng = U_Pack13 then
+																		IF SOPckCode = U_Pack13 then
 																		else
-																			IF SOPackng = U_Pack14 then
+																			IF SOPckCode = U_Pack14 then
 																			else
 																				error:=30067;
 																				error_message:=N'Please Select Packing code from list';
@@ -1348,35 +1348,35 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 					END IF;
 
 
-		            IF SOPackng = Pack1 then
+		            IF SOPckCode = Pack1 then
 					else
-						IF SOPackng = U_Pack15 then
+						IF SOPckCode = U_Pack15 then
 						else
-							IF SOPackng = Pack2 then
+							IF SOPckCode = Pack2 then
 							else
-								IF SOPackng = U_Pack3 then
+								IF SOPckCode = U_Pack3 then
 								else
-									IF SOPackng = U_Pack4 then
+									IF SOPckCode = U_Pack4 then
 									else
-										IF SOPackng = U_Pack5 then
+										IF SOPckCode = U_Pack5 then
 										else
-											IF SOPackng = U_Pack6 then
+											IF SOPckCode = U_Pack6 then
 											else
-												IF SOPackng = U_Pack7 then
+												IF SOPckCode = U_Pack7 then
 												else
-													IF SOPackng = U_Pack8 then
+													IF SOPckCode = U_Pack8 then
 													else
-														IF SOPackng = U_Pack9 then
+														IF SOPckCode = U_Pack9 then
 														else
-															IF SOPackng = U_Pack10 then
+															IF SOPckCode = U_Pack10 then
 															else
-																IF SOPackng = U_Pack11 then
+																IF SOPckCode = U_Pack11 then
 																else
-																	IF SOPackng = U_Pack12 then
+																	IF SOPckCode = U_Pack12 then
 																	else
-																		IF SOPackng = U_Pack13 then
+																		IF SOPckCode = U_Pack13 then
 																		else
-																			IF SOPackng = U_Pack14 then
+																			IF SOPckCode = U_Pack14 then
 																			else
 																				error:=30067;
 																				error_message:=N'Please Select Packing code from list';
@@ -2932,13 +2932,13 @@ DECLARE JWChallan3 Int;
 		WHILE :MinGI<= :MaxGI DO
 			SELECT IGE1."ItemCode" into Code FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
 
-			SELECT Count(IGE1."U_JobChallan1") into JWChallan1 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
+			SELECT sum(IGE1."U_JobChallan1") into JWChallan1 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
 			SELECT IGE1."U_JWDate" into JWDate FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
 
-			SELECT Count(IGE1."U_JobChallan2") into JWChallan2 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
+			SELECT sum(IGE1."U_JobChallan2") into JWChallan2 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
 			SELECT IGE1."U_JWDate2" into JWDate2 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
 
-			SELECT Count(IGE1."U_JobChallan3") into JWChallan3 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
+			SELECT sum(IGE1."U_JobChallan3") into JWChallan3 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
 			SELECT IGE1."U_JWDate3" into JWDate3 FROM IGE1 WHERE IGE1."DocEntry" = :list_of_cols_val_tab_del and IGE1."VisOrder"=MinGI;
 
 			IF Code <> 'PCRM0017' then
@@ -6353,7 +6353,7 @@ DECLARE MaxLineITQ Int;
 		select WTR1."FromWhsCod" into Frmwhs from WTR1 where WTR1."DocEntry"= :list_of_cols_val_tab_del and WTR1."VisOrder"=MinLineITQ;
 
 			IF Frmwhs IN ('2PC-QCTR','SC-QC-TR','SC-QC','2SC-QC','JW-QC','PC-QC-TR','PC-QC','2PC-QC','3PC-QC') THEN
-				If (Usr <> 'qc02' AND Usr <> 'qc03' AND Usr <> 'sap01' AND Usr <> 'engg03' AND Usr <> 'manager' AND Usr <> 'unithead1') then
+				If (Usr <> 'qc02' AND Usr <> 'qc03' AND Usr <> 'sap01' AND Usr <> 'engg03' AND Usr <> 'manager' AND Usr <> 'unithead1' AND Usr <> 'prod08') then
 				    error :=14501;
 				    error_message := N'You are not allowed to do inventory transfer from QC Warehouse'||MinLineITQ;
 				END IF;
@@ -21252,6 +21252,7 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 	        error := -1224;
 	        error_message := 'Customer Total Quantity must match across all Sales Orders with the same Customer Reference No. ( '|| OtherTotalQty || ' Qty).';
 	    END IF;
+
 	ELSE
 
 		SELECT SUM(T1."Quantity") INTO SumQty FROM ORDR H INNER JOIN RDR1 T1 ON H."DocEntry" = T1."DocEntry" WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N';
@@ -21294,7 +21295,8 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         DECLARE ApprovedDraftQty INT;
         DECLARE OrderQty INT;
         DECLARE SumQty INT;
-        DECLARE OtherTotalQty INT;
+        DECLARE OtherTotalQtyMax INT;
+        DECLARE OtherTotalQtyMin INT;
         DECLARE ApprovalEntry INT;
         DECLARE SODate DATE;
         DECLARE CustomerRefDate DATE;
@@ -21307,7 +21309,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
 	    IF :transaction_type = 'A' THEN
 
-		    SELECT MAX("U_BP_TotalQty") INTO OtherTotalQty FROM
+		    SELECT MAX("U_BP_TotalQty"),MIN("U_BP_TotalQty") INTO OtherTotalQtyMax,OtherTotalQtyMin FROM
 		    (
 		    	SELECT H."U_BP_TotalQty" FROM ORDR H WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N'
 
@@ -21322,8 +21324,8 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
 	    ELSEIF :transaction_type = 'U' THEN
 
-	    	SELECT MAX("U_BP_TotalQty") INTO OtherTotalQty FROM
-		    (SELECT H."U_BP_TotalQty" FROM ORDR H WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."DocEntry" <> :list_of_cols_val_tab_del
+	    	SELECT MAX("U_BP_TotalQty"),MIN("U_BP_TotalQty") INTO OtherTotalQtyMax,OtherTotalQtyMin FROM
+		    (SELECT H."U_BP_TotalQty" FROM ORDR H WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N'
 
 		    	UNION ALL
 
@@ -21335,93 +21337,94 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
 	    END IF;
 
-	    IF OtherTotalQty IS NOT NULL AND IFNULL(OtherTotalQty,0) <> IFNULL(TotalQty,0) THEN
+	    IF (OtherTotalQtyMax IS NOT NULL AND OtherTotalQtyMin IS NOT NULL) AND ((IFNULL(OtherTotalQtyMax,0) <> IFNULL(TotalQty,0)) OR (IFNULL(OtherTotalQtyMin,0) <> IFNULL(TotalQty,0))) THEN
 			error := -1230;
-		    error_message := 'Customer Total Quantity must match across all Sales Orders with the same Customer Reference No. ( '|| OtherTotalQty || ' Qty).';
-		END IF;
+		    error_message := 'Customer Total Quantity must match across all Sales Orders with the same Customer Reference No. ( '|| IFNULL(OtherTotalQtyMax,OtherTotalQtyMin) || ' Qty).';
 
-	    IF SODate < '2025-12-10' THEN
-
-		    -- Draft Qty (exclude Rejected drafts from WDD1, Drafts punched and then rejected) --
-		    SELECT COALESCE(SUM(T1."Quantity"),0) INTO DraftQty
-	        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
-	        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
-	        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-	        WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N';
-
-	        -- Approved Draft Qty --
-			SELECT COALESCE(SUM(T1."Quantity"),0) INTO ApprovedDraftQty
-	        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
-	        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
-	        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-	        WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'Y' AND O."DocEntry" IS NULL;
-
-			-- Confirmed order quantities --
-	        SELECT COALESCE(SUM(R1."Quantity"),0) INTO OrderQty
-	        FROM ORDR R0 INNER JOIN RDR1 R1 ON R1."DocEntry" = R0."DocEntry"
-	        WHERE R0."NumAtCard" = CustomerRef AND IFNULL(R0."CANCELED",'N') = 'N'
-	        AND R0."DocEntry" NOT IN (SELECT W."DocEntry"
-	        							FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
-								        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
-								        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-								        WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N'
-								        GROUP BY W."DocEntry");
-
-			SumQty := DraftQty + OrderQty + ApprovedDraftQty;
-
-			IF IFNULL(TotalQty,0) = 0 THEN
-		        error := -1231;
-		        error_message := 'Customer Total Quantity cannot be empty.';
-		    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
-		        error := -1232;
-		        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| IFNULL(SumQty,0) - IFNULL(TotalQty,0) ||'.';
-		    END IF;
 		ELSE
+		    IF SODate < '2025-12-10' THEN
 
-		    -- Draft Qty (exclude Rejected drafts from WDD1, Drafts punched and then rejected) --
-		    SELECT COALESCE(SUM(T1."Quantity"),0) INTO DraftQty
-	        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
-	        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
-	        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-	        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17
-	        AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N';
+			    -- Draft Qty (exclude Rejected drafts from WDD1, Drafts punched and then rejected) --
+			    SELECT COALESCE(SUM(T1."Quantity"),0) INTO DraftQty
+		        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
+		        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
+		        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
+		        WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N';
 
-	        -- Approved Draft Qty --
-			SELECT COALESCE(SUM(T1."Quantity"),0) INTO ApprovedDraftQty
-	        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
-	        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
-	        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-	        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'Y' AND O."DocEntry" IS NULL;
+		        -- Approved Draft Qty --
+				SELECT COALESCE(SUM(T1."Quantity"),0) INTO ApprovedDraftQty
+		        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
+		        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
+		        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
+		        WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'Y' AND O."DocEntry" IS NULL;
 
-		    -- Confirmed order quantities --
-	        SELECT COALESCE(SUM(R1."Quantity"),0) INTO OrderQty
-	        FROM ORDR R0 INNER JOIN RDR1 R1 ON R1."DocEntry" = R0."DocEntry"
-	        WHERE (R0."NumAtCard" || '_' || TO_NVARCHAR(R0."TaxDate",'DD/MM/YYYY')) = CustomerRef AND IFNULL(R0."CANCELED",'N') = 'N'
-	        AND R0."DocEntry" NOT IN (SELECT W."DocEntry"
-	        							FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
-								        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
-								        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
-								        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N'
-								        GROUP BY W."DocEntry");
-			SumQty := DraftQty + OrderQty + ApprovedDraftQty;
-			IF IFNULL(CustomerRefDate,'')='' THEN
-				error := -1233;
-				error_message := 'Please mention Customer Ref. Date.';
+				-- Confirmed order quantities --
+		        SELECT COALESCE(SUM(R1."Quantity"),0) INTO OrderQty
+		        FROM ORDR R0 INNER JOIN RDR1 R1 ON R1."DocEntry" = R0."DocEntry"
+		        WHERE R0."NumAtCard" = CustomerRef AND IFNULL(R0."CANCELED",'N') = 'N'
+		        AND R0."DocEntry" NOT IN (SELECT W."DocEntry"
+		        							FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
+									        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
+									        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
+									        WHERE H."NumAtCard" = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N'
+									        GROUP BY W."DocEntry");
+
+				SumQty := DraftQty + OrderQty + ApprovedDraftQty;
+
+				IF IFNULL(TotalQty,0) = 0 THEN
+			        error := -1231;
+			        error_message := 'Customer Total Quantity cannot be empty.';
+			    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
+			        error := -1232;
+			        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| IFNULL(SumQty,0) - IFNULL(TotalQty,0) ||'.';
+			    END IF;
+			ELSE
+
+			    -- Draft Qty (exclude Rejected drafts from WDD1, Drafts punched and then rejected) --
+			    SELECT COALESCE(SUM(T1."Quantity"),0) INTO DraftQty
+		        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
+		        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
+		        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
+		        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17
+		        AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N';
+
+		        -- Approved Draft Qty --
+				SELECT COALESCE(SUM(T1."Quantity"),0) INTO ApprovedDraftQty
+		        FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
+		        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
+		        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
+		        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'Y' AND O."DocEntry" IS NULL;
+
+			    -- Confirmed order quantities --
+		        SELECT COALESCE(SUM(R1."Quantity"),0) INTO OrderQty
+		        FROM ORDR R0 INNER JOIN RDR1 R1 ON R1."DocEntry" = R0."DocEntry"
+		        WHERE (R0."NumAtCard" || '_' || TO_NVARCHAR(R0."TaxDate",'DD/MM/YYYY')) = CustomerRef AND IFNULL(R0."CANCELED",'N') = 'N'
+		        AND R0."DocEntry" NOT IN (SELECT W."DocEntry"
+		        							FROM ODRF H INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
+									        LEFT JOIN OWDD W ON W."DraftEntry" = H."DocEntry" AND W."ObjType" = H."ObjType"
+									        LEFT JOIN ORDR O ON O."DocEntry" = W."DocEntry" AND O."ObjType" = W."ObjType"
+									        WHERE (H."NumAtCard" || '_' || TO_NVARCHAR(H."TaxDate",'DD/MM/YYYY')) = CustomerRef AND H."CANCELED" = 'N' AND H."ObjType" = 17 AND IFNULL(W."Status",'W') = 'W' AND IFNULL(O."CANCELED",'N') = 'N'
+									        GROUP BY W."DocEntry");
+				SumQty := DraftQty + OrderQty + ApprovedDraftQty;
+				IF IFNULL(CustomerRefDate,'')='' THEN
+					error := -1233;
+					error_message := 'Please mention Customer Ref. Date.';
+				END IF;
+
+				IF UPPER(CustomerRef) like '%D%T%' THEN
+					error := -1234;
+					error_message := 'Please do not write date in Customer Ref. No., write it in Customer Ref. Date.';
+				END IF;
+
+				IF IFNULL(TotalQty,0) = 0 THEN
+			        error := -1235;
+			        error_message := 'Customer Total Quantity cannot be empty.';
+			    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
+			        error := -1236;
+			        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| IFNULL(SumQty,0) - IFNULL(TotalQty,0) ||'.';
+			    END IF;
+
 			END IF;
-
-			IF UPPER(CustomerRef) like '%D%T%' THEN
-				error := -1234;
-				error_message := 'Please do not write date in Customer Ref. No., write it in Customer Ref. Date.';
-			END IF;
-
-			IF IFNULL(TotalQty,0) = 0 THEN
-		        error := -1235;
-		        error_message := 'Customer Total Quantity cannot be empty.';
-		    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
-		        error := -1236;
-		        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| IFNULL(SumQty,0) - IFNULL(TotalQty,0) ||'.';
-		    END IF;
-
 		END IF;
 	END IF;
 END IF;
