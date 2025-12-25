@@ -474,7 +474,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         	error_message := N'Please Select Proper [Port of Discharge] from Port Master List';
         END IF;
     END IF;
-	/*
+
     -- Validation 30009: Payment Terms Check
     IF POPayment <> BPPayment THEN
         error := 30009;
@@ -486,7 +486,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         error := 30010;
         error_message := 'Sales Orders for specified customers must be created from UNIT - I only.';
     END IF;
-	*/
+
     -- Validation 30011: Sales Employee Check
     IF BPSLP <> SOSLP THEN
         SELECT T0."SlpName" INTO BPSlpName FROM OSLP T0 WHERE T0."SlpCode" = BPSLP;
