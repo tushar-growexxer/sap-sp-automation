@@ -280,15 +280,14 @@ If :Temp > 0 then
 
 		SELECT T0."DocEntry" INTO DocEntry FROM OVPM T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 		select STRING_AGG("E_MailL",',') INTO MailID from
-		(
-			select Distinct T1."E_MailL" FROM OCRD T0
+		(select Distinct T1."E_MailL" FROM OCRD T0
 			Inner Join OCPR T1 on T0."CardCode"=T1."CardCode"
 			Inner Join OVPM T2 on T0."CardCode"=T2."CardCode"
-			where  T0."CardType"='S' and T2."Canceled"='N' and Left(T0."CardCode",4) in ('VEXP','VFAS','VGPR','VLAB') and T2."DocEntry"=:list_of_cols_val_tab_del
-		) P;
+			where  T0."CardType"='S' and T2."Canceled"='N' and Left(T0."CardCode",4) in ('VEXP','VFAS','VGPR','VLAB') and T2."DocEntry"=:list_of_cols_val_tab_del) P;
+
 		Mobile := '';
 		EmailCC := 'purchasemgr@minalspecialities.com';
-		EmailBCC := 'accounts@minalspecialities.com,accounts8@minalspecialities.com';
+		EmailBCC := 'accounts@minalspecialities.com,accounts8@minalspecialities.com,sap@matangiindustries.com';
 		ObjectType := 'F';
 		Mobi_TYPE := 'Outgoing Payment Advice Engg MSPL';
 		Select CURRENT_SCHEMA Into DBName from Dummy;

@@ -1861,7 +1861,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := N'Payment term does not match the Business Partner Master record.';
     END IF;
 
-    IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport') THEN
+    IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
         error := -40028;
         error_message := N'Please select a valid Delivery Term.';
     END IF;
@@ -2207,7 +2207,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             error_message := N'Payment term does not match the Business Partner Master record.';
         END IF;
 
-        IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport') THEN
+        IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
             error := -40058;
             error_message := N'Please select a valid Delivery Term.';
         END IF;
@@ -4748,66 +4748,6 @@ DECLARE FromWhsCode Nvarchar(50);
 		END WHILE;
 	END IF;
 END IF;
-------------UNIT-2 "2PC-Flor"---------------
-/*IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-DECLARE MinIT Int;
-DECLARE MaxIT Int;
-DECLARE ITCode Nvarchar(50);
-DECLARE ITWhsCode Nvarchar(50);
-DECLARE FromWhsCode Nvarchar(50);
-DECLARE Branch Nvarchar(50);
-	SELECT Min(T0."VisOrder") INTO MinIT from WTR1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT Max(T0."VisOrder") INTO MaxIT from WTR1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-
-	SELECT OBPL."BPLName" INTO Branch FROM OWTR INNER JOIN OBPL ON OBPL."BPLId" = OWTR."BPLId" WHERE OWTR."DocEntry" =:list_of_cols_val_tab_del;
-
-	IF Branch = 'UNIT - II' THEN
-
-	WHILE :MinIT <= :MaxIT DO
-		SELECT WTR1."ItemCode" into ITCode FROM WTR1 WHERE WTR1."DocEntry" = :list_of_cols_val_tab_del and WTR1."VisOrder"=MinIT;
-		SELECT WTR1."WhsCode" into ITWhsCode FROM WTR1 WHERE WTR1."DocEntry" = :list_of_cols_val_tab_del and WTR1."VisOrder"=MinIT;
-		SELECT WTR1."FromWhsCod" into FromWhsCode FROM WTR1 where WTR1."DocEntry" =:list_of_cols_val_tab_del and WTR1."VisOrder"=MinIT;
-		IF ITWhsCode NOT LIKE '%TRD%' and ITWhsCode NOT LIKE '%GJCM%' and ITWhsCode NOT LIKE '%PDI%' and ITWhsCode NOT LIKE '%SSPL%' and ITWhsCode NOT LIKE '%ADVP%' and ITWhsCode NOT LIKE '%DE%' and ITWhsCode NOT LIKE '%RDI%' THEN
-
-			IF ITCode LIKE '%RM%' THEN
-				-----By pass some items for transfer to 2PC-flor--------
-				IF ITCode NOT IN ('PCRM0005','PCRM0009','PCRM0016','PCRM0027','PCRM0028','PCRM0033','PCRM0045','PCRM0050','PCRM0139','PCRM0153','PCRM0160') THEN
-					IF FromWhsCode = '2PC-QC' THEN
-						IF (ITWhsCode NOT IN ('2PC-RAW','2PC-QCR') and ITWhsCode NOT LIKE '%BT%') THEN
-							error :=1031;
-							error_message := N'Wrong warehouse';
-						END IF;
-					END IF;
-				END IF;
-
-				IF FromWhsCode = '2PC-FLOR' THEN
-					IF (ITWhsCode NOT LIKE '2PC-RAW') THEN
-						error :=-1033;
-						error_message := N'Wrong warehouse';
-					END IF;
-				END IF;
-			END IF;
-			IF ITCode LIKE '%FG%' THEN
-
-				IF FromWhsCode = '2PC-QC' THEN
-					IF (ITWhsCode NOT IN ('2PC-FLOR','2PC-QCR') and ITWhsCode NOT LIKE '%BT%') THEN
-						error :=1034;
-						error_message := N'Wrong warehouse';
-					END IF;
-				END IF;
-				IF FromWhsCode = '2PC-FG' THEN
-					IF (ITWhsCode NOT IN ('2PC-FLOR','2EX1PCFG','2RGP') and ITWhsCode NOT LIKE '%BT%') THEN
-						error :=1035;
-						error_message := N'Wrong warehouse.' ;
-					END IF;
-				END IF;
-			END IF;
-		END IF;
-		MinIT := MinIT+1;
-	END WHILE;
-	END IF;
-END IF;*/
-----------------------------------------------------------
 -----------Inventory transfer 'FT2' Series
 /*IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
@@ -19600,10 +19540,10 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The PCRM from 2PC-QC cannot be moved to any warehouse other than 2PC-QCR,2PC-RAW,2PC-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR') then
+       /* if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR') then
             error := -1033;
             error_message := 'The PCRM from 2BT cannot be moved to any warehouse other than 1BT,2PC-RAW,2PC-FLOR';
-        end if;
+        end if;*/
 	end if;
 	if Item like 'PCPM%' then
 		if FromWhs = '2PC-PAC' and ToWhs not in ('2EX1PCPM','2BT') then
@@ -20040,7 +19980,7 @@ DECLARE PRO Nvarchar(50);
 END IF;
 
 --------------------------Same Batch in Invoice as Sales Order Validation------30-01-2025---------
-IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type = 'U' ) THEN
+IF object_type = '13' AND (:transaction_type = 'A') THEN
     DECLARE wrong_batch NVARCHAR(100);
     DECLARE batch_count INTEGER;
 BEGIN
