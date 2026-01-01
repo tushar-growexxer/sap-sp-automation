@@ -117,21 +117,31 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     DECLARE BDP1Count int;
     DECLARE MobiAlert nvarchar(10);
     DECLARE LabelType nvarchar(100);
+    DECLARE DebAcct nvarchar(50);
+    DECLARE GroupTypee nvarchar(10);
 
     SELECT
         OCRD."CardType", OCRD."U_Organisation_Id", OCRD."IndustryC", OCRD."validFor",
         OCRD."SlpCode", OCRD."U_Lead_Source", OCRD."Territory", OCRD."U_MSME_Type",
         OCRD."U_Udyam_certi", OCRD."U_BDPerson", OCRD."U_Mobi_Alert", NNM1."SeriesName",
-        OUSR."USER_CODE", OCRD."U_LabelType"
+        OUSR."USER_CODE", OCRD."U_LabelType", cast(OCRD."DebPayAcct" as nvarchar), cast(OCRD."GroupCode" as nvarchar)
     INTO
         CardType, Organisation, Industry, ValidFor,
         SlpCode, LeadSource, Territory, MSMEtype,
         MSME, BDPerson, MobiAlert, Series,
-        UsrCod, LabelType
+        UsrCod, LabelType, DebAcct, GroupTypee
     FROM OCRD
     INNER JOIN NNM1 ON NNM1."Series" = OCRD."Series"
     INNER JOIN OUSR ON OUSR."USERID" = ( CASE WHEN :transaction_type = 'A' THEN OCRD."UserSign" ELSE OCRD."UserSign2" END )
     WHERE OCRD."CardCode" = :list_of_cols_val_tab_del;
+
+    IF (GroupTypee = '105' AND DebAcct not in ('21000320')) OR (GroupTypee = '103' AND DebAcct not in ('21000315')) OR (GroupTypee = '106' AND DebAcct not in ('21003211'))
+       OR (GroupTypee = '102' AND DebAcct not in ('11200510')) OR (GroupTypee = '104' AND DebAcct not in ('11200520')) THEN
+
+       error := -20000;
+       error_message := N'Please select proper Accounts Payable in Business Partner.';
+
+    END IF;
 
     IF ValidFor = 'Y' THEN
         IF :transaction_type = 'A' THEN
@@ -262,9 +272,21 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
                     error_message := N'Please Enter MSME details for vendor';
                 END IF;
             END IF;
+
+    		/* Supplier only */
+		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE Left(T0."CardCode",4) in ('VIRD','VPRD','VPPD','VEXP','VFAS','VGPR','VLAB','VORD') and T0."CardCode" = :list_of_cols_val_tab_del AND (IFNULL(T0."WTLiable",'')='N' or T0."WTLiable"='N')) THEN
+        	error := -20019;
+	        error_message := 'Subject to Withholding Tax is mandatory for Supplier, please select in Account Tab.';
+    		END IF;
+
+		    /* WT Code must be assigned */
+		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE T0."CardCode" = :list_of_cols_val_tab_del AND T0."CardType" = 'S' AND T0."WTLiable" = 'Y' AND
+    							NOT EXISTS (SELECT 1 FROM CRD4 T1 WHERE T1."CardCode" = T0."CardCode")) THEN
+        	error := -20020;
+	        error_message := 'At least one Withholding Tax Code must be assigned for Supplier.';
+    		END IF;
         END IF;
     END IF;
-
 END IF;
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
 
@@ -21848,7 +21870,7 @@ IF object_type = 'SPLREQ' AND (:transaction_type = 'A' or :transaction_type = 'U
 DECLARE UserID nvarchar(50);
 
 	SELECT T0."UserSign" Into UserID  FROM "@SAMPLEREQH" T0 WHERE T0."DocEntry" = list_of_cols_val_tab_del;
-	IF UserID not in (56) THEN
+	IF UserID not in (56, 14) THEN
 		error := -1239;
 		error_message := 'You are not allowed to Update the document';
 	END IF;

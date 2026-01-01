@@ -263,12 +263,10 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 
     IF CardType = 'S' THEN
         IF UsrCod IN ('purchase', 'dipurchase') THEN
-
             IF Series NOT LIKE 'V%' THEN
                 error := -20017;
                 error_message := N'Please select proper Type and Proper Series ' || Series;
             END IF;
-
         END IF;
 
         IF :transaction_type = 'A' AND Series LIKE 'V%' THEN
@@ -278,6 +276,18 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
                     error_message := N'Please Enter MSME details for vendor';
                 END IF;
             END IF;
+                		/* Supplier only */
+		    /*IF EXISTS (SELECT 1 FROM OCRD T0 WHERE Left(T0."CardCode",4) in ('VSRD','VPRD','VPPD','VEXP','VFAS','VGPR','VLAB','VORD') and T0."CardCode" = :list_of_cols_val_tab_del AND (IFNULL(T0."WTLiable",'')='N' or T0."WTLiable"='N')) THEN
+        	error := -20019;
+	        error_message := 'Subject to Withholding Tax is mandatory for Supplier, please select in Account Tab.';
+    		END IF;*/
+
+		    /* WT Code must be assigned */
+		    /*IF EXISTS (SELECT 1 FROM OCRD T0 WHERE T0."CardCode" = :list_of_cols_val_tab_del AND T0."CardType" = 'S' AND T0."WTLiable" = 'Y' AND
+    							NOT EXISTS (SELECT 1 FROM CRD4 T1 WHERE T1."CardCode" = T0."CardCode")) THEN
+        	error := -20020;
+	        error_message := 'At least one Withholding Tax Code must be assigned for Supplier.';
+    		END IF;*/
         END IF;
     END IF;
 END IF;
