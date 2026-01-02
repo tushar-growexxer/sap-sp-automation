@@ -125,21 +125,46 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     DECLARE BDP1Count int;
     DECLARE MobiAlert nvarchar(10);
     DECLARE LabelType NVARCHAR(100);
+    DECLARE DebAcct nvarchar(50);
+	DECLARE GroupTypee nvarchar(10);
 
     SELECT
         OCRD."CardType", OCRD."U_Organisation_Id", OCRD."IndustryC", OCRD."validFor",
         OCRD."SlpCode", OCRD."U_Lead_Source", OCRD."Territory", OCRD."U_MSME_Type",
         OCRD."U_Udyam_certi", OCRD."U_BDPerson", OCRD."U_Mobi_Alert", NNM1."SeriesName",
-        OUSR."USER_CODE",OCRD."U_LabelType"
+        OUSR."USER_CODE",OCRD."U_LabelType", cast(OCRD."DebPayAcct" as nvarchar), cast(OCRD."GroupCode" as nvarchar)
     INTO
         CardType, Organisation, Industry, ValidFor,
         SlpCode, LeadSource, Territory, MSMEtype,
         MSME, BDPerson, MobiAlert, Series,
-        UsrCod, LabelType
+        UsrCod, LabelType, DebAcct, GroupTypee
     FROM OCRD
     INNER JOIN NNM1 ON NNM1."Series" = OCRD."Series"
     INNER JOIN OUSR ON OUSR."USERID" = ( CASE WHEN :transaction_type = 'A' THEN OCRD."UserSign" ELSE OCRD."UserSign2" END )
     WHERE OCRD."CardCode" = :list_of_cols_val_tab_del;
+
+    IF (GroupTypee = '105' AND DebAcct not in ('20203121')) OR (GroupTypee = '101' AND DebAcct not in ('20203101')) OR (GroupTypee = '106' AND DebAcct not in ('20203120'))
+       OR (GroupTypee = '102' AND DebAcct not in ('10502000')) OR (GroupTypee = '100' AND DebAcct not in ('10501000')) OR (GroupTypee = '110' AND DebAcct not in ('20203509'))
+       OR (GroupTypee = '109' AND DebAcct not in ('20203102')) OR (GroupTypee = '111' AND DebAcct not in ('10700001')) THEN
+
+       error := -20018;
+       error_message := N'Please select proper Accounts Payable in Business Partner.';
+
+    END IF;
+
+    IF (((Series like 'COD%' or Series like 'CPD%' or Series like 'CSD%') AND GroupTypee <> '100')
+    	or ((Series like 'VSRD%' or Series like 'VPRD%' or Series like 'VORD%') AND GroupTypee <> '101')
+    	or ((Series like 'COE%' or Series like 'CPE%' or Series like 'CSE%') AND GroupTypee <> '102')
+    	or ((Series like 'VSRI%' or Series like 'VPRI%' or Series like 'VORI%') AND GroupTypee <> '105')
+    	or ((Series like 'VFAS%' or Series like 'VLAB%' or Series like 'VEXP%' or Series like 'VGPR%') AND GroupTypee <> '106')
+    	or ((Series like 'VPPD%') AND GroupTypee <> '109')
+    	or ((Series like 'EMP%') AND GroupTypee <> '110')
+    	or ((Series like 'STLO%') AND GroupTypee <> '111')) THEN
+
+       error := -20019;
+       error_message := N'Series and Group not matching in Business Partner.';
+
+    END IF;
 
     IF ValidFor = 'Y' THEN
         IF :transaction_type = 'A' THEN

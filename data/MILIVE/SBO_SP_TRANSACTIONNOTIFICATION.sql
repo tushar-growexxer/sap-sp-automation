@@ -4510,7 +4510,7 @@ DECLARE Branch Int;
 END IF;
 ---------------------------------------------------
 
-IF object_type = '18' AND (:transaction_type = 'A') THEN
+/*IF object_type = '18' AND (:transaction_type = 'A') THEN
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
 DECLARE WhseAP Nvarchar(50);
@@ -4527,7 +4527,7 @@ DECLARE ItemAP Nvarchar(50);
 		END IF;
 		MinAP := MinAP+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF Object_type = '20' and (:transaction_type ='A') Then
 DECLARE MinGRN int;
@@ -13703,7 +13703,7 @@ if DraftObj = 20 THEN
 	END IF;
 END IF;
 
-IF object_type='112' AND (:transaction_type = 'A') THEN
+/*IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
 DECLARE WhseAP Nvarchar(50);
@@ -13722,7 +13722,7 @@ if DraftObj = 18 THEN
 		MinAP := MinAP+1;
 	END WHILE;
 	END IF;
-END IF;
+END IF;*/
 
 IF Object_type='112' and (:transaction_type ='A') Then
 DECLARE MinGRN int;
@@ -22149,6 +22149,52 @@ IF Object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         END WHILE;
 
     END IF; -- End of CardCode and QC Department check
+END IF;
+
+
+---------------------------------- RM receipt in Special Prod Entry --------------------------------
+IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U') Then
+DECLARE ProdItemCode nvarchar(50);
+DECLARE MainItemCode nvarchar(50);
+DECLARE ProdType nvarchar(5);
+DECLARE MinIn int;
+DECLARE MaxIn int;
+DECLARE RMCount int;
+
+	 SELECT T0."ItemCode" into MainItemCode	FROM OWOR T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del;
+	 SELECT T0."Type" into ProdType	FROM OWOR T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del;
+
+	 IF ProdType = 'P' THEN
+
+	 -- Check if MainItemCode contains 'RM'
+	 IF MainItemCode LIKE '%RM%' THEN
+
+	     -- Count DISTINCT RM items in production items
+	     SELECT COUNT(DISTINCT T0."ItemCode") INTO RMCount
+	     FROM WOR1 T0
+	     WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+	     AND T0."ItemCode" LIKE '%RM%';
+
+	     -- If more than 1 DISTINCT RM item exists, throw error
+	     IF RMCount > 1 THEN
+	         error := -1207;
+	         error_message := N'Multiple different RM items are not allowed in production order.';
+	     ELSEIF RMCount = 1 THEN
+	         -- Check if the RM item matches MainItemCode
+	         SELECT TOP 1 T0."ItemCode" INTO ProdItemCode
+	         FROM WOR1 T0
+	         WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+	         AND T0."ItemCode" LIKE '%RM%';
+
+	         IF MainItemCode != ProdItemCode THEN
+	             error := -1207;
+	             error_message := N'Production item RM code must match the main item RM code.';
+	         END IF;
+	     END IF;
+
+	 END IF;
+
+	 END IF;
 END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
