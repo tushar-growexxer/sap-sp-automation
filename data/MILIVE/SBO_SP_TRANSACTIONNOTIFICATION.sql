@@ -5606,7 +5606,7 @@ DECLARE SeriesDL Nvarchar(50);
 				error :=135;
 				error_message := N'Please enter packing type';
 			END IF;
-			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
+			/*IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
 		 		pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
 				error :=135;
 				error_message := N'Please select proper packing type';
@@ -5619,7 +5619,7 @@ DECLARE SeriesDL Nvarchar(50);
 				typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' then
 				error :=135;
 				error_message := N'Please enter proper Type of pallets/IBC/ISO';
-			END IF;
+			END IF;*/
 			IF lictype IS NULL  then
 				error :=135;
 				error_message := N'Please enter License Type';
@@ -5632,10 +5632,10 @@ DECLARE SeriesDL Nvarchar(50);
 				error :=135;
 				error_message := N'Please enter Pallates/IBC';
 			END IF;
-			IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
+			/*IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
 				error :=135;
 				error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
-			END IF;
+			END IF;*/
 			IF Nopltibc IS NULL  then
 				error :=135;
 				error_message := N'Please enter No of Pallates/IBC';
@@ -21800,7 +21800,7 @@ IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     END WHILE;
 END IF;
 
-/*IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE ItemCode NVARCHAR(50);
     DECLARE MinGI INT;
     DECLARE MaxGI INT;
@@ -21835,7 +21835,7 @@ END IF;
             MinGI = MinGI + 1;
         END WHILE;
     END IF;
-END IF;*/
+END IF;
 
 ------------------------------------------ SAMPLE REQUEST (UDO) VLAIDATIONS ---------------------------------------
 IF (:object_type = 'SPLREQ') AND (:transaction_type = 'U') THEN
@@ -22150,10 +22150,8 @@ IF Object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 
     END IF; -- End of CardCode and QC Department check
 END IF;
-
-
 ---------------------------------- RM receipt in Special Prod Entry --------------------------------
-IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U') Then
+/*IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U') Then
 DECLARE ProdItemCode nvarchar(50);
 DECLARE MainItemCode nvarchar(50);
 DECLARE ProdType nvarchar(5);
@@ -22195,6 +22193,19 @@ DECLARE RMCount int;
 	 END IF;
 
 	 END IF;
+END IF;*/
+----------------------------------
+-- Only SAP Team is allowed to maintain Consignee Master
+----------------------------------
+IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
+    DECLARE UserId INT;
+
+    SELECT "UserSign" INTO UserId FROM "@CONSIGNEEM" WHERE "Code" = :list_of_cols_val_tab_del;
+
+    IF UserId Not In (1,72,73) THEN
+        error := -9001;
+        error_message := N'Access denied. Only SAP Team is authorized to add, update, or cancel Consignee Master records.';
+    END IF;
 END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
