@@ -5997,14 +5997,14 @@ DECLARE MaxLineITQ Int;
 		and WTR1."VisOrder"=MinLineITQ;
 
 			IF Frmwhs LIKE '%BT' THEN
-				If (Usr <> 'engg02' AND Usr <> 'engg07' AND Usr <> 'store01' AND Usr <> 'manager') then
+				If (Usr <> 'engg02' AND Usr <> 'engg07' AND Usr <> 'store01' AND Usr <> 'manager' AND Usr <> 'store02') then
 				    error :=14503;
 				    error_message := N'You are not allowed to do inventory transfer from BT Warehouse'||MinLineITQ;
 				END IF;
 			END IF;
 
 			IF ToWhs LIKE '%BT' THEN
-				If (Usr <> 'engg02' AND Usr <> 'engg07' AND Usr <> 'store01' AND Usr <> 'manager') then
+				If (Usr <> 'engg02' AND Usr <> 'engg07' AND Usr <> 'store01' AND Usr <> 'manager' AND Usr <> 'store02') then
 				    error :=14504;
 				    error_message := N'You are not allowed to do inventory transfer by using BT Warehouse'||MinLineITQ;
 				END IF;
@@ -22194,18 +22194,32 @@ DECLARE RMCount int;
 
 	 END IF;
 END IF;*/
-----------------------------------
--- Only SAP Team is allowed to maintain Consignee Master
-----------------------------------
+---------------------------- Consignee Master Validation-------------------------------
 IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
-    DECLARE UserId INT;
+DECLARE UserId INT;
+DECLARE Cnt INT;
+DECLARE EUserId INT;
 
-    SELECT "UserSign" INTO UserId FROM "@CONSIGNEEM" WHERE "Code" = :list_of_cols_val_tab_del;
+SELECT Max("UserSign") INTO EUserId FROM "@ACONSIGNEEM" WHERE "Code" = :list_of_cols_val_tab_del;
+SELECT "UserSign" INTO UserId FROM "@CONSIGNEEM" WHERE "Code" = :list_of_cols_val_tab_del;
+SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del AND "CardType" = 'C';
 
-    IF UserId Not In (1,72,73) THEN
-        error := -9001;
-        error_message := N'Access denied. Only SAP Team is authorized to add, update, or cancel Consignee Master records.';
+	IF UserId Not In (1,72,73) THEN
+		error := -1209;
+		error_message := N'Access denied. Only SAP Team is authorized to add, update, or cancel Consignee Master records.';
+	END IF;
+/* ---------------------- Validate Consignee Code exists as Customer (Code = Customer Code)------------------------------ */
+    IF Cnt = 0 THEN
+        error := -1210;
+        error_message := N'Invalid Customer Code. Consignee Code must exist in Customer Master (OCRD).';
     END IF;
+
+    IF :transaction_type IN ('U','C') THEN
+    	IF EUserId Not In (1,72,73) THEN
+			error := -1211;
+			error_message := N'Access denied. Only SAP Team is authorized to update, or cancel Consignee Master records.';
+		END IF;
+	END IF;
 END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-

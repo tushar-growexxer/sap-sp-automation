@@ -21463,6 +21463,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 		END IF;
 	END IF;
 END IF;
+
 -----------Sales Return Request validation for warhouse and batch number-------------------
 IF (:object_type = '234000031') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_Warehouse NVARCHAR(10);
