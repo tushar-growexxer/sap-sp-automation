@@ -22221,6 +22221,21 @@ SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del 
 		END IF;
 	END IF;
 END IF;
+IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE v_cnt INT;
+
+    SELECT COUNT(*) INTO v_cnt FROM ORDR T0
+    LEFT JOIN "@CONSIGNEED" T1 ON T1."Code" = T0."CardCode"
+    INNER JOIN NNM1 T2 ON T0."Series" = T2."Series"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+    AND (IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'') OR IFNULL(Cast(T0."U_Consignee_Add" as Nvarchar),'') <> IFNULL(Cast(T1."U_ConsigneeAdd" as NVarchar),''))
+    AND T2."SeriesName" like 'EX%';
+
+    IF v_cnt > 0 THEN
+        error := 1212;
+        error_message := 'Manual entry not allowed. Select Business Partner and fetch Consignee via FMS.';
+    END IF;
+END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
