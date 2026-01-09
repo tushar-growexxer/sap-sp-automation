@@ -144,8 +144,8 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     WHERE OCRD."CardCode" = :list_of_cols_val_tab_del;
 
     IF (GroupTypee = '105' AND DebAcct not in ('20203121')) OR (GroupTypee = '101' AND DebAcct not in ('20203101')) OR (GroupTypee = '106' AND DebAcct not in ('20203120'))
-       OR (GroupTypee = '102' AND DebAcct not in ('10502000')) OR (GroupTypee = '100' AND DebAcct not in ('10501000')) OR (GroupTypee = '110' AND DebAcct not in ('20203509'))
-       OR (GroupTypee = '109' AND DebAcct not in ('20203102')) OR (GroupTypee = '111' AND DebAcct not in ('10700001')) THEN
+       OR (GroupTypee = '102' AND DebAcct not in ('10502000')) OR (GroupTypee = '100' AND DebAcct not in ('10501000')) OR (GroupTypee = '110' AND DebAcct not in ('20203536'))
+       OR (GroupTypee = '109' AND DebAcct not in ('20203102')) OR (GroupTypee = '113' AND DebAcct not in ('10700001')) THEN
 
        error := -20018;
        error_message := N'Please select proper Accounts Payable in Business Partner.';
@@ -159,7 +159,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     	or ((Series like 'VFAS%' or Series like 'VLAB%' or Series like 'VEXP%' or Series like 'VGPR%') AND GroupTypee <> '106')
     	or ((Series like 'VPPD%') AND GroupTypee <> '109')
     	or ((Series like 'EMP%') AND GroupTypee <> '110')
-    	or ((Series like 'STLO%') AND GroupTypee <> '111')) THEN
+    	or ((Series like 'STLO%') AND GroupTypee <> '113')) THEN
 
        error := -20019;
        error_message := N'Series and Group not matching in Business Partner.';
@@ -191,7 +191,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
                 error_message := N'Please select Industry';
             END IF;
 
-            IF SlpCode = -1 THEN
+            IF SlpCode = -1 AND GroupTypee <> 113 THEN
                 error := -20005;
                 error_message := N'Please select Sales employee';
             END IF;
@@ -233,7 +233,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
             error_message := 'Payment Terms not allowed more than 90 days for new Customer';
         END IF;
 
-        IF IFNULL(BDPerson,'') = '' THEN
+        IF IFNULL(BDPerson,'') = '' AND GroupTypee <> 113 THEN
             error := -20011;
             error_message := N'Please Enter BD Person Name.';
         END IF;
@@ -280,7 +280,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
             error_message := N'The selected BD person does not match the standard BD person list.';
         END IF;
 
-        IF IFNULL(LabelType,'')='' THEN
+        IF IFNULL(LabelType,'')='' AND GroupTypee <> 113 THEN
         	error := -20016;
         	error_message := N'Please select Label Type.';
         END IF;

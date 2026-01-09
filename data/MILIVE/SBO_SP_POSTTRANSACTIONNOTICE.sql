@@ -761,6 +761,75 @@ IF (:object_type = '19' AND (:transaction_type IN ('A','U'))) THEN
 			END IF;
 	End If;
 End If;
+-----------------------------------AR Invoice Generated---------------------------------------------
+---Sales Invoice Generate alert to Business Head(SC,DI,OF)----
+IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
+
+select count(*) into Temp from OINV T0
+Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('COE','COD','CID','CIE') and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OINV T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+		MailID:= 'devarsh@matangiindustries.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'A';
+		Mobi_TYPE := 'A/R Invoice Generated ';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MILIVE') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (1113,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+-----------------------------------AR Invoice Generated---------------------------------------------
+---Sales Invoice Generate alert to Business Head(PC)----
+IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
+
+select count(*) into Temp from OINV T0
+Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('CPE','CPD') and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OINV T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+		MailID:= 'ramesh@matangiindustries.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'I';
+		Mobi_TYPE := 'A/R Invoice Generated ';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MILIVE') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (1113,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+-------------------------------------------- Sample Request ----------------------------------------------------------
+
+IF (:object_type = '23' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
+
+select count(*) into Temp from OQUT T0 JOIN QUT1 T1 ON T0."DocEntry" = T1."DocEntry"
+Where T0."CANCELED"='N' AND T1."U_Department" = 'QC' and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OQUT T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+		MailID := 'qc@matangiindustries.com,qclab@matangiindustries.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'K';
+		Mobi_TYPE := 'Sample Request';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MILIVE') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (459,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+--SELECT * FROM View_Objdet
 
 -- Select the return values
 select :error, :error_message FROM dummy;

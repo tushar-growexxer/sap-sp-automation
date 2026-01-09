@@ -4855,7 +4855,7 @@ DECLARE ITCapacity Int;
 			and ITCapacity <> 50 and ITCapacity <> 200 and ITCapacity <> 170 and ITCapacity <> 190 and ITCapacity <> 220 and ITCapacity <> 850 and ITCapacity <> 900
 			and ITCapacity <> 1000 and ITCapacity <> 160 and ITCapacity <> 165 and ITCapacity <> 800 and ITCapacity <> 197 and ITCapacity <> 30 and ITCapacity <> 35 and ITCapacity <> 250
 			and ITCapacity <> 215 and ITCapacity <> 185 and ITCapacity <> 225 and ITCapacity <> 228 and ITCapacity <> 210 and ITCapacity <> 15 and ITCapacity <> 232 and ITCapacity <> 235
-			and ITCapacity <> 300 and ITCapacity <> 270 and ITCapacity <> 245 and ITCapacity <> 231 and ITCapacity <> 140 and ITCapacity <> 240 and ITCapacity <> 1250 THEN
+			and ITCapacity <> 300 and ITCapacity <> 270 and ITCapacity <> 245 and ITCapacity <> 231 and ITCapacity <> 140 and ITCapacity <> 240 and ITCapacity <> 1250 and ITCapacity <> 600 THEN
 				error :=104;
 				error_message := N'Capacity may wrong';
 			END IF;
@@ -14033,7 +14033,7 @@ THEN
 			and ITCapacity <> 50 and ITCapacity <> 200 and ITCapacity <> 170 and ITCapacity <> 190 and ITCapacity <> 220 and ITCapacity <> 850 and ITCapacity <> 900
 			and ITCapacity <> 1000 and ITCapacity <> 160 and ITCapacity <> 165 and ITCapacity <> 800 and ITCapacity <> 197 and ITCapacity <> 30 and ITCapacity <> 35 and ITCapacity <> 250
 			and ITCapacity <> 215 and ITCapacity <> 185 and ITCapacity <> 225 and ITCapacity <> 228 and ITCapacity <> 210 and ITCapacity <> 15 and ITCapacity <> 232 and ITCapacity <> 235
-			and ITCapacity <> 300 and ITCapacity <> 270 and ITCapacity <> 245 and ITCapacity <> 231 THEN
+			and ITCapacity <> 300 and ITCapacity <> 270 and ITCapacity <> 245 and ITCapacity <> 231 and ITCapacity <> 600 THEN
 				error :=104;
 				error_message := N'Capacity may wrong';
 			END IF;
