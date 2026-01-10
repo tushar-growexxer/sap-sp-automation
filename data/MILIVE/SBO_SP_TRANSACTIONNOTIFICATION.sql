@@ -4176,7 +4176,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4184,12 +4184,12 @@ DECLARE Series varchar(50);
 			error :=66;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 -------------------------------------------------
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-IF object_type = '13' AND (:transaction_type ='A') THEN
+/*IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4198,7 +4198,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -19671,7 +19671,7 @@ if Item like '%FG%' then
             error := -1040;
             error_message := 'The PCFG from 1BT cannot be moved to any warehouse other than 2BT,PC-FG,PC-QCR,DI-FG,DI-QCR';
         end if;
-		if FromWhs = 'DI-FG' and ToWhs not in ('1BT') then
+		if FromWhs = 'DI-FG' and ToWhs not in ('1BT','DI-TRD') then
             error := -1041;
             error_message := 'The DIFG from DI-FG cannot be moved to any warehouse other than 1BT';
         end if;
@@ -22195,7 +22195,7 @@ DECLARE RMCount int;
 	 END IF;
 END IF;*/
 ---------------------------- Consignee Master Validation-------------------------------
-IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
+/*IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
 DECLARE UserId INT;
 DECLARE Cnt INT;
 DECLARE EUserId INT;
@@ -22208,7 +22208,7 @@ SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del 
 		error := -1209;
 		error_message := N'Access denied. Only SAP Team is authorized to add, update, or cancel Consignee Master records.';
 	END IF;
-/* ---------------------- Validate Consignee Code exists as Customer (Code = Customer Code)------------------------------ */
+---------------------- Validate Consignee Code exists as Customer (Code = Customer Code)-----------------------------
     IF Cnt = 0 THEN
         error := -1210;
         error_message := N'Invalid Customer Code. Consignee Code must exist in Customer Master (OCRD).';
@@ -22235,7 +22235,7 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error := 1212;
         error_message := 'Manual entry not allowed. Select Business Partner and fetch Consignee via FMS.';
     END IF;
-END IF;
+END IF;*/
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
