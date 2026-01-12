@@ -414,6 +414,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE U_Mining NVARCHAR(50);
     DECLARE Country NVARCHAR(50);
     DECLARE EOSellType NVARCHAR(100);
+    DECLARE v_cnt INT;
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -596,6 +597,26 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
             END IF;
         END IF;
     END IF;
+-- =====================================================
+-- Validation 30021: Consignee Manual Entry Not Allowed
+-- =====================================================
+IF Series LIKE 'EX%' THEN
+    SELECT COUNT(*) INTO v_cnt
+    FROM ORDR T0
+    LEFT JOIN "@CONSIGNEED" T1
+        ON T1."Code" = T0."CardCode"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+      AND (
+            IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'')
+         OR IFNULL(CAST(T0."U_Consignee_Add" AS NVARCHAR),'')
+            <> IFNULL(CAST(T1."U_ConsigneeAdd" AS NVARCHAR),'')
+          );
+
+    IF v_cnt > 0 THEN
+        error := 30021;
+        error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
+    END IF;
+END IF;
     -- ===================================================
     -- SECTION 4: LINE LEVEL VALIDATIONS - COMBINED LOOP
     -- ===================================================
@@ -899,7 +920,6 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
 END IF;
 
 IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
-
     SELECT T0."ObjType" INTO DraftObj FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
     -- All validations below apply only to Sales Order Drafts (Object Type 17)
     IF DraftObj = 17 THEN
@@ -1032,6 +1052,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 	DECLARE U_Mining nvarchar(50);
 	DECLARE Country NVARCHAR(50);
 	DECLARE EOSellType NVARCHAR(100);
+    DECLARE v_cnt INT;
     ----------------------------------------------------------------------------------------------------
     -- SECTION 1: UPFRONT DATA RETRIEVAL (EXECUTED ONCE)
     ----------------------------------------------------------------------------------------------------
@@ -1241,6 +1262,23 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
                 error_message := 'Sales Orders for specified customers must be created from UNIT - I only.';
             END IF;
         END IF;
+-- =====================================================
+-- Validation 30021: Consignee Manual Entry Not Allowed
+-- =====================================================
+IF SOSeries LIKE 'EX%' THEN
+    SELECT COUNT(*) INTO v_cnt
+    FROM ODRF T0
+    LEFT JOIN "@CONSIGNEED" T1
+        ON T1."Code" = T0."CardCode"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+      AND (IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'')
+         OR IFNULL(CAST(T0."U_Consignee_Add" AS NVARCHAR),'') <> IFNULL(CAST(T1."U_ConsigneeAdd" AS NVARCHAR),'') ) and T0."ObjType"=17;
+
+    IF v_cnt > 0 THEN
+        error := 30085;
+        error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
+    END IF;
+END IF;
 
         ----------------------------------------------------------------------------------------------------
         -- SECTION 3: CONSOLIDATED LINE-LEVEL VALIDATIONS (SINGLE LOOP)
@@ -1365,7 +1403,6 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 							END IF;
 						END IF;
 					END IF;
-
 
 		            IF SOPackng = Pack1 then
 					else
@@ -1502,9 +1539,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
             	error := 30090;
             	error_message := N'Please select a valid EO Sell Type.';
             END IF;
-
             -----------------------------------------------------------------
-
 	IF SOSeries NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode NOT LIKE 'WS%' AND SOItemCode <> 'PCFG0424') THEN
 			IF SOName = Freetext then
@@ -1557,9 +1592,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
             -- Increment loop counter
             MinSO := MinSO + 1;
         END WHILE;
-
     END IF; -- End of the main IF DraftObj = 17 block
-
 END IF;
 ------------------------------- END OF SALES ORDER ---------------------------------
 
@@ -4176,7 +4209,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4184,7 +4217,7 @@ DECLARE Series varchar(50);
 			error :=66;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 -------------------------------------------------
 -- FORM Name   : A/R Invoice
 -- Added Date  :
@@ -22195,7 +22228,7 @@ DECLARE RMCount int;
 	 END IF;
 END IF;*/
 ---------------------------- Consignee Master Validation-------------------------------
-/*IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
+IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
 DECLARE UserId INT;
 DECLARE Cnt INT;
 DECLARE EUserId INT;
@@ -22221,21 +22254,7 @@ SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del 
 		END IF;
 	END IF;
 END IF;
-IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-    DECLARE v_cnt INT;
 
-    SELECT COUNT(*) INTO v_cnt FROM ORDR T0
-    LEFT JOIN "@CONSIGNEED" T1 ON T1."Code" = T0."CardCode"
-    INNER JOIN NNM1 T2 ON T0."Series" = T2."Series"
-    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
-    AND (IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'') OR IFNULL(Cast(T0."U_Consignee_Add" as Nvarchar),'') <> IFNULL(Cast(T1."U_ConsigneeAdd" as NVarchar),''))
-    AND T2."SeriesName" like 'EX%';
-
-    IF v_cnt > 0 THEN
-        error := 1212;
-        error_message := 'Manual entry not allowed. Select Business Partner and fetch Consignee via FMS.';
-    END IF;
-END IF;*/
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;

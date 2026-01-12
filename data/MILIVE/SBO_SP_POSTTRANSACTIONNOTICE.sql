@@ -765,8 +765,8 @@ End If;
 ---Sales Invoice Generate alert to Business Head(SC,DI,OF)----
 IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
 
-select count(*) into Temp from OINV T0
-Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('COE','COD','CID','CIE') and T0."DocEntry"=:list_of_cols_val_tab_del;
+select count(*) into Temp from OINV T0 Inner Join NNM1 T1 On T0."Series"=T1."Series"
+Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('COE','COD','CID','CIE')  and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%') and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 If :Temp > 0 then
 
@@ -787,8 +787,8 @@ End If;
 ---Sales Invoice Generate alert to Business Head(PC)----
 IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
 
-select count(*) into Temp from OINV T0
-Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('CPE','CPD') and T0."DocEntry"=:list_of_cols_val_tab_del;
+select count(*) into Temp from OINV T0 Inner Join NNM1 T1 On T0."Series"=T1."Series"
+Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('CPE','CPD') and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%') and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 If :Temp > 0 then
 
@@ -808,7 +808,7 @@ End If;
 
 -------------------------------------------- Sample Request ----------------------------------------------------------
 
-IF (:object_type = '23' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
+IF (:object_type = '23' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OQUT T0 JOIN QUT1 T1 ON T0."DocEntry" = T1."DocEntry"
 Where T0."CANCELED"='N' AND T1."U_Department" = 'QC' and T0."DocEntry"=:list_of_cols_val_tab_del;
