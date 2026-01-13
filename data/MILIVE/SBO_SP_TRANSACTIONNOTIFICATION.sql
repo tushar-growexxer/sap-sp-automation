@@ -5463,7 +5463,7 @@ DECLARE Nopltibc Nvarchar(50);
 	END WHILE;
 END IF;
 
-IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
 DECLARE PerUntQty Nvarchar(50);
@@ -5590,7 +5590,7 @@ DECLARE SeriesAR Nvarchar(50);
 		END IF;
 		MinAR := MinAR + 1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 
@@ -10272,7 +10272,7 @@ DECLARE TransType Int;
 			END IF;
 END IF;
 --------------------------------Delay Remarks------------------------------
-IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
+/*IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE DelayRemark Nvarchar(50);
 
 		SELECT T1."U_RMKSTR" into DelayRemark FROM OINV T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
@@ -10291,7 +10291,7 @@ DECLARE BLdelayRemark Nvarchar(50);
 			error :=361;
 			error_message := N'Please select proper BL delay remark';
 		END IF;
-END IF;
+END IF;*/
 
 IF object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE DocType Nvarchar(50);
@@ -19120,7 +19120,7 @@ END IF;*/
 
 
 --------------------Delay Remarks-------
-
+/*
 IF object_type='112' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 
 DECLARE DelayRemark Nvarchar(50);
@@ -19151,7 +19151,7 @@ if DraftObj = 13 THEN
 
 	END IF;
 END IF;
-
+*/
 IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
 DECLARE MinIN Int;
