@@ -6388,7 +6388,7 @@ DECLARE MaxLineITQ Int;
 		select WTR1."FromWhsCod" into Frmwhs from WTR1 where WTR1."DocEntry"= :list_of_cols_val_tab_del and WTR1."VisOrder"=MinLineITQ;
 
 			IF Frmwhs IN ('2PC-QCTR','SC-QC-TR','SC-QC','2SC-QC','JW-QC','PC-QC-TR','PC-QC','2PC-QC','3PC-QC') THEN
-				If (Usr <> 'qc02' AND Usr <> 'qc03' AND Usr <> 'sap01' AND Usr <> 'engg03' AND Usr <> 'manager' AND Usr <> 'unithead1' AND Usr <> 'prod08') then
+				If (Usr <> 'qc02' AND Usr <> 'qc03' AND Usr <> 'sap01' AND Usr <> 'engg03' AND Usr <> 'manager' AND Usr <> 'unithead1' AND Usr <> 'prod08' AND Usr <> 'dispatch') then
 				    error :=14501;
 				    error_message := N'You are not allowed to do inventory transfer from QC Warehouse'||MinLineITQ;
 				END IF;
@@ -15741,7 +15741,7 @@ THEN
 		and DRF1."VisOrder"=MinLineITQ;
 
 			IF Frmwhs IN ('2PC-QCTR','SC-QC-TR','SC-QC','2SC-QC','JW-QC','PC-QC-TR','PC-QC','2PC-QC','3PC-QC') THEN
-				If (Usr <> 'qc02' AND Usr <> 'qc03' AND Usr <> 'manager' ) then
+				If (Usr not in ('qc02','qc03','manager')) then
 				    error :=14501;
 				    error_message := N'You are not allowed to do inventory transfer from QC Warehouse'||MinLineITQ;
 				END IF;
