@@ -19700,7 +19700,7 @@ if Item like '%FG%' then
             error := -1039;
             error_message := 'The PCFG from PC-QCR cannot be moved to any warehouse other than 1BT';
         end if;
-		if FromWhs = '1BT' and ToWhs not in ('2BT','PC-FG','PC-QCR','DI-FG','DI-QCR','OF-FG', 'OF-QC', 'OF-QCR','PC-QC-TR') then
+		if FromWhs = '1BT' and ToWhs not in ('2BT','PC-FG','PC-QCR','DI-FG','DI-QCR','OF-FG', 'OF-QC', 'OF-QCR','PC-QC-TR','PC-TRD') then
             error := -1040;
             error_message := 'The PCFG from 1BT cannot be moved to any warehouse other than 2BT,PC-FG,PC-QCR,DI-FG,DI-QCR';
         end if;
