@@ -301,7 +301,8 @@ End If;
 IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OINV T0 Inner Join NNM1 T1 On T0."Series"=T1."Series"
-Where T0."CANCELED"='N' and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%') and Left(T0."CardCode",3) in ('COE','COD','CSD','CSE') and T0."DocEntry"=:list_of_cols_val_tab_del;
+Where T0."CANCELED"='N' and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%' OR T1."SeriesName" like 'ET%' OR T1."SeriesName" like 'DT%')
+and Left(T0."CardCode",3) in ('COE','COD','CSD','CSE') and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 If :Temp > 0 then
 

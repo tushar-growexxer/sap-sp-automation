@@ -766,7 +766,8 @@ End If;
 IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OINV T0 Inner Join NNM1 T1 On T0."Series"=T1."Series"
-Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('COE','COD','CID','CIE')  and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%') and T0."DocEntry"=:list_of_cols_val_tab_del;
+Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('COE','COD','CID','CIE')
+and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%' OR T1."SeriesName" like 'ET%' OR T1."SeriesName" like 'DT%') and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 If :Temp > 0 then
 
@@ -788,7 +789,8 @@ End If;
 IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OINV T0 Inner Join NNM1 T1 On T0."Series"=T1."Series"
-Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('CPE','CPD') and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%') and T0."DocEntry"=:list_of_cols_val_tab_del;
+Where T0."CANCELED"='N' and Left(T0."CardCode",3) in ('CPE','CPD')
+and (T1."SeriesName" like 'DM%' OR T1."SeriesName" like 'EX%' OR T1."SeriesName" like 'ET%' OR T1."SeriesName" like 'DT%') and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 If :Temp > 0 then
 
@@ -807,7 +809,6 @@ If :Temp > 0 then
 End If;
 
 -------------------------------------------- Sample Request ----------------------------------------------------------
-
 IF (:object_type = '23' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OQUT T0 JOIN QUT1 T1 ON T0."DocEntry" = T1."DocEntry"

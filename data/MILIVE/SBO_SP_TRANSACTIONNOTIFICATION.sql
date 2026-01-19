@@ -344,6 +344,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     -- Line Level Variables
     DECLARE SOItemCode NVARCHAR(50);
     DECLARE SOWhse NVARCHAR(50);
+    DECLARE TaxCode NVARCHAR(50);
     DECLARE SOEntryType NVARCHAR(50);
     DECLARE LicenseTypeSO NVARCHAR(50);
     DECLARE LicenseNoSO NVARCHAR(50);
@@ -624,14 +625,14 @@ END IF;
     WHILE MinSO <= MaxSO DO
         -- Get all line-level data in a single, efficient query
         SELECT
-            T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity",
+            T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
             T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."U_ShowREX", COUNT(T1."U_TOPLT"), T1."Dscription", T1."FreeTxt",
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining"
         INTO
-            SOItemCode, SOWhse, SOEntryType, LicenseTypeSO, LicenseNoSO, PSS, Qty,
+            SOItemCode, SOWhse, SOEntryType, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,
             SOPackType, SOPckCode, Capacity, HASCOM, Commission, CommissionPer,
             ShowREX, typpltibc, SOName, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
@@ -639,7 +640,7 @@ END IF;
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO
-        GROUP BY T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity",
+        GROUP BY T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
             T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."U_ShowREX", T1."Dscription", T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
@@ -915,6 +916,11 @@ END IF;
             error_message := N'Please select a valid EO Sell Type.';
         END IF;
 
+        IF IFNULL(TaxCode,'') = '' THEN
+        	error := 30091;
+        	error_message := N'Please select Tax Code at Line No - '||MinSO+1;
+        END IF;
+
         MinSO := MinSO + 1;
     END WHILE;
 END IF;
@@ -927,6 +933,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
     DECLARE MaxSO INT;
     DECLARE SOEntryType NVARCHAR(50);
     DECLARE SOItemCode NVARCHAR(50);
+    DECLARE TaxCode NVARCHAR(50);
     DECLARE SOWhse NVARCHAR(50);
     DECLARE OcrCode NVARCHAR(50);
     DECLARE SOParty NVARCHAR(50);
@@ -1285,19 +1292,19 @@ END IF;
         ----------------------------------------------------------------------------------------------------
         WHILE MinSO <= MaxSO DO
             -- Retrieve all necessary data for the current line
-            SELECT T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS",
+            SELECT T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS", T1."TaxCode",
                    T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX", count(T1."U_TOPLT"),
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                    T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt"
-            INTO SOEntryType, SOWhse, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, PSS,
+            INTO SOEntryType, SOWhse, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, PSS, TaxCode,
                  SOPackType, SOPackng, Capacity, SOOtherPackng, HASCOM, Commission, CommissionPer,
                  SOItemGrpCode, BatchCount, ShowREX, typpltibc,
                  U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, Freetext
             FROM DRF1 T1 JOIN ODRF ON ODRF."DocEntry" = T1."DocEntry"
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
             WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO AND ODRF."ObjType" = 17
-            GROUP BY T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS",
+            GROUP BY T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS", T1."TaxCode",
                    T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX",
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
@@ -1588,6 +1595,11 @@ END IF;
 			END IF;
 		END IF;
 		END IF;
+
+		IF IFNULL(TaxCode,'') = '' THEN
+        	error := 30091;
+        	error_message := N'Please select Tax Code at Line No - '||MinSO+1 || ' [DRAFT].';
+        END IF;
 
             -- Increment loop counter
             MinSO := MinSO + 1;
@@ -7955,26 +7967,26 @@ Declare etadate date;
 
 END IF;
 
-IF Object_type = '15' and (:transaction_type ='A' OR :transaction_type ='U') Then
+IF Object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE InvDet INT DEFAULT 0;
+    DECLARE Dlremark NVARCHAR(500);
 
-Declare InvDet Int;
-Declare Dlremark varchar(500);
+    --Get Invoice Delay Days safely --
+    SELECT IFNULL(MAX(DAYS_BETWEEN(T2."InDate", T11."DocDate")), 0) INTO InvDet FROM IBT1 T1
+    INNER JOIN OIBT T2 ON T1."BatchNum" = T2."BatchNum" AND T1."ItemCode" = T2."ItemCode"
+    INNER JOIN DLN1 T10 ON T1."BaseEntry" = T10."DocEntry" AND T1."BaseType" = T10."ObjType" AND T1."BaseLinNum" = T10."LineNum" AND T1."ItemCode" = T10."ItemCode"
+    INNER JOIN ODLN T11 ON T11."DocEntry" = T10."DocEntry"
+    WHERE T11."DocEntry" = :list_of_cols_val_tab_del;
 
-	select top 1 DAYS_BETWEEN(T2."InDate",T11."DocDate") INTO InvDet  from IBT1 T1 INNER JOIN OIBT T2 ON T1."BatchNum" = T2."BatchNum" and T1."ItemCode" = T2."ItemCode"
-	INNER JOIN DLN1 T10 ON T1."BaseEntry" = T10."DocEntry" and T1."BaseType" = T10."ObjType"
-	and T1."BaseLinNum" = T10."LineNum" and T1."ItemCode" = T10."ItemCode"
-	INNER JOIN ODLN T11 ON T11."DocEntry" = T10."DocEntry"
-	WHERE T11."DocEntry" = list_of_cols_val_tab_del;
+    ---Get Remark safely---
+    SELECT MAX(T11."U_RMKSTR") INTO Dlremark FROM ODLN T11 WHERE T11."DocEntry" = :list_of_cols_val_tab_del;
 
-	select T11."U_RMKSTR" INTO Dlremark  from ODLN T11 WHERE T11."DocEntry" = list_of_cols_val_tab_del;
-
-	IF InvDet > 0  THEN
-		IF Dlremark IS NULL THEN
-		error :=240;
-		error_message := N'Please Enter Invoice delay remark in delivery';
-		END IF;
-	End If;
-
+    IF InvDet > 0 THEN
+        IF Dlremark IS NULL OR LENGTH(TRIM(Dlremark)) = 0 THEN
+            error := 240;
+            error_message := N'Please enter Invoice delay remark in Delivery.';
+        END IF;
+    END IF;
 END IF;
 
 If object_type = '13' and (:transaction_type = 'A') then

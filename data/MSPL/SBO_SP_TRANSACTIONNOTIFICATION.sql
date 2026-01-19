@@ -366,6 +366,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     -- Line Level Variables
     DECLARE SOEntryType NVARCHAR(50);
     DECLARE SOItemCode NVARCHAR(50);
+    DECLARE TaxCode NVARCHAR(50);
     DECLARE SOItemGrpCode NVARCHAR(50);
     DECLARE LicenseTypeSO NVARCHAR(50);
     DECLARE Qty INT;
@@ -622,14 +623,14 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         WHILE MinSO <= MaxSO DO
             -- Get all line-level data in a single, efficient query
             SELECT
-                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt",
+                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt", T1."TaxCode",
                 T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), count(T1."U_TOPLT"),
                 T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                 T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS"
             INTO
-                SOEntryType, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, Freetext,
+                SOEntryType, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, Freetext, TaxCode,
                 SOName, SOPckCode, SOPackType, Capacity, SOOtherPackng, HASCOM, Commission,
                 CommissionPer, BatchCount,
                 SOItemGrpCode, SOItemCategory, SOItemSubCategory, typpltibc,
@@ -638,7 +639,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
             WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO AND ODRF."ObjType" = 17
             GROUP BY
-                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt",
+                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt", T1."TaxCode",
                 T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''),
@@ -933,6 +934,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error_message := 'Item ('||SOItemCode||') is missing Category/Sub-Category. Contact admin. [DRAFT]';
             END IF;
 
+            IF IFNULL(TaxCode,'') = '' THEN
+	        	error := 31040;
+	        	error_message := N'Please select Tax Code at Line No - '||MinSO+1 || ' [DRAFT].';
+	        END IF;
+
             MinSO := MinSO + 1;
         END WHILE;
     END IF; -- End of DraftObj = 17 check
@@ -991,6 +997,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     -- Line Level Variables
     DECLARE SOItemCode NVARCHAR(50);
     DECLARE SOEntryType NVARCHAR(50);
+    DECLARE TaxCode NVARCHAR(50);
     DECLARE LicenseTypeSO NVARCHAR(50);
     DECLARE Qty DOUBLE;
     DECLARE LicenseNoSO NVARCHAR(50);
@@ -1235,14 +1242,14 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     WHILE MinSO <= MaxSO DO
         -- Get all line-level data in a single, efficient query
         SELECT
-            T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity",
+            T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
             T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             COUNT(T1."U_TOPLT"), T1."FreeTxt",
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."U_Pcode"
         INTO
-            SOEntryType, SOItemCode, LicenseTypeSO, LicenseNoSO, PSS, Qty,
+            SOEntryType, SOItemCode, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,
             SOPckCode, SOPackType, Capacity, HASCOM, Commission, CommissionPer,
             typpltibc, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
@@ -1250,7 +1257,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO
-        GROUP BY T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity",
+        GROUP BY T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
             T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
@@ -1551,6 +1558,11 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
                 error := 32039;
                 error_message := N'Delivery date is not acceptable. Required date: ' || ExpectedDelDate;
             END IF;
+        END IF;
+
+        IF IFNULL(TaxCode,'') = '' THEN
+        	error := 32040;
+        	error_message := N'Please select Tax Code at Line No - '||MinSO+1;
         END IF;
 
         MinSO := MinSO + 1;
