@@ -590,22 +590,25 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         END IF;
 
         -- Validation 30031: Exchange Rate Check
-        IF (CardCode LIKE 'C_E%' and Country <> 'RU') THEN
-            SELECT T0."Rate" INTO SOExrate FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SOdate;
-            IF SOExrate <> SOrate THEN
-                error := 30031;
-                error_message := N'Not allowed to change exchange rate.';
-            END IF;
-        END IF;
+		IF (CardCode LIKE 'C_E%' AND Country <> 'RU') THEN
+	    DECLARE SOExrate DECIMAL(19,6) DEFAULT 0;
+
+    	SELECT IFNULL(MAX(T0."Rate"), 0) INTO SOExrate FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SOdate;
+    		IF SOExrate > 0 AND SOExrate <> SOrate THEN
+        	error := 30031;
+        	error_message := N'Not allowed to change exchange rate.';
+	    	END IF;
+		END IF;
+
     END IF;
 -- =====================================================
 -- Validation 30021: Consignee Manual Entry Not Allowed
 -- =====================================================
-IF Series LIKE 'EX%' THEN
+/*IF Series LIKE 'EX%' THEN
     SELECT COUNT(*) INTO v_cnt
     FROM ORDR T0
     LEFT JOIN "@CONSIGNEED" T1
-        ON T1."Code" = T0."CardCode"
+        ON T1."Code" = T0."CardCode" and IFNULL(T0."U_Consignee_Name",'') = IFNULL(T1."U_Consignee",'')
     WHERE T0."DocEntry" = :list_of_cols_val_tab_del
       AND (
             IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'')
@@ -617,7 +620,7 @@ IF Series LIKE 'EX%' THEN
         error := 30021;
         error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
     END IF;
-END IF;
+END IF; */
     -- ===================================================
     -- SECTION 4: LINE LEVEL VALIDATIONS - COMBINED LOOP
     -- ===================================================
@@ -4221,7 +4224,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4230,6 +4233,7 @@ DECLARE Series varchar(50);
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
 END IF;
+*/
 -------------------------------------------------
 -- FORM Name   : A/R Invoice
 -- Added Date  :
@@ -9053,7 +9057,7 @@ DECLARE MaxPR int;
 	END WHILE;
 END IF;
 
-/*IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
+IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 Declare ICode Nvarchar(150);
 Declare Iname Nvarchar(500);
 Declare Srs Nvarchar(150);
@@ -9095,7 +9099,7 @@ DECLARE MaxGI int;
 	     	END IF;
 	     MinGI=MinGI+1;
 		END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A')  THEN
 Declare ICode Nvarchar(150);
@@ -19607,10 +19611,10 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The PCRM from 2PC-QC cannot be moved to any warehouse other than 2PC-QCR,2PC-RAW,2PC-FLOR';
         end if;
-       /* if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR') then
             error := -1033;
             error_message := 'The PCRM from 2BT cannot be moved to any warehouse other than 1BT,2PC-RAW,2PC-FLOR';
-        end if;*/
+        end if;
 	end if;
 	if Item like 'PCPM%' then
 		if FromWhs = '2PC-PAC' and ToWhs not in ('2EX1PCPM','2BT') then
@@ -19700,10 +19704,10 @@ select T1."FromWhsCod" into FromWhs from WTR1 T1 where T1."DocEntry" = :list_of_
 select T1."WhsCode" into ToWhs from WTR1 T1 where T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinIT;
 select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinIT;
 if Item like '%FG%' then
-    	if FromWhs = 'PC-FG' and ToWhs not in ('1BT') then
+    	/*if FromWhs = 'PC-FG' and ToWhs not in ('1BT') then
             error := -1037;
             error_message := 'The PCFG from PC-FG cannot be moved to any warehouse other than 1BT';
-        end if;
+        end if;*/
         if FromWhs = 'PC-QC' and ToWhs not in ('PC-QCR','PC-FG','1BT') then
             error := -1038;
             error_message := 'The PCFG from PC-QC cannot be moved to any warehouse other than PC-QCR,PC-FG';
@@ -19940,8 +19944,7 @@ IF object_type = '13' AND (:transaction_type ='A' or :transaction_type ='U' ) TH
 	DECLARE BLNumCnt NVARCHAR(100);
 	DECLARE BLDateCnt NVARCHAR(100);
 
-	SELECT COUNT(t0."County"),COUNT(t0."Country") into CustomerCountry,CustomerCountryCode  from CRD1 t0 join OINV t1 on t0."CardCode" = t1."CardCode"
-		   where t1."DocEntry" = list_of_cols_val_tab_del AND ((t0."County" = 'Argentina') or (t0."Country" = 'AR'));
+	SELECT COUNT(t0."County"),COUNT(t0."Country") into CustomerCountry,CustomerCountryCode  from CRD1 t0 join OINV t1 on t0."CardCode" = t1."CardCode" WHERE t1."DocEntry" = list_of_cols_val_tab_del AND ((t0."County" = 'Argentina') or (t0."Country" = 'AR'));
 	SELECT COUNT(sm."U_BLNum"),COUNT(sm."U_BLDate") into BLNumCnt,BLDateCnt from OINV T1 LEFT JOIN "@SHIPMASTER" sm ON sm."U_InvDet1" = T1."DocEntry" WHERE T1."DocEntry"=:list_of_cols_val_tab_del;
 
 	IF (CustomerCountry > 0 OR CustomerCountryCode > 0) THEN
@@ -21575,8 +21578,7 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE CustomerRefDate DATE;
     DECLARE CombinedRef NVARCHAR(150);
 
-    SELECT T0."NumAtCard", T0."U_BP_TotalQty", T0."DocDate", T0."TaxDate" INTO CustomerRef, TotalQty, SODate, CustomerRefDate
-    FROM ORDR T0 WHERE T0."CardCode" LIKE 'C%' AND T0."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT T0."NumAtCard", T0."U_BP_TotalQty", T0."DocDate", T0."TaxDate" INTO CustomerRef, TotalQty, SODate, CustomerRefDate FROM ORDR T0 WHERE T0."CardCode" LIKE 'C%' AND T0."DocEntry" = :list_of_cols_val_tab_del;
 
     IF SODate >= '2025-09-30' THEN
 	    CustomerRef := CustomerRef || '_' || TO_NVARCHAR(CustomerRefDate,'DD/MM/YYYY');
