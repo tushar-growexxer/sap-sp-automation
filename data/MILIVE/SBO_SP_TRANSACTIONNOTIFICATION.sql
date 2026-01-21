@@ -1275,6 +1275,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 -- =====================================================
 -- Validation 30021: Consignee Manual Entry Not Allowed
 -- =====================================================
+/*
 IF SOSeries LIKE 'EX%' THEN
     SELECT COUNT(*) INTO v_cnt
     FROM ODRF T0
@@ -1289,7 +1290,7 @@ IF SOSeries LIKE 'EX%' THEN
         error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
     END IF;
 END IF;
-
+*/
         ----------------------------------------------------------------------------------------------------
         -- SECTION 3: CONSOLIDATED LINE-LEVEL VALIDATIONS (SINGLE LOOP)
         ----------------------------------------------------------------------------------------------------
