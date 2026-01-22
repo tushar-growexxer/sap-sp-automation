@@ -2238,9 +2238,9 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 
 	IF :transaction_type = 'A' THEN
 		SELECT DAYS_BETWEEN(:DocDate, NOW()) INTO TEMP_COUNTER FROM DUMMY;
-		IF :TEMP_COUNTER > 1 THEN
+		IF :TEMP_COUNTER > 3 THEN
 			error := -41001;
-			error_message := N'Only today''s date is allowed to add a Purchase Request.';
+			error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 		END IF;
 	END IF;
 
@@ -2257,19 +2257,19 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 	IF :transaction_type = 'U' THEN
 		SELECT DAYS_BETWEEN(T0."DocDate", T0."UpdateDate") INTO TEMP_COUNTER
 		FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		IF :TEMP_COUNTER < 0 THEN
+		IF :TEMP_COUNTER > 3 THEN
 			error := -41004;
-			error_message := N'You are not allowed to edit the Posting Date.';
+			error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 		END IF;
 	END IF;
 
-	IF :transaction_type = 'U' THEN
+	/*IF :transaction_type = 'U' THEN
 		SELECT COUNT(*) INTO TEMP_COUNTER FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 		IF :TEMP_COUNTER > 0 THEN
 			error := -41005;
 			error_message := N'You are not allowed to update the Purchase Request as it is already approved.';
 		END IF;
-	END IF;
+	END IF;*/
 
 	SELECT T0."U_Priority" INTO Priority FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 	IF IFNULL(:Priority, '') = '' THEN
@@ -2419,14 +2419,6 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 			error_message := N'Required Date cannot be less than the Posting Date.';
 		END IF;
 
-        /*IF :transaction_type = 'U' THEN
-            SELECT COUNT(*) INTO TEMP_COUNTER FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType"='1470000113';
-            IF :TEMP_COUNTER > 0 THEN
-                error := -41028;
-                error_message := N'You are not allowed to update the Purchase Request as it is already approved.';
-            END IF;
-        END IF;*/
-
         SELECT T0."U_Priority" INTO Priority FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType"='1470000113';
         IF IFNULL(:Priority, '') = '' THEN
             error := -41029;
@@ -2435,18 +2427,18 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
         IF :transaction_type = 'A' THEN
             SELECT DAYS_BETWEEN(:DocDate, NOW()) INTO TEMP_COUNTER FROM DUMMY;
-            IF :TEMP_COUNTER > 0 THEN
+            IF :TEMP_COUNTER > 3 THEN
                 error := -41030;
-                error_message := N'Only today''s date is allowed to add a Purchase Request.';
+                error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
             END IF;
         END IF;
 
 		IF :transaction_type = 'U' THEN
 			SELECT DAYS_BETWEEN(T0."DocDate", T0."UpdateDate") INTO TEMP_COUNTER
 			FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType"='1470000113';
-			IF :TEMP_COUNTER < 0 THEN
+			IF :TEMP_COUNTER > 3 THEN
 				error := -41032;
-				error_message := N'You are not allowed to edit the Posting Date.';
+				error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 			END IF;
 		END IF;
 
