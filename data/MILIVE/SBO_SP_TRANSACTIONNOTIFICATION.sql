@@ -21994,7 +21994,7 @@ IF (:object_type = 'SPLREQ') AND (:transaction_type = 'A' OR :transaction_type =
             CASE WHEN T1."U_UoM" IS NOT NULL AND T1."U_UoM" <> '' THEN 1 ELSE 0 END,
             CASE WHEN T1."U_SampleReady" IS NOT NULL AND T1."U_SampleReady" <> '' THEN 1 ELSE 0 END,T1."U_SampleReady",
             CASE WHEN T1."U_SampleDate" IS NOT NULL THEN 1 ELSE 0 END,
-            CASE WHEN T1."U_Status" IS NOT NULL AND T1."U_Status" <> '' THEN 1 ELSE 0 END
+            CASE WHEN T1."U_Status" IS NOT NULL AND T1."U_Status" <> '' AND T1."U_Status" <> 'NA' THEN 1 ELSE 0 END
         INTO ItemDetails, ItemCode, BrandName, TypeSample, Packing, Qty, UoM,
              SampleReadyCt, SampleReady, SampleReadyDate, Status
         FROM "@SAMPLEREQH" T0
