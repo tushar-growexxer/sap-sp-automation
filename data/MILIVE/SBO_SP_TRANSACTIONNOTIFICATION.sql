@@ -273,13 +273,13 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
                 END IF;
             END IF;
 
-    		/* Supplier only */
+    		--Supplier only--
 		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE Left(T0."CardCode",4) in ('VIRD','VPRD','VPPD','VEXP','VFAS','VGPR','VLAB','VORD') and T0."CardCode" = :list_of_cols_val_tab_del AND (IFNULL(T0."WTLiable",'')='N' or T0."WTLiable"='N')) THEN
         	error := -20019;
 	        error_message := 'Subject to Withholding Tax is mandatory for Supplier, please select in Account Tab.';
     		END IF;
 
-		    /* WT Code must be assigned */
+		    --WT Code must be assigned--
 		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE T0."CardCode" = :list_of_cols_val_tab_del AND T0."CardType" = 'S' AND T0."WTLiable" = 'Y' AND
     							NOT EXISTS (SELECT 1 FROM CRD4 T1 WHERE T1."CardCode" = T0."CardCode")) THEN
         	error := -20020;
@@ -604,23 +604,17 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
 -- =====================================================
 -- Validation 30021: Consignee Manual Entry Not Allowed
 -- =====================================================
-/*IF Series LIKE 'EX%' THEN
-    SELECT COUNT(*) INTO v_cnt
-    FROM ORDR T0
-    LEFT JOIN "@CONSIGNEED" T1
-        ON T1."Code" = T0."CardCode" and IFNULL(T0."U_Consignee_Name",'') = IFNULL(T1."U_Consignee",'')
-    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
-      AND (
-            IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'')
-         OR IFNULL(CAST(T0."U_Consignee_Add" AS NVARCHAR),'')
-            <> IFNULL(CAST(T1."U_ConsigneeAdd" AS NVARCHAR),'')
-          );
+IF Series LIKE 'EX%' THEN
+    SELECT COUNT(*) INTO v_cnt FROM ORDR T0
+    LEFT JOIN "@CONSIGNEED" T1 ON T1."Code" = T0."CardCode" and IFNULL(T0."U_Consignee_Name",'') = IFNULL(T1."U_Consignee",'')
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'');
 
     IF v_cnt > 0 THEN
         error := 30021;
         error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
     END IF;
-END IF; */
+
+END IF;
     -- ===================================================
     -- SECTION 4: LINE LEVEL VALIDATIONS - COMBINED LOOP
     -- ===================================================
@@ -1275,22 +1269,19 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 -- =====================================================
 -- Validation 30021: Consignee Manual Entry Not Allowed
 -- =====================================================
-/*
+
 IF SOSeries LIKE 'EX%' THEN
     SELECT COUNT(*) INTO v_cnt
     FROM ODRF T0
-    LEFT JOIN "@CONSIGNEED" T1
-        ON T1."Code" = T0."CardCode"
-    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
-      AND (IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'')
-         OR IFNULL(CAST(T0."U_Consignee_Add" AS NVARCHAR),'') <> IFNULL(CAST(T1."U_ConsigneeAdd" AS NVARCHAR),'') ) and T0."ObjType"=17;
+    LEFT JOIN "@CONSIGNEED" T1 ON T1."Code" = T0."CardCode"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'') and T0."ObjType"=17;
 
     IF v_cnt > 0 THEN
         error := 30085;
         error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
     END IF;
 END IF;
-*/
+
         ----------------------------------------------------------------------------------------------------
         -- SECTION 3: CONSOLIDATED LINE-LEVEL VALIDATIONS (SINGLE LOOP)
         ----------------------------------------------------------------------------------------------------
@@ -11397,6 +11388,7 @@ DECLARE MinLine INT;
 DECLARE MaxLine INT;
 DECLARE BPLNameGI Nvarchar(10);
 DECLARE BPLNameE Nvarchar(10);
+DECLARE BPLNameECount Nvarchar(10);
 DECLARE ItemCode Nvarchar(50);
 DECLARE Machinery Nvarchar(254);
 DECLARE JMemo Nvarchar(50);
@@ -11421,11 +11413,13 @@ DECLARE JMemo Nvarchar(50);
 			SELECT T0."U_Machinery" INTO Machinery from IGE1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinLine;
 
 			IF (Machinery <> '' OR Machinery IS NOT NULL) THEN
-			 	SELECT T0."U_BPLName" INTO BPLNameE FROM "@EQUIPMENT" T0 WHERE T0."Code" = Machinery;
+			 	SELECT Count(T0."U_BPLName") INTO BPLNameECount FROM "@EQUIPMENT" T0 WHERE T0."Code" = Machinery;
+			 	IF BPLNameECount>0 THEN
 
-				IF BPLNameE <> BPLNameGI THEN
-					error :=437;
-					error_message := N'Selected Machinery belongs to another branch...!';
+					IF BPLNameE <> BPLNameGI THEN
+						error :=437;
+						error_message := N'Selected Machinery belongs to another branch...!';
+					END IF;
 				END IF;
 			END IF;
 
