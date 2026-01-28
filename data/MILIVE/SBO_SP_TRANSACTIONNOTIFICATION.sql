@@ -132,7 +132,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         UsrCod, LabelType, DebAcct, GroupTypee
     FROM OCRD
     INNER JOIN NNM1 ON NNM1."Series" = OCRD."Series"
-    INNER JOIN OUSR ON OUSR."USERID" = ( CASE WHEN :transaction_type = 'A' THEN OCRD."UserSign" ELSE OCRD."UserSign2" END )
+    INNER JOIN OUSR ON OUSR."USERID" = (CASE WHEN :transaction_type = 'A' THEN OCRD."UserSign" ELSE OCRD."UserSign2" END)
     WHERE OCRD."CardCode" = :list_of_cols_val_tab_del;
 
     IF (GroupTypee = '105' AND DebAcct not in ('21000320')) OR (GroupTypee = '103' AND DebAcct not in ('21000315')) OR (GroupTypee = '106' AND DebAcct not in ('21003211'))
@@ -320,7 +320,6 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE ExpRmk NVARCHAR(5000);
     DECLARE ExpRmkO NVARCHAR(5000);
     DECLARE SOrate DECIMAL(18,2);
-    --DECLARE SOCurrency NVARCHAR(50);
     DECLARE BPName NVARCHAR(100);
     DECLARE REXClause NVARCHAR(500);
     DECLARE REXNo NVARCHAR(50);
@@ -416,6 +415,11 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE Country NVARCHAR(50);
     DECLARE EOSellType NVARCHAR(100);
     DECLARE v_cnt INT;
+    DECLARE COA_Appr int;
+    DECLARE SOPallet NVARCHAR(50);
+	DECLARE Pallet1 NVARCHAR(50);
+	DECLARE Pallet2 NVARCHAR(50);
+	DECLARE Pallet3 NVARCHAR(50);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -605,15 +609,15 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
 -- Validation 30021: Consignee Manual Entry Not Allowed
 -- =====================================================
 IF Series LIKE 'EX%' THEN
-    SELECT COUNT(*) INTO v_cnt FROM ORDR T0
-    LEFT JOIN "@CONSIGNEED" T1 ON T1."Code" = T0."CardCode" and IFNULL(T0."U_Consignee_Name",'') = IFNULL(T1."U_Consignee",'')
-    WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'');
-
-    IF v_cnt > 0 THEN
-        error := 30021;
-        error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
-    END IF;
-
+        IF EXISTS		(SELECT 1 FROM ORDR T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+        AND
+        NOT EXISTS			(SELECT 1 FROM "@CONSIGNEED" T1 WHERE T1."Code" = T0."CardCode" AND T1."U_Consignee" = T0."U_Consignee_Name"
+		        			AND TO_NVARCHAR(T1."U_ConsigneeAdd") = TO_NVARCHAR(T0."U_Consignee_Add")
+        				    )
+        				) THEN
+        error := 30032;
+        error_message := 'Manual entry not allowed.. Please select Consignee from the master list.';
+    	END IF;
 END IF;
     -- ===================================================
     -- SECTION 4: LINE LEVEL VALIDATIONS - COMBINED LOOP
@@ -627,21 +631,25 @@ END IF;
             T1."U_ShowREX", COUNT(T1."U_TOPLT"), T1."Dscription", T1."FreeTxt",
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining"
+            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", count(ifnull(T1."U_ApprOnCOA", '')),
+            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",'')
         INTO
             SOItemCode, SOWhse, SOEntryType, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,
             SOPackType, SOPckCode, Capacity, HASCOM, Commission, CommissionPer,
             ShowREX, typpltibc, SOName, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
-            U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining
+            U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining,COA_Appr,
+            SOPallet,Pallet1,Pallet2,Pallet3
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+        INNER JOIN OCRD T3 ON T3."CardCode" = :CardCode
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO
         GROUP BY T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
             T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."U_ShowREX", T1."Dscription", T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining";
+            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",
+            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",'');
 
         -- Validation 30032: Entry Type Check (Only for Add)
         IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -918,6 +926,27 @@ END IF;
         	error_message := N'Please select Tax Code at Line No - '||MinSO+1;
         END IF;
 
+		IF COA_Appr = 0 THEN
+        	error := 30092;
+        	error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1;
+        END IF;
+-- =================================================
+-- Validation 30091: Pallet Code Selection Check
+-- =================================================
+IF IFNULL(SOPallet,'') = '' THEN
+    error := 30054;
+    error_message := N'Pallet Code cannot be blank. Allowed values: NA or pallet codes mapped with the selected Customer.';
+ELSE
+    IF SOPallet <> 'NA'
+       AND SOPallet NOT IN (
+            IFNULL(Pallet1,''),
+            IFNULL(Pallet2,''),
+            IFNULL(Pallet3,'')
+       ) THEN
+        error := 30055;
+        error_message := N'Invalid Pallet Code. Allowed values: NA or pallet codes mapped with the selected Customer.';
+    END IF;
+END IF;
         MinSO := MinSO + 1;
     END WHILE;
 END IF;
@@ -1057,6 +1086,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 	DECLARE Country NVARCHAR(50);
 	DECLARE EOSellType NVARCHAR(100);
     DECLARE v_cnt INT;
+    DECLARE COA_Appr int;
+    DECLARE SOPallet NVARCHAR(50);
+	DECLARE Pallet1 NVARCHAR(50);
+	DECLARE Pallet2 NVARCHAR(50);
+	DECLARE Pallet3 NVARCHAR(50);
     ----------------------------------------------------------------------------------------------------
     -- SECTION 1: UPFRONT DATA RETRIEVAL (EXECUTED ONCE)
     ----------------------------------------------------------------------------------------------------
@@ -1271,15 +1305,15 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 -- =====================================================
 
 IF SOSeries LIKE 'EX%' THEN
-    SELECT COUNT(*) INTO v_cnt
-    FROM ODRF T0
-    LEFT JOIN "@CONSIGNEED" T1 ON T1."Code" = T0."CardCode"
-    WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T0."U_Consignee_Name",'') <> IFNULL(T1."U_Consignee",'') and T0."ObjType"=17;
-
-    IF v_cnt > 0 THEN
-        error := 30085;
-        error_message := N'Manual entry not allowed. Please select Business Partner and fetch Consignee via FMS.';
-    END IF;
+        IF EXISTS		(SELECT 1 FROM ORDR T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."ObjType" = '17'
+        AND
+        NOT EXISTS			(SELECT 1 FROM "@CONSIGNEED" T1 WHERE T1."Code" = T0."CardCode" AND T1."U_Consignee" = T0."U_Consignee_Name"
+		        			AND TO_NVARCHAR(T1."U_ConsigneeAdd") = TO_NVARCHAR(T0."U_Consignee_Add")
+        				    )
+        				) THEN
+        error := 30032;
+        error_message := 'Manual entry not allowed.. Please select Consignee from the master list.';
+    	END IF;
 END IF;
 
         ----------------------------------------------------------------------------------------------------
@@ -1291,19 +1325,23 @@ END IF;
                    T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX", count(T1."U_TOPLT"),
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-                   T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt"
+                   T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt", count(ifnull(T1."U_ApprOnCOA", '')),
+                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03"
             INTO SOEntryType, SOWhse, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, PSS, TaxCode,
                  SOPackType, SOPackng, Capacity, SOOtherPackng, HASCOM, Commission, CommissionPer,
                  SOItemGrpCode, BatchCount, ShowREX, typpltibc,
-                 U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, Freetext
+                 U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName,Freetext,COA_Appr,
+                 SOPallet,Pallet1,Pallet2,Pallet3
             FROM DRF1 T1 JOIN ODRF ON ODRF."DocEntry" = T1."DocEntry"
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+            INNER JOIN OCRD T3 ON T3."CardCode" = :CardCodeSO
             WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO AND ODRF."ObjType" = 17
             GROUP BY T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS", T1."TaxCode",
                    T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX",
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-                   T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt";
+                   T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."FreeTxt",
+                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03";
 
             -- Validation 30055: Entry Type Check (Only for Add)
             IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -1596,6 +1634,27 @@ END IF;
         	error_message := N'Please select Tax Code at Line No - '||MinSO+1 || ' [DRAFT].';
         END IF;
 
+		IF COA_Appr = 0 THEN
+        	error := 30092;
+        	error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1 || ' [DRAFT].';
+        END IF;
+-- =================================================
+-- Validation 30087: Pallet Code Selection Check
+-- =================================================
+IF IFNULL(SOPallet,'') = '' THEN
+    error := 30087;
+    error_message := N'Pallet Code cannot be blank. Allowed values: NA or pallet codes mapped with the selected Customer.';
+ELSE
+    IF SOPallet <> 'NA'
+       AND SOPallet NOT IN (
+            IFNULL(Pallet1,''),
+            IFNULL(Pallet2,''),
+            IFNULL(Pallet3,'')
+       ) THEN
+        error := 30091;
+        error_message := N'Invalid Pallet Code. Allowed values: NA or pallet codes mapped with the selected Customer.';
+    END IF;
+END IF;
             -- Increment loop counter
             MinSO := MinSO + 1;
         END WHILE;
@@ -9326,7 +9385,7 @@ DECLARE WHSIN Nvarchar(50);
 	END WHILE;
 END IF;
 
-/*IF object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinDL Int;
 DECLARE MaxDL Int;
 DECLARE cnt Int;
@@ -9356,7 +9415,7 @@ DECLARE WHSDL Nvarchar(50);
 		END IF;
 		MinDL := MinDL+1;
 	END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '18' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE APDate date;
@@ -9368,7 +9427,7 @@ DECLARE DocumentDate date;
 
 		SELECT T1."DocDate",T1."TaxDate" into APDate,DocumentDate FROM OPCH T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
 		SELECT MAX(T0."BaseEntry") into APBase FROM OPCH T1 INNER JOIN PCH1 T0 ON T0."DocEntry" = T1."DocEntry" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
-		SELECT distinct T0."BaseType" into APBaseType FROM OPCH T1 INNER JOIN PCH1 T0 ON T0."DocEntry" = T1."DocEntry" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
+		SELECT Max(T0."BaseType") into APBaseType FROM OPCH T1 INNER JOIN PCH1 T0 ON T0."DocEntry" = T1."DocEntry" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
 		IF APBase IS NOT NULL THEN
 			IF APBaseType = 20 THEN
 				SELECT T1."DocDate" into GRNDate FROM OPDN T1 WHERE T1."DocEntry" = APBase;
@@ -19757,7 +19816,7 @@ if Item like '%FG%' then
             error := -1048;
             error_message := 'The DIRM from DI-RAW cannot be moved to any warehouse other than 1BT';
         end if;
-        if FromWhs = 'DI-QC' and ToWhs not in ('DI-QCR','DI-RAW') then
+        if FromWhs = 'DI-QC' and ToWhs not in ('DI-QCR','DI-RAW','1BT') then
             error := -1049;
             error_message := 'The DIRM from DI-QC cannot be moved to any warehouse other than DI-QCR,DI-RAW';
         end if;
@@ -21329,6 +21388,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ResFrCust NVARCHAR(15);
     DECLARE v_ReasonFail NVARCHAR(254);
     DECLARE v_ApprCOA NVARCHAR(5);
+    DECLARE v_PSS NVARCHAR(5);
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
@@ -21393,8 +21453,8 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     -- Start the loop to validate each row in QUT1
     WHILE v_MINN <= v_MAXX DO
         -- Retrieve values from QUT1 for mandatory fields for the current row
-        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA"
-        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA
+        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS"
+        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS
         FROM QUT1 T1
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del
         AND T1."VisOrder" = v_MINN;
@@ -21427,9 +21487,12 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
         ELSEIF ((v_DealNo IS NULL OR LENGTH(TRIM(v_DealNo)) = 0) AND :transaction_type = 'A') THEN
         	error := -1223;
         	error_message := 'Deal No cannot be empty at row level.';
-        ELSEIF v_Department = 'QC' AND (v_Department IS NULL OR LENGTH(TRIM(v_ApprCOA)) = 0) THEN
+        ELSEIF v_Department = 'QC' AND (v_ApprCOA IS NULL OR LENGTH(TRIM(v_ApprCOA)) = 0) THEN
         	error := -1224;
         	error_message := 'Please enter Approval on COA as department is QC.';
+		ELSEIF v_Department = 'QC' AND (v_PSS IS NULL OR LENGTH(TRIM(v_PSS)) = 0) THEN
+        	error := -1225;
+        	error_message := 'Please enter PSS Yes/No as department is QC.';
         END IF;
         -- Increment the line index to move to the next row
          v_MINN = v_MINN + 1;

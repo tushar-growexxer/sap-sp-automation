@@ -435,6 +435,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE U_Pack13 NVARCHAR(50);
     DECLARE U_Pack14 NVARCHAR(50);
     DECLARE U_Pack15 NVARCHAR(50);
+    DECLARE COA_Appr NVARCHAR(5);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -628,13 +629,13 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), count(T1."U_TOPLT"),
                 T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS"
+                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS", T1."U_ApprOnCOA"
             INTO
                 SOEntryType, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, Freetext, TaxCode,
                 SOName, SOPckCode, SOPackType, Capacity, SOOtherPackng, HASCOM, Commission,
                 CommissionPer, BatchCount,
                 SOItemGrpCode, SOItemCategory, SOItemSubCategory, typpltibc,
-                U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, Freetext, PSS
+                U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, Freetext, PSS, COA_Appr
             FROM DRF1 T1 JOIN ODRF ON ODRF."DocEntry" = T1."DocEntry"
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
             WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO AND ODRF."ObjType" = 17
@@ -644,7 +645,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''),
                 T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS";
+                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS", T1."U_ApprOnCOA";
 
             -- Validation 31017: Entry Type Check
             IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -939,6 +940,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 	        	error_message := N'Please select Tax Code at Line No - '||MinSO+1 || ' [DRAFT].';
 	        END IF;
 
+			IF IFNULL(COA_Appr,'') = '' THEN
+        		error := 31041;
+        		error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1 || ' [DRAFT].';
+        	END IF;
+
             MinSO := MinSO + 1;
         END WHILE;
     END IF; -- End of DraftObj = 17 check
@@ -1065,6 +1071,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     DECLARE U_Mining NVARCHAR(50);
     DECLARE SOPackng NVARCHAR(100);
     DECLARE SOName nvarchar(100);
+    DECLARE COA_Appr NVARCHAR(5);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -1247,13 +1254,13 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             COUNT(T1."U_TOPLT"), T1."FreeTxt",
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."U_Pcode"
+            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA"
         INTO
             SOEntryType, SOItemCode, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,
             SOPckCode, SOPackType, Capacity, HASCOM, Commission, CommissionPer,
             typpltibc, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
-            U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, SOPackng
+            U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, SOPackng, COA_Appr
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO
@@ -1261,7 +1268,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",T1."Dscription", T1."U_Pcode";
+            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA";
 
         -- Validation 32024: Entry Type Check (Only for Add)
         IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -1563,6 +1570,11 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         IF IFNULL(TaxCode,'') = '' THEN
         	error := 32040;
         	error_message := N'Please select Tax Code at Line No - '||MinSO+1;
+        END IF;
+
+		IF IFNULL(COA_Appr,'') = '' THEN
+        	error := 32041;
+        	error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1;
         END IF;
 
         MinSO := MinSO + 1;
@@ -4438,7 +4450,7 @@ End If;
 -- FORM Name   : Delivery
 -- Added Date  :
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4446,7 +4458,7 @@ DECLARE Series varchar(50);
 			error :=66;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 
 -------------------------------------------------
 
@@ -4532,7 +4544,7 @@ END IF;
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-/*IF object_type = '13' AND (:transaction_type ='A') THEN
+IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4541,7 +4553,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 
 IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -21551,6 +21563,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ResFrCust NVARCHAR(15);
     DECLARE v_ReasonFail NVARCHAR(254);
     DECLARE v_ApprCOA NVARCHAR(5);
+    DECLARE v_PSS NVARCHAR(5);
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
@@ -21615,8 +21628,8 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     -- Start the loop to validate each row in QUT1
     WHILE v_MINN <= v_MAXX DO
         -- Retrieve values from QUT1 for mandatory fields for the current row
-        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA"
-        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA
+        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS"
+        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS
         FROM QUT1 T1
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del
         AND T1."VisOrder" = v_MINN;
@@ -21649,9 +21662,12 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
         ELSEIF v_DealNo IS NULL OR LENGTH(TRIM(v_DealNo)) = 0 THEN
         	error := -1223;
         	error_message := 'Deal No cannot be empty at row level.';
-        ELSEIF v_Department = 'QC' AND (v_Department IS NULL OR LENGTH(TRIM(v_ApprCOA)) = 0) THEN
+        ELSEIF v_Department = 'QC' AND (v_ApprCOA IS NULL OR LENGTH(TRIM(v_ApprCOA)) = 0) THEN
         	error := -1224;
         	error_message := 'Please enter Approval on COA as department is QC.';
+		ELSEIF v_Department = 'QC' AND (v_PSS IS NULL OR LENGTH(TRIM(v_PSS)) = 0) THEN
+        	error := -1225;
+        	error_message := 'Please enter PSS Yes/No as department is QC.';
         END IF;
         -- Increment the line index to move to the next row
          v_MINN = v_MINN + 1;
