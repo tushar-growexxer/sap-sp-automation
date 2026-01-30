@@ -152,7 +152,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 
     END IF;
 
-    IF (((Series like 'COD%' or Series like 'CPD%' or Series like 'CSD%') AND GroupTypee <> '100')
+    /*IF (((Series like 'COD%' or Series like 'CPD%' or Series like 'CSD%') AND GroupTypee <> '100')
     	or ((Series like 'VSRD%' or Series like 'VPRD%' or Series like 'VORD%') AND GroupTypee <> '101')
     	or ((Series like 'COE%' or Series like 'CPE%' or Series like 'CSE%') AND GroupTypee <> '102')
     	or ((Series like 'VSRI%' or Series like 'VPRI%' or Series like 'VORI%') AND GroupTypee <> '105')
@@ -164,7 +164,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
        error := -20019;
        error_message := N'Series and Group not matching in Business Partner.';
 
-    END IF;
+    END IF;*/
 
     IF ValidFor = 'Y' THEN
         IF :transaction_type = 'A' THEN
