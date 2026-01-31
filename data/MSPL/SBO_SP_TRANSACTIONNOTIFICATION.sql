@@ -4789,10 +4789,8 @@ DECLARE Branch Int;
 		END IF;
 	END IF;
 END IF;
-
 ---------------------------------------------------
-
-IF object_type = '18' AND (:transaction_type = 'A') THEN
+/*IF object_type = '18' AND (:transaction_type = 'A') THEN
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
 DECLARE WhseAP Nvarchar(50);
@@ -4809,7 +4807,7 @@ DECLARE ItemAP Nvarchar(50);
 		END IF;
 		MinAP := MinAP+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF Object_type = '20' and (:transaction_type ='A') Then
 DECLARE MinGRN int;
@@ -14398,15 +14396,13 @@ THEN
 END IF;
 END IF;
 
-
-IF object_type='112' AND (:transaction_type = 'A') THEN
+/*IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
 DECLARE WhseAP Nvarchar(50);
 DECLARE ItemAP Nvarchar(50);
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
-if DraftObj = 18
-THEN
+if DraftObj = 18 THEN
 	SELECT Min(T0."VisOrder") INTO MinAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	SELECT Max(T0."VisOrder") INTO MaxAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	WHILE :MinAP<=MaxAP DO
@@ -14419,7 +14415,7 @@ THEN
 		MinAP := MinAP+1;
 	END WHILE;
 END IF;
-END IF;
+END IF;*/
 
 IF Object_type='112' and (:transaction_type ='A') Then
 DECLARE MinGRN int;

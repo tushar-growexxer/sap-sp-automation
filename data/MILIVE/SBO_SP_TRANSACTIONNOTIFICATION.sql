@@ -1350,26 +1350,26 @@ END IF;
             END IF;
 
             -- Validation 30062: License Type and Quantity Check
-            IF (LicenseTypeSO IS NULL OR LicenseTypeSO = '') AND SOCmnt NOT LIKE '%sample%' AND CardCodeSO LIKE 'C_E%' THEN
+            IF (LicenseTypeSO IS NULL OR LicenseTypeSO = '') AND LicenseTypeSO <> 'No Required' AND SOCmnt NOT LIKE '%sample%' AND CardCodeSO LIKE 'C_E%' THEN
                 error := 30062;
                 error_message := N'Please Enter License Type in Sales Contract.';
             END IF;
-            IF LicenseTypeSO <> '' AND LicenseTypeSO NOT IN ('ADVANCE', 'DBK', 'MEIS') AND SOCmnt NOT LIKE '%sample%' THEN
-                error := 30062;
+            IF LicenseTypeSO <> '' AND LicenseTypeSO NOT IN ('ADVANCE', 'DBK', 'MEIS','No Required') AND SOCmnt NOT LIKE '%sample%' THEN
+                error := 30063;
                 error_message := N'Please Enter Proper License Type in Sales Contract.';
             END IF;
             IF Qty > 150000 THEN
-                error := 30062;
+                error := 30064;
                 error_message := N'Sales Order Quantity should not be more than 150 MT';
             END IF;
 
             -- Validation 30063: License Number and PSS Check
             IF (LicenseNoSO IS NULL OR LicenseNoSO = '') AND LicenseTypeSO LIKE 'A%' AND CardCodeSO LIKE 'C_E%' THEN
-                error := 30063;
+                error := 30065;
                 error_message := N'Please Enter License No in Sales Contract.';
             END IF;
             IF IFNULL(UPPER(PSS),'') NOT IN ('YES','NO') AND CardCodeSO LIKE 'C%' AND SOItemCode LIKE '%FG%' THEN
-                error := 30063;
+                error := 30066;
                 error_message := N'Please select PSS Yes/No at Line - '||MinSO+1;
             END IF;
 
@@ -1378,7 +1378,7 @@ END IF;
 			IF SOPackType NOT LIKE '%Tanker%' THEN
 				IF SOPackType NOT LIKE '%ISO%' THEN
 					IF (SOPackng IS NULL OR SOPackng = '') THEN
-						error := 30065;
+						error := 30067;
 						error_message:=N'Please Select SAP Packing Code ';
 					END IF;
 				END IF;
@@ -1426,7 +1426,7 @@ END IF;
 																		else
 																			IF Capacity = U_Pack14C then
 																			else
-																				error:=30066;
+																				error:=30068;
 																				error_message:=N'Please Select proper capacity from list';
 																			END IF;
 																		END IF;
@@ -19430,7 +19430,7 @@ if DraftObj = 18 THEN
 
 	WHILE :MinPO <= :MaxPO DO
 			SELECT DRF1."ItemCode" into ItemCode FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinPO ;
-				IF 	ItemCode NOT IN ('FURN0021','FURN0020') THEN
+				IF 	ItemCode NOT IN ('FURN0021','FURN0020','FURN0010') THEN
 					IF (ItemCode LIKE 'FA%' OR ItemCode LIKE 'FU%')  THEN
 							error :=395;
 							error_message := N'For Fixed asset items, please enter Tag number';
@@ -22379,17 +22379,14 @@ DECLARE VendorCode varchar(50);
 	END IF;
 END IF;
 
-
 IF object_type='112' AND (:transaction_type = 'A') THEN
-
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
 DECLARE LicenseAP Nvarchar(50);
 DECLARE LicTypeMainAP Nvarchar(50);
 DECLARE VendorCode varchar(50);
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
-if DraftObj = 18
-THEN
+if DraftObj = 18 THEN
 	SELECT Min(T0."VisOrder") INTO MinAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	SELECT Max(T0."VisOrder") INTO MaxAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	SELECT T0."CardCode" into VendorCode FROM ODRF T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."ObjType"=18;
@@ -22410,10 +22407,7 @@ THEN
 END IF;
 END IF;
 
-
-
 IF object_type = '18' AND (:transaction_type = 'A') THEN
-
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
 DECLARE LicenseAP Nvarchar(50);
