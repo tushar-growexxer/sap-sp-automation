@@ -662,7 +662,7 @@ END IF;
             error := 30033;
             error_message := N'Please Enter License Type in Sales Contract.';
         END IF;
-        IF LicenseTypeSO <> '' AND LicenseTypeSO NOT IN ('ADVANCE', 'DBK', 'MEIS') AND SOCmnt NOT LIKE '%sample%' THEN
+        IF LicenseTypeSO <> '' AND LicenseTypeSO NOT IN ('ADVANCE', 'DBK', 'MEIS', 'No Required') AND SOCmnt NOT LIKE '%sample%' THEN
             error := 30034;
             error_message := N'Please Enter Proper License Type in Sales Contract.';
         END IF;

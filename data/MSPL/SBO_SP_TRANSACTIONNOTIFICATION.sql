@@ -4544,7 +4544,7 @@ END IF;
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-IF object_type = '13' AND (:transaction_type ='A') THEN
+/*IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4553,7 +4553,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 
 IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -21972,6 +21972,131 @@ IF (:object_type = 'SPLREQ') AND (:transaction_type = 'A' OR :transaction_type =
         MinLine := MinLine + 1;
     END WHILE;
 END IF;
+
+--------------------- LICENSE IN AP INVOICE -------------------------------------------------------------
+
+IF object_type='112' AND (:transaction_type = 'A') THEN
+
+DECLARE MinAP Int;
+DECLARE MaxAP Int;
+DECLARE LicTypeMainAP INT;
+DECLARE VendorCode varchar(50);
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 18
+THEN
+	SELECT Min(T0."VisOrder") INTO MinAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT T0."CardCode" into VendorCode FROM ODRF T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."ObjType"=18;
+
+	IF VendorCode LIKE 'V__I%' then
+		WHILE :MinAP<=MaxAP DO
+			SELECT COUNT(DRF1."U_LicenseType") into LicTypeMainAP FROM DRF1 WHERE DRF1."DocEntry" = list_of_cols_val_tab_del and DRF1."VisOrder"=MinAP;
+			IF LicTypeMainAP = 0  then
+				error := 146;
+				error_message := N'Please Select License Type.';
+			END IF;
+			MinAP := MinAP+1;
+		END WHILE;
+	END IF;
+END IF;
+END IF;
+
+
+IF object_type = '18' AND (:transaction_type = 'A') THEN
+
+DECLARE MinAP Int;
+DECLARE MaxAP Int;
+DECLARE LicTypeMainAP INT;
+DECLARE VendorCode varchar(50);
+
+	SELECT Min(T0."VisOrder") INTO MinAP from PCH1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxAP from PCH1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT T0."CardCode" into VendorCode FROM OPCH T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del;
+
+	IF VendorCode LIKE 'V__I%' then
+		WHILE :MinAP<=MaxAP DO
+			SELECT COUNT(PCH1."U_LicenseType") into LicTypeMainAP FROM PCH1 WHERE PCH1."DocEntry" = list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
+			IF LicTypeMainAP = 0 then
+				error := 146;
+				error_message := N'Please Select License Type.';
+			END IF;
+			MinAP := MinAP+1;
+		END WHILE;
+	END IF;
+END IF;
+
+IF object_type='112' AND (:transaction_type = 'A') THEN
+DECLARE MinAP Int;
+DECLARE MaxAP Int;
+DECLARE LicenseAP Nvarchar(50);
+DECLARE LicTypeMainAP Nvarchar(50);
+DECLARE VendorCode varchar(50);
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 18 THEN
+	SELECT Min(T0."VisOrder") INTO MinAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT T0."CardCode" into VendorCode FROM ODRF T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."ObjType"=18;
+
+	IF VendorCode LIKE 'V__I%' then
+		WHILE :MinAP<=MaxAP DO
+			SELECT DRF1."U_LicenseType" into LicTypeMainAP FROM DRF1 WHERE DRF1."DocEntry" = list_of_cols_val_tab_del and DRF1."VisOrder"=MinAP;
+			SELECT DRF1."U_LicenseNum" into LicenseAP FROM DRF1 WHERE DRF1."DocEntry" = list_of_cols_val_tab_del and DRF1."VisOrder"=MinAP;
+			IF LicTypeMainAP = 'ADVANCE' then
+				IF (LicenseAP IS NULL OR LicenseAP = '') THEN
+					error := 146;
+					error_message := N'License No cannot be empty as Advance License is selected.';
+				END IF;
+			END IF;
+			MinAP := MinAP+1;
+		END WHILE;
+	END IF;
+END IF;
+END IF;
+
+IF object_type = '18' AND (:transaction_type = 'A') THEN
+DECLARE MinAP Int;
+DECLARE MaxAP Int;
+DECLARE LicenseAP Nvarchar(50);
+DECLARE LicTypeMainAP Nvarchar(50);
+DECLARE VendorCode varchar(50);
+
+	SELECT Min(T0."VisOrder") INTO MinAP from PCH1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxAP from PCH1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT T0."CardCode" into VendorCode FROM OPCH T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del;
+
+	IF VendorCode LIKE 'V__I%' then
+		WHILE :MinAP<=MaxAP DO
+			SELECT PCH1."U_LicenseType" into LicTypeMainAP FROM PCH1 WHERE PCH1."DocEntry" = list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
+			SELECT PCH1."U_LicenseNum" into LicenseAP FROM PCH1 WHERE PCH1."DocEntry" = list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
+			IF LicTypeMainAP = 'ADVANCE' then
+				IF (LicenseAP IS NULL OR LicenseAP = '') THEN
+					error := 146;
+					error_message := N'License No cannot be empty as Advance License is selected.';
+				END IF;
+			END IF;
+			MinAP := MinAP+1;
+		END WHILE;
+	END IF;
+END IF;
+----------------------Subsidary Challan Qty math with Jobwork Bill------------------------
+IF object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE SubChallanQty INT;
+DECLARE JobworkBillQty INT;
+DECLARE Difference INT;
+DECLARE GL Nvarchar(15);
+
+select Sum("U_UNE_TQTY") INTO SubChallanQty from PCH1 T0 Where T0."DocEntry"=:list_of_cols_val_tab_del;
+select Sum("CmpltQty") INTO JobworkBillQty from PCH21 T0 Inner Join OWOR T1 On T0."RefDocEntr"=T1."DocEntry" and T0."RefObjType"=T1."ObjType" Where T0."DocEntry"=:list_of_cols_val_tab_del;
+select Count("DocEntry") INTO GL from PCH1 where "AcctCode"='50201027' and "DocEntry"=:list_of_cols_val_tab_del;
+
+	IF GL >0 then
+		IF JobworkBillQty<>SubChallanQty THEN
+					error := 1321;
+					error_message := N'The Challan Quantity is not match with Billing Quantity. Difference : '||SubChallanQty-JobworkBillQty;
+		END IF;
+	END IF;
+END IF;
+
 -----------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
