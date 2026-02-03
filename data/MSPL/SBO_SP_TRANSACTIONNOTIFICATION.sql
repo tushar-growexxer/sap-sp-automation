@@ -616,6 +616,22 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             END IF;
         END IF;
 
+        -- =====================================================
+		-- Validation 30021: Consignee Manual Entry Not Allowed
+		-- =====================================================
+
+		IF Series LIKE 'EX%' THEN
+		        IF EXISTS		(SELECT 1 FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."ObjType" = '17'
+		        AND
+		        NOT EXISTS			(SELECT 1 FROM "@CONSIGNEED" T1 WHERE T1."Code" = T0."CardCode" AND T1."U_Consignee" = T0."U_Consignee_Name"
+				        			AND TO_NVARCHAR(T1."U_ConsigneeAdd") = TO_NVARCHAR(T0."U_Consignee_Add")
+		        				    )
+		        				) THEN
+		        error := 30032;
+		        error_message := 'Manual entry not allowed.. Please select Consignee from the master list. [DRAFT]';
+		    	END IF;
+		END IF;
+
         -- ===================================================
         -- SECTION 3: LINE LEVEL VALIDATIONS - COMBINED LOOP
         -- ===================================================
@@ -1240,6 +1256,21 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             END IF;
         END IF;
     END IF;
+
+    -- =====================================================
+	-- Validation 30021: Consignee Manual Entry Not Allowed
+	-- =====================================================
+	IF Series LIKE 'EX%' THEN
+	        IF EXISTS		(SELECT 1 FROM ORDR T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+	        AND
+	        NOT EXISTS			(SELECT 1 FROM "@CONSIGNEED" T1 WHERE T1."Code" = T0."CardCode" AND T1."U_Consignee" = T0."U_Consignee_Name"
+			        			AND TO_NVARCHAR(T1."U_ConsigneeAdd") = TO_NVARCHAR(T0."U_Consignee_Add")
+	        				    )
+	        				) THEN
+	        error := 30032;
+	        error_message := 'Manual entry not allowed.. Please select Consignee from the master list.';
+	    	END IF;
+	END IF;
 
     -- ===================================================
     -- SECTION 3: LINE LEVEL VALIDATIONS - COMBINED LOOP
@@ -1894,7 +1925,6 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     END IF;
 
 END IF;
-
 -- =========================================================================================================
 --  Draft Document Validations (Object Type: 112 for PO)
 -- =========================================================================================================
@@ -1910,7 +1940,6 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         DECLARE MAX_ROW INT;
         DECLARE TempCounter INT;
         DECLARE DaysDifference INT;
-
         -- Header Level Variables
         DECLARE HeaderBranch INT;
         DECLARE DocCurrency NVARCHAR(10);
@@ -4544,7 +4573,7 @@ END IF;
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-/*IF object_type = '13' AND (:transaction_type ='A') THEN
+IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4553,7 +4582,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 
 IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -22079,23 +22108,70 @@ DECLARE VendorCode varchar(50);
 	END IF;
 END IF;
 ----------------------Subsidary Challan Qty math with Jobwork Bill------------------------
-IF object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-DECLARE SubChallanQty INT;
-DECLARE JobworkBillQty INT;
-DECLARE Difference INT;
-DECLARE GL Nvarchar(15);
+IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
+    DECLARE v_SubChallanQty   DECIMAL(19,6) := 0;
+    DECLARE v_JobworkBillQty  DECIMAL(19,6) := 0;
+    DECLARE v_DiffQty         DECIMAL(19,6);
+    DECLARE v_GLCount         INT := 0;
 
-select Sum("U_UNE_TQTY") INTO SubChallanQty from PCH1 T0 Where T0."DocEntry"=:list_of_cols_val_tab_del;
-select Sum("CmpltQty") INTO JobworkBillQty from PCH21 T0 Inner Join OWOR T1 On T0."RefDocEntr"=T1."DocEntry" and T0."RefObjType"=T1."ObjType" Where T0."DocEntry"=:list_of_cols_val_tab_del;
-select Count("DocEntry") INTO GL from PCH1 where "AcctCode"='50201027' and "DocEntry"=:list_of_cols_val_tab_del;
+    /* Sub-Challan Quantity */
+    SELECT IFNULL(SUM("U_UNE_TQTY"), 0) INTO v_SubChallanQty FROM PCH1
+    WHERE "DocEntry" = :list_of_cols_val_tab_del;
 
-	IF GL >0 then
-		IF JobworkBillQty<>SubChallanQty THEN
-					error := 1321;
-					error_message := N'The Challan Quantity is not match with Billing Quantity. Difference : '||SubChallanQty-JobworkBillQty;
+    /* Job-Work Billing Quantity */
+    SELECT IFNULL(SUM(T1."CmpltQty"), 0) INTO v_JobworkBillQty FROM PCH21 T0
+    INNER JOIN OWOR T1 ON T0."RefDocEntr" = T1."DocEntry" AND T0."RefObjType" = T1."ObjType"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+    /* Check specific GL presence */
+    SELECT COUNT(*) INTO v_GLCount FROM PCH1
+    WHERE "AcctCode" = '50201027' AND "DocEntry" = :list_of_cols_val_tab_del;
+
+    IF v_GLCount > 0 THEN
+	        IF v_SubChallanQty <> v_JobworkBillQty THEN
+
+    	        v_DiffQty := v_SubChallanQty - v_JobworkBillQty;
+
+        	    error := 1321;
+            	error_message := N'The Challan Quantity does not match with the Total Billing Quantity. Difference: ' || TO_NVARCHAR(v_DiffQty);
+			END IF;
+    END IF;
+        IF v_GLCount > 0 THEN
+	        IF  v_SubChallanQty = 0 THEN
+
+        	    error := 1321;
+            	error_message := N'Enter the Jobwork Challan "Total Quantity" at row level and link the Production Order via the Accounting tab --> Reference Document. This is mandatory for Jobwork bill.';
+			END IF;
+    END IF;
+END IF;
+---------------------------- Consignee Master Validation-------------------------------
+IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
+DECLARE UserId INT;
+DECLARE Cnt INT;
+DECLARE EUserId INT;
+
+SELECT Max("UserSign") INTO EUserId FROM "@ACONSIGNEEM" WHERE "Code" = :list_of_cols_val_tab_del;
+SELECT "UserSign" INTO UserId FROM "@CONSIGNEEM" WHERE "Code" = :list_of_cols_val_tab_del;
+SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del AND "CardType" = 'C';
+
+	IF UserId Not In (1,72,73) THEN
+		error := -1209;
+		error_message := N'Access denied. Only SAP Team is authorized to add, update, or cancel Consignee Master records.';
+	END IF;
+---------------------- Validate Consignee Code exists as Customer (Code = Customer Code)-----------------------------
+    IF Cnt = 0 THEN
+        error := -1210;
+        error_message := N'Invalid Customer Code. Consignee Code must exist in Customer Master (OCRD).';
+    END IF;
+
+    IF :transaction_type IN ('U','C') THEN
+    	IF EUserId Not In (1,72,73) THEN
+			error := -1211;
+			error_message := N'Access denied. Only SAP Team is authorized to update, or cancel Consignee Master records.';
 		END IF;
 	END IF;
 END IF;
+
 
 -----------------------------------------------
 -- Select the return values-

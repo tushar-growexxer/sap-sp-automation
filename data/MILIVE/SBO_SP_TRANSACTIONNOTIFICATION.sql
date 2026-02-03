@@ -1305,7 +1305,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 -- =====================================================
 
 IF SOSeries LIKE 'EX%' THEN
-        IF EXISTS		(SELECT 1 FROM ORDR T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."ObjType" = '17'
+        IF EXISTS		(SELECT 1 FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."ObjType" = '17'
         AND
         NOT EXISTS			(SELECT 1 FROM "@CONSIGNEED" T1 WHERE T1."Code" = T0."CardCode" AND T1."U_Consignee" = T0."U_Consignee_Name"
 		        			AND TO_NVARCHAR(T1."U_ConsigneeAdd") = TO_NVARCHAR(T0."U_Consignee_Add")
@@ -4675,7 +4675,7 @@ DECLARE GRNItemCode nvarchar(50);
 	END WHILE;
 END IF;
 
-IF object_type = '59' AND (:transaction_type = 'A') THEN
+/*IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -4698,7 +4698,7 @@ DECLARE Series Nvarchar(50);
 			MinGR := MinGR+1;
 		END WHILE;
 	END IF;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
@@ -4764,23 +4764,23 @@ END IF;
 
 --------------------------------------
 -- when creating/updating/deleting a Goods Receipt (object_type = 59)
-IF :object_type = '59' AND (:transaction_type = 'A') THEN
+/*IF :object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE IssuedQty NUMERIC(19,6);
 DECLARE BaseType int;
 
-SELECT Count("BaseType") INTO BaseType FROM IGN1 WHERE "BaseType"=202 and  "DocEntry"=list_of_cols_val_tab_del;
-IF BaseType>0 THEN
+	SELECT Count("BaseType") INTO BaseType FROM IGN1 WHERE "BaseType"=202 and  "DocEntry"=list_of_cols_val_tab_del;
+	IF BaseType>0 THEN
 
-  SELECT SUM(W."IssuedQty") INTO IssuedQty FROM WOR1  AS W WHERE W."ItemCode" <> 'DIBP0009'
-  		AND W."DocEntry" IN (SELECT DISTINCT I."BaseEntry" FROM IGN1 AS I WHERE I."DocEntry" = :list_of_cols_val_tab_del);
+	SELECT SUM(W."IssuedQty") INTO IssuedQty FROM WOR1  AS W
+	  WHERE W."ItemCode" <> 'DIBP0009' AND W."DocEntry" IN (SELECT DISTINCT I."BaseEntry" FROM IGN1 AS I WHERE I."DocEntry" = :list_of_cols_val_tab_del);
 
   -- treat NULL as 0 (no issues recorded)
-  IF COALESCE(IssuedQty, 0) = 0 THEN
-     error := 96;
-     error_message := N'Issue for Production Entry not Done for this Production order so the Receipt from Production not Possible';
-  END IF;
-END IF;
-end if;
+		IF COALESCE(IssuedQty, 0) = 0 THEN
+    	error := 96;
+		error_message := N'Issue for Production Entry not Done for this Production order so the Receipt from Production not Possible';
+		END IF;
+	END IF;
+END IF;*/
 ---------------------------------------------
 IF Object_type = '20' and (:transaction_type ='A') Then
 DECLARE MinGRN int;
