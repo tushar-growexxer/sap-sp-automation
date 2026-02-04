@@ -420,6 +420,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
 	DECLARE Pallet1 NVARCHAR(50);
 	DECLARE Pallet2 NVARCHAR(50);
 	DECLARE Pallet3 NVARCHAR(50);
+	DECLARE PackingType NVARCHAR(50);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -626,7 +627,7 @@ END IF;
     WHILE MinSO <= MaxSO DO
         -- Get all line-level data in a single, efficient query
         SELECT
-            T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
+            T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",T1."U_Pkg_Type",
             T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."U_ShowREX", COUNT(T1."U_TOPLT"), T1."Dscription", T1."FreeTxt",
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
@@ -634,7 +635,7 @@ END IF;
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", count(ifnull(T1."U_ApprOnCOA", '')),
             T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",'')
         INTO
-            SOItemCode, SOWhse, SOEntryType, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,
+            SOItemCode, SOWhse, SOEntryType, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,PackingType,
             SOPackType, SOPckCode, Capacity, HASCOM, Commission, CommissionPer,
             ShowREX, typpltibc, SOName, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
@@ -644,7 +645,7 @@ END IF;
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
         INNER JOIN OCRD T3 ON T3."CardCode" = :CardCode
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO
-        GROUP BY T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
+        GROUP BY T1."ItemCode", T1."WhsCode", T1."U_EntryType", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",T1."U_Pkg_Type",
             T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."U_ShowREX", T1."Dscription", T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
@@ -931,21 +932,30 @@ END IF;
         	error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1;
         END IF;
 -- =================================================
--- Validation 30091: Pallet Code Selection Check
+-- Validation 30091: Packing Type & Pallet Code Check
 -- =================================================
-IF IFNULL(SOPallet,'') = '' THEN
-    error := 30054;
-    error_message := N'Pallet Code cannot be blank. Allowed values: NA or pallet codes mapped with the selected Customer.';
-ELSE
-    IF SOPallet <> 'NA'
-       AND SOPallet NOT IN (
-            IFNULL(Pallet1,''),
-            IFNULL(Pallet2,''),
-            IFNULL(Pallet3,'')
-       ) THEN
-        error := 30055;
-        error_message := N'Invalid Pallet Code. Allowed values: NA or pallet codes mapped with the selected Customer.';
-    END IF;
+-- Packing Type must be selected
+IF IFNULL(PackingType, '') = '' THEN
+    error := 30091;
+    error_message := N'Packing Type cannot be left blank.';
+END IF;
+-- Pallet Code must not be blank
+IF IFNULL(SOPallet, '') = '' THEN
+    error := 30092;
+    error_message := N'Pallet Code is mandatory. Allowed values: NA or pallet codes mapped with the selected Customer.';
+END IF;
+-- Validate Pallet Code when not NA
+IF SOPallet <> 'NA'
+   AND SOPallet NOT IN (IFNULL(Pallet1,''), IFNULL(Pallet2,''), IFNULL(Pallet3,'')) THEN
+    error := 30093;
+    error_message := N'Invalid Pallet Code. Please select a pallet code mapped with the selected Customer or choose NA.';
+END IF;
+
+-- Pallet Code NA allowed only for specific Packing Types
+IF SOPallet = 'NA'
+   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose') THEN
+    error := 30094;
+    error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
         MinSO := MinSO + 1;
     END WHILE;
@@ -1091,6 +1101,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
 	DECLARE Pallet1 NVARCHAR(50);
 	DECLARE Pallet2 NVARCHAR(50);
 	DECLARE Pallet3 NVARCHAR(50);
+	DECLARE PackingType NVARCHAR(50);
     ----------------------------------------------------------------------------------------------------
     -- SECTION 1: UPFRONT DATA RETRIEVAL (EXECUTED ONCE)
     ----------------------------------------------------------------------------------------------------
@@ -1321,13 +1332,13 @@ END IF;
         ----------------------------------------------------------------------------------------------------
         WHILE MinSO <= MaxSO DO
             -- Retrieve all necessary data for the current line
-            SELECT T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS", T1."TaxCode",
+            SELECT T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS", T1."TaxCode",T1."U_Pkg_Type",
                    T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX", count(T1."U_TOPLT"),
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                    T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt", count(ifnull(T1."U_ApprOnCOA", '')),
                    T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03"
-            INTO SOEntryType, SOWhse, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, PSS, TaxCode,
+            INTO SOEntryType, SOWhse, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, PSS, TaxCode,PackingType,
                  SOPackType, SOPackng, Capacity, SOOtherPackng, HASCOM, Commission, CommissionPer,
                  SOItemGrpCode, BatchCount, ShowREX, typpltibc,
                  U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName,Freetext,COA_Appr,
@@ -1336,7 +1347,7 @@ END IF;
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
             INNER JOIN OCRD T3 ON T3."CardCode" = :CardCodeSO
             WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO AND ODRF."ObjType" = 17
-            GROUP BY T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS", T1."TaxCode",
+            GROUP BY T1."U_EntryType", T1."WhsCode", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."U_PSS", T1."TaxCode",T1."U_Pkg_Type",
                    T1."U_PTYPE", T1."U_Pcode", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX",
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
@@ -1639,21 +1650,29 @@ END IF;
         	error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1 || ' [DRAFT].';
         END IF;
 -- =================================================
--- Validation 30087: Pallet Code Selection Check
+-- Validation 30091: Packing Type & Pallet Code Check
 -- =================================================
-IF IFNULL(SOPallet,'') = '' THEN
-    error := 30087;
-    error_message := N'Pallet Code cannot be blank. Allowed values: NA or pallet codes mapped with the selected Customer.';
-ELSE
-    IF SOPallet <> 'NA'
-       AND SOPallet NOT IN (
-            IFNULL(Pallet1,''),
-            IFNULL(Pallet2,''),
-            IFNULL(Pallet3,'')
-       ) THEN
-        error := 30091;
-        error_message := N'Invalid Pallet Code. Allowed values: NA or pallet codes mapped with the selected Customer.';
-    END IF;
+-- Packing Type must be selected
+IF IFNULL(PackingType, '') = '' THEN
+    error := 30091;
+    error_message := N'Packing Type cannot be left blank.';
+END IF;
+-- Pallet Code must not be blank
+IF IFNULL(SOPallet, '') = '' THEN
+    error := 30092;
+    error_message := N'Pallet Code is mandatory. Allowed values: NA or pallet codes mapped with the selected Customer.';
+END IF;
+-- Validate Pallet Code when not NA
+IF SOPallet <> 'NA'
+   AND SOPallet NOT IN (IFNULL(Pallet1,''), IFNULL(Pallet2,''), IFNULL(Pallet3,'')) THEN
+    error := 30093;
+    error_message := N'Invalid Pallet Code. Please select a pallet code mapped with the selected Customer or choose NA.';
+END IF;
+-- Pallet Code NA allowed only for specific Packing Types
+IF SOPallet = 'NA'
+   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose') THEN
+    error := 30094;
+    error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
             -- Increment loop counter
             MinSO := MinSO + 1;
