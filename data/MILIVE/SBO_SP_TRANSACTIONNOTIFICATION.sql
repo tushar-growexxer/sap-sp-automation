@@ -22182,6 +22182,7 @@ DECLARE PortLoad Nvarchar(50);
 
 	END IF;
 END IF;
+
 ---------------------------------- RM receipt in Special Prod Entry --------------------------------
 /*IF Object_type = '202' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE ProdType NVARCHAR(5);

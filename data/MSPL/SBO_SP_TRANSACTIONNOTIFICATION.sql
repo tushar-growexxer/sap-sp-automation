@@ -12705,10 +12705,10 @@ DECLARE PrtCnt1 Int;
 			left join INV1 t88 on t8."DocEntry"=t88."BaseEntry" and t8."LineNum"=t88."BaseLine" and t8."ObjType"=t88."BaseType"
 			left join OINV t89 on t89."DocEntry"=t88."DocEntry" WHERE t89."DocEntry"=:list_of_cols_val_tab_del;
 
-			       IF PLoad <> PLoadSO THEN
-					 	error:=447;
-						error_message:=N'Sales order and A/R Invoice - Port of Loading is not matching';
-			       END IF;
+			       --IF PLoad <> PLoadSO THEN
+					 	--error:=447;
+						--error_message:=N'Sales order and A/R Invoice - Port of Loading is not matching';
+			       --END IF;
 
 			       IF PDischrg <> PDischrgSO THEN
 					 	error:=448;
