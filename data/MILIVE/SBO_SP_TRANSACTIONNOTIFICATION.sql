@@ -10,7 +10,7 @@ LANGUAGE SQLSCRIPT
 AS
 -- Return values
 error  int;				-- Result (0 for no error)
-error_message nvarchar (200); -- Error string to be displayed
+error_message nvarchar (250); -- Error string to be displayed
 DraftObj int;
 begin
 
