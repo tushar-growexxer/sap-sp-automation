@@ -140,7 +140,7 @@ If :Temp > 0 then
 
 		MailID:= 'purchasemgr1@minalspecialities.com,purchase5@minalspecialities.com,sanjay@minalspecialities.com,deepak@minalspecialities.com';
 		Mobile := '';
-		EmailCC := 'devarsh@minalspecialities.com,mgrppc@matangiindustries.com,ea1@matangiindustries.com,exppc@matangiindustries.com';
+		EmailCC := 'devarsh@minalspecialities.com';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'D';
 		Mobi_TYPE := 'Po Generated PC,SC/DI,OF';
@@ -167,7 +167,7 @@ If :Temp > 0 then
 
 		MailID:= 'purchasemgr1@minalspecialities.com,purchase5@minalspecialities.com,sanjay@minalspecialities.com,deepak@minalspecialities.com';
 		Mobile := '';
-		EmailCC := 'devarsh@minalspecialities.com,mgrppc@matangiindustries.com,ea1@matangiindustries.com,exppc@matangiindustries.com';
+		EmailCC := 'devarsh@minalspecialities.com';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'C';
 		Mobi_TYPE := 'Pr to Po Generated PC,SC/DI,OF';
