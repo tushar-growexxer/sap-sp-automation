@@ -4347,7 +4347,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4356,12 +4356,12 @@ DECLARE Series varchar(50);
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
 END IF;
-*/
+
 -------------------------------------------------
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-/*IF object_type = '13' AND (:transaction_type ='A') THEN
+IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4370,7 +4370,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -22418,7 +22418,7 @@ THEN
 		WHILE :MinAP<=MaxAP DO
 			SELECT COUNT(DRF1."U_LicenseType") into LicTypeMainAP FROM DRF1 WHERE DRF1."DocEntry" = list_of_cols_val_tab_del and DRF1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 0  then
-				error := 146;
+				error := -1212;
 				error_message := N'Please Select License Type.';
 			END IF;
 			MinAP := MinAP+1;
@@ -22443,7 +22443,7 @@ DECLARE VendorCode varchar(50);
 		WHILE :MinAP<=MaxAP DO
 			SELECT COUNT(PCH1."U_LicenseType") into LicTypeMainAP FROM PCH1 WHERE PCH1."DocEntry" = list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 0 then
-				error := 146;
+				error := -1213;
 				error_message := N'Please Select License Type.';
 			END IF;
 			MinAP := MinAP+1;
@@ -22469,7 +22469,7 @@ if DraftObj = 18 THEN
 			SELECT DRF1."U_LicenseNum" into LicenseAP FROM DRF1 WHERE DRF1."DocEntry" = list_of_cols_val_tab_del and DRF1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 'ADVANCE' then
 				IF (LicenseAP IS NULL OR LicenseAP = '') THEN
-					error := 146;
+					error := -1214;
 					error_message := N'License No cannot be empty as Advance License is selected.';
 				END IF;
 			END IF;
@@ -22496,7 +22496,7 @@ DECLARE VendorCode varchar(50);
 			SELECT PCH1."U_LicenseNum" into LicenseAP FROM PCH1 WHERE PCH1."DocEntry" = list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 'ADVANCE' then
 				IF (LicenseAP IS NULL OR LicenseAP = '') THEN
-					error := 146;
+					error := -1215;
 					error_message := N'License No cannot be empty as Advance License is selected.';
 				END IF;
 			END IF;
@@ -22504,6 +22504,83 @@ DECLARE VendorCode varchar(50);
 		END WHILE;
 	END IF;
 END IF;
+
+
+----------------------------------- WeighBridge -----------------------------------------------------
+
+/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE WB_SlipNo_Str NVARCHAR(50);
+    DECLARE WB_NetWt DECIMAL(19,6);
+    DECLARE WB_InDate DATE;
+    DECLARE WB_Vehicle NVARCHAR(100);
+
+    DECLARE GRN_SlipNo_Num DECIMAL(19,6);
+    DECLARE GRN_ActualQty DECIMAL(19,6);
+    DECLARE GRN_GateDate DATE;
+    DECLARE GRN_Vehicle NVARCHAR(100);
+    DECLARE RowCount INT := 0;
+
+    -- 1. Fetch GRN values
+    SELECT TOP 1
+        T1."U_UNE_QTY",
+        T1."U_UNE_ACQT",
+        T0."U_UNE_GEDT",
+        T0."U_UNE_VehicleNo"
+    INTO
+        GRN_SlipNo_Num, GRN_ActualQty, GRN_GateDate, GRN_Vehicle
+    FROM OPDN T0
+    INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+    -- 2. Convert Numeric Slip to String and check existence
+    -- We use CAST to ensure 123 becomes '123'
+    IF :GRN_SlipNo_Num > 0 THEN
+
+        -- Safe check: compare string to string
+        SELECT COUNT(*) INTO RowCount
+        FROM "@WEIGHBRIDGE"
+        WHERE "U_WeighBridgeSlipNo" = CAST(CAST(:GRN_SlipNo_Num AS INT) AS NVARCHAR);
+
+        IF :RowCount = 0 THEN
+            error := -1219;
+            error_message := 'Invalid Slip! Weighbridge Slip ' || CAST(:GRN_SlipNo_Num AS NVARCHAR) || ' not found.';
+        ELSE
+            -- 3. Fetch Weighbridge details using safe string match
+            SELECT TOP 1
+                T2."U_NetWt",
+                T2."U_InDate",
+                T2."U_LorryName"
+            INTO
+                WB_NetWt, WB_InDate, WB_Vehicle
+            FROM "@WEIGHBRIDGE" T2
+            WHERE T2."U_WeighBridgeSlipNo" = CAST(CAST(:GRN_SlipNo_Num AS INT) AS NVARCHAR);
+
+            --- VALIDATIONS ---
+
+            -- Check Weight
+            IF :GRN_ActualQty <> :WB_NetWt THEN
+                error := -1216;
+                error_message := 'Weight Mismatch! GRN: ' || :GRN_ActualQty || ' vs WeighBridge: ' || :WB_NetWt;
+            END IF;
+
+            -- Check Date
+            IF :GRN_GateDate <> :WB_InDate THEN
+                error := -1217;
+                error_message := 'Date Mismatch! Gate Entry Date: ' || TO_VARCHAR(:GRN_GateDate, 'yyyyMMdd') || ' vs WeighBridge In Date: ' || TO_VARCHAR(:WB_InDate, 'yyyyMMdd');
+            END IF;
+
+            -- Check Vehicle (Regularized)
+            IF UPPER(REPLACE(REPLACE(REPLACE(:GRN_Vehicle, ' ', ''), '-', ''), '.', '')) <>
+               UPPER(REPLACE(REPLACE(REPLACE(:WB_Vehicle, ' ', ''), '-', ''), '.', '')) THEN
+                error := -1218;
+                error_message := 'Vehicle No Mismatch! GRN: ' || :GRN_Vehicle || ' vs WeighBridge: ' || :WB_Vehicle;
+            END IF;
+
+        END IF;
+    END IF;
+END IF;*/
+
+
 
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
