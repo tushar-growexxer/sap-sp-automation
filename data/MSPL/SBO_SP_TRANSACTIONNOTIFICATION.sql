@@ -4623,13 +4623,11 @@ DECLARE ARItemCode int;
 	 MinAR=MinAR+1;
 	END WHILE;
 END IF;
-
 -----------------------
-
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-/*IF object_type = '13' AND (:transaction_type ='A') THEN
+IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4638,7 +4636,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 
 IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
