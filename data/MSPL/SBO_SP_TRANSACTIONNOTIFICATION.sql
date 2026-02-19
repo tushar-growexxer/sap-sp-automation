@@ -12215,13 +12215,13 @@ END IF;
 
 IF object_type = '20' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 
-DECLARE Series Nvarchar(20);
+DECLARE Vendor Nvarchar(20);
 DECLARE ExRate Double;
 DECLARE U_ExRate Double;
 
-	SELECT "SeriesName" INTO Series FROM OPDN T0 LEFT JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT "CardCode" INTO Vendor FROM OPDN T0 WHERE T0."DocEntry" =:list_of_cols_val_tab_del;
 
-		IF Series LIKE 'IM%' THEN
+		IF Vendor LIKE 'V__I%' THEN
 
 			SELECT "DocRate" INTO ExRate FROM OPDN T0 WHERE T0."DocEntry" =:list_of_cols_val_tab_del;
 

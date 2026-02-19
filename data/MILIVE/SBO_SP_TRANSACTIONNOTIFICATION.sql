@@ -20207,7 +20207,8 @@ BEGIN
             AND T1."LineNum" = T4."U_Q_SOLine"
             AND T1."ItemCode" = T4."ItemCode"
         WHERE T2."DocEntry" = :list_of_cols_val_tab_del) as B0 ON B0."DistNumber" = T4."BatchNum"
-    WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND B0."DistNumber" is null AND T3."ItemCode" NOT LIKE '%DI%' AND T3."ItemCode" NOT LIKE '%RM%' AND T3."ItemCode" NOT LIKE '%PM%' AND T3."ItemCode" NOT LIKE '%OF%'
+    WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND B0."DistNumber" is null AND T3."ItemCode" NOT LIKE '%DI%' AND T3."ItemCode" NOT LIKE '%RM%'
+    AND T3."ItemCode" NOT LIKE '%PM%' AND T3."ItemCode" NOT LIKE '%OF%' AND T3."ItemCode" NOT LIKE 'PCFG0540'
     	  AND (T3."U_Pcode" is not null) AND lower(T3."U_PTYPE") not like '%tanker%';
 
     -- Only proceed with SELECT INTO if we have records
@@ -20236,7 +20237,8 @@ BEGIN
 	            AND T1."ItemCode" = T4."ItemCode"
 	        WHERE T2."DocEntry" = :list_of_cols_val_tab_del) as B0 ON B0."DistNumber" = T4."BatchNum"
         WHERE T2."DocEntry" = :list_of_cols_val_tab_del
-        AND B0."DistNumber" is null AND T3."ItemCode" NOT LIKE '%DI%' AND T3."ItemCode" NOT LIKE '%RM%' AND T3."ItemCode" NOT LIKE '%PM%' AND T3."ItemCode" NOT LIKE '%OF%'-- AND T3."ItemCode" not in ('PCFG0480')
+        AND B0."DistNumber" is null AND T3."ItemCode" NOT LIKE '%DI%' AND T3."ItemCode" NOT LIKE '%RM%' AND T3."ItemCode" NOT LIKE '%PM%' AND T3."ItemCode" NOT LIKE '%OF%'
+        --AND T3."ItemCode" not in ('PCFG0540')
         AND (T3."U_Pcode" is not null)
         LIMIT 1;
 
@@ -22508,7 +22510,7 @@ END IF;
 
 ----------------------------------- WeighBridge -----------------------------------------------------
 
-/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE WB_SlipNo_Str NVARCHAR(50);
     DECLARE WB_NetWt DECIMAL(19,6);
     DECLARE WB_InDate DATE;
@@ -22518,70 +22520,74 @@ END IF;
     DECLARE GRN_ActualQty DECIMAL(19,6);
     DECLARE GRN_GateDate DATE;
     DECLARE GRN_Vehicle NVARCHAR(100);
+    DECLARE GRN_PType NVARCHAR(100); -- Variable for Packing Type
+    DECLARE GRN_BPLId INT;           -- Variable for Branch ID
     DECLARE RowCount INT := 0;
 
-    -- 1. Fetch GRN values
+    -- 1. Fetch GRN values including Branch and Packing Type
     SELECT TOP 1
         T1."U_UNE_QTY",
         T1."U_UNE_ACQT",
         T0."U_UNE_GEDT",
-        T0."U_UNE_VehicleNo"
+        T0."U_UNE_VehicleNo",
+        T1."U_PTYPE",        -- Fetching Packing Type from Line
+        T0."BPLId"           -- Fetching Branch ID from Header
     INTO
-        GRN_SlipNo_Num, GRN_ActualQty, GRN_GateDate, GRN_Vehicle
+        GRN_SlipNo_Num, GRN_ActualQty, GRN_GateDate, GRN_Vehicle, GRN_PType, GRN_BPLId
     FROM OPDN T0
     INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
     WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 
-    -- 2. Convert Numeric Slip to String and check existence
-    -- We use CAST to ensure 123 becomes '123'
-    IF :GRN_SlipNo_Num > 0 THEN
+    -- 2. New Condition: Only validate if Branch is 4 and Type is TANKER%
+    IF :GRN_BPLId = 4 AND UPPER(:GRN_PType) LIKE 'TANKER%' THEN
 
-        -- Safe check: compare string to string
-        SELECT COUNT(*) INTO RowCount
-        FROM "@WEIGHBRIDGE"
-        WHERE "U_WeighBridgeSlipNo" = CAST(CAST(:GRN_SlipNo_Num AS INT) AS NVARCHAR);
+        -- Existing validation logic starts here
+        IF :GRN_SlipNo_Num > 0 THEN
 
-        IF :RowCount = 0 THEN
-            error := -1219;
-            error_message := 'Invalid Slip! Weighbridge Slip ' || CAST(:GRN_SlipNo_Num AS NVARCHAR) || ' not found.';
-        ELSE
-            -- 3. Fetch Weighbridge details using safe string match
-            SELECT TOP 1
-                T2."U_NetWt",
-                T2."U_InDate",
-                T2."U_LorryName"
-            INTO
-                WB_NetWt, WB_InDate, WB_Vehicle
-            FROM "@WEIGHBRIDGE" T2
-            WHERE T2."U_WeighBridgeSlipNo" = CAST(CAST(:GRN_SlipNo_Num AS INT) AS NVARCHAR);
+            -- Safe check: compare string to string
+            SELECT COUNT(*) INTO RowCount
+            FROM "@WEIGHBRIDGE"
+            WHERE "U_WeighBridgeSlipNo" = CAST(CAST(:GRN_SlipNo_Num AS INT) AS NVARCHAR);
 
-            --- VALIDATIONS ---
+            IF :RowCount = 0 THEN
+                error := -1219;
+                error_message := 'Invalid Slip! Weighbridge Slip ' || CAST(:GRN_SlipNo_Num AS NVARCHAR) || ' not found.';
+            ELSE
+                -- 3. Fetch Weighbridge details
+                SELECT TOP 1
+                    T2."U_NetWt",
+                    T2."U_InDate",
+                    T2."U_LorryName"
+                INTO
+                    WB_NetWt, WB_InDate, WB_Vehicle
+                FROM "@WEIGHBRIDGE" T2
+                WHERE T2."U_WeighBridgeSlipNo" = CAST(CAST(:GRN_SlipNo_Num AS INT) AS NVARCHAR);
 
-            -- Check Weight
-            IF :GRN_ActualQty <> :WB_NetWt THEN
-                error := -1216;
-                error_message := 'Weight Mismatch! GRN: ' || :GRN_ActualQty || ' vs WeighBridge: ' || :WB_NetWt;
+                --- VALIDATIONS ---
+
+                -- Check Weight
+                IF :GRN_ActualQty <> :WB_NetWt THEN
+                    error := -1216;
+                    error_message := 'Weight Mismatch! GRN: ' || :GRN_ActualQty || ' vs WeighBridge: ' || :WB_NetWt;
+                END IF;
+
+                -- Check Date
+                IF :error = 0 AND :GRN_GateDate <> :WB_InDate THEN
+                    error := -1217;
+                    error_message := 'Date Mismatch! Gate Entry Date: ' || TO_VARCHAR(:GRN_GateDate, 'yyyyMMdd') || ' vs WeighBridge In Date: ' || TO_VARCHAR(:WB_InDate, 'yyyyMMdd');
+                END IF;
+
+                -- Check Vehicle (Regularized)
+                IF :error = 0 AND UPPER(REPLACE(REPLACE(REPLACE(:GRN_Vehicle, ' ', ''), '-', ''), '.', '')) <>
+                   UPPER(REPLACE(REPLACE(REPLACE(:WB_Vehicle, ' ', ''), '-', ''), '.', '')) THEN
+                    error := -1218;
+                    error_message := 'Vehicle No Mismatch! GRN: ' || :GRN_Vehicle || ' vs WeighBridge: ' || :WB_Vehicle;
+                END IF;
+
             END IF;
-
-            -- Check Date
-            IF :GRN_GateDate <> :WB_InDate THEN
-                error := -1217;
-                error_message := 'Date Mismatch! Gate Entry Date: ' || TO_VARCHAR(:GRN_GateDate, 'yyyyMMdd') || ' vs WeighBridge In Date: ' || TO_VARCHAR(:WB_InDate, 'yyyyMMdd');
-            END IF;
-
-            -- Check Vehicle (Regularized)
-            IF UPPER(REPLACE(REPLACE(REPLACE(:GRN_Vehicle, ' ', ''), '-', ''), '.', '')) <>
-               UPPER(REPLACE(REPLACE(REPLACE(:WB_Vehicle, ' ', ''), '-', ''), '.', '')) THEN
-                error := -1218;
-                error_message := 'Vehicle No Mismatch! GRN: ' || :GRN_Vehicle || ' vs WeighBridge: ' || :WB_Vehicle;
-            END IF;
-
         END IF;
     END IF;
-END IF;*/
-
-
-
+END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
