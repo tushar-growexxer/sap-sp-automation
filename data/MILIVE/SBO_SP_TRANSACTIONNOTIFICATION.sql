@@ -146,6 +146,11 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 	        AND IFNULL(T0."GSTRegnNo",'') <> ''
 	        AND T2."validFor" = 'Y'
 	        AND T2."CardCode" LIKE 'V%' AND T2."CardCode" NOT LIKE 'V__I%'
+	        AND (
+	            (T0."CardCode" LIKE 'VI%' AND T1."CardCode" LIKE 'VI%') OR
+	            (T0."CardCode" LIKE 'VP%' AND T1."CardCode" LIKE 'VP%') OR
+	            (T0."CardCode" LIKE 'VO%' AND T1."CardCode" LIKE 'VO%')
+	        )
 	    ) THEN
 	        error := -20021;
 	        error_message := N'Duplicate GST Number found in an Active Pay-to address of another Vendor.';
@@ -1006,7 +1011,8 @@ END IF;
 
 -- Pallet Code NA allowed only for specific Packing Types
 IF SOPallet = 'NA'
-   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose') THEN
+   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose')
+   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346','CPD0362')) THEN
     error := 30094;
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
@@ -1723,7 +1729,8 @@ IF SOPallet <> 'NA'
 END IF;
 -- Pallet Code NA allowed only for specific Packing Types
 IF SOPallet = 'NA'
-   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose') THEN
+   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose')
+   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346','CPD0362')) THEN
     error := 30094;
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
@@ -8028,7 +8035,7 @@ Declare FreeSample nvarchar(5);
 				error_message := N'Please enter PDC Date';
 			End If;
 		End If;
-		IF Pterm LIKE '%Advance%' then
+		/*IF Pterm LIKE '%Advance%' then
 			IF advanceno IS NULL OR advanceno = '' then
 				error :=236;
 				error_message := N'Please enter Advance Cheque no';
@@ -8037,7 +8044,7 @@ Declare FreeSample nvarchar(5);
 			error :=236;
 			error_message := N'Please enter Advance Date';
 			End If;
-		End If;
+		End If;*/
 	End If;
 END IF;
 
@@ -9457,6 +9464,7 @@ DECLARE WHSIN Nvarchar(50);
 	END WHILE;
 END IF;
 
+/*
 IF object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinDL Int;
 DECLARE MaxDL Int;
@@ -9488,6 +9496,7 @@ DECLARE WHSDL Nvarchar(50);
 		MinDL := MinDL+1;
 	END WHILE;
 END IF;
+*/
 
 IF object_type = '18' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE APDate date;
@@ -17192,7 +17201,7 @@ IF FreeSample='No' or FreeSample is null THEN
 				error_message := N'Please enter PDC Date';
 			End If;
 		End If;
-		IF Pterm LIKE '%Advance%' then
+		/*IF Pterm LIKE '%Advance%' then
 			IF advanceno IS NULL OR advanceno = '' then
 				error :=236;
 				error_message := N'Please enter Advance Cheque no';
@@ -17201,7 +17210,7 @@ IF FreeSample='No' or FreeSample is null THEN
 			error :=236;
 			error_message := N'Please enter Advance Date';
 			End If;
-		End If;
+		End If;*/
 End If;
 	END IF;
 END IF;
@@ -21462,6 +21471,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ReasonFail NVARCHAR(254);
     DECLARE v_ApprCOA NVARCHAR(5);
     DECLARE v_PSS NVARCHAR(5);
+    DECLARE v_Batch NVARCHAR(5);
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
@@ -21526,8 +21536,8 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     -- Start the loop to validate each row in QUT1
     WHILE v_MINN <= v_MAXX DO
         -- Retrieve values from QUT1 for mandatory fields for the current row
-        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS"
-        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS
+        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS", T1."U_NoOfBatchRequired"
+        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS, v_Batch
         FROM QUT1 T1
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del
         AND T1."VisOrder" = v_MINN;
@@ -21566,6 +21576,9 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
 		ELSEIF v_Department = 'QC' AND (v_PSS IS NULL OR LENGTH(TRIM(v_PSS)) = 0) THEN
         	error := -1225;
         	error_message := 'Please enter PSS Yes/No as department is QC.';
+        ELSEIF v_Batch IS NULL OR LENGTH(TRIM(v_Batch)) = 0 THEN
+        	error := -1226;
+        	error_message := 'Please enter No. of Batches Required.';
         END IF;
         -- Increment the line index to move to the next row
          v_MINN = v_MINN + 1;
@@ -22510,7 +22523,7 @@ END IF;
 
 ----------------------------------- WeighBridge -----------------------------------------------------
 
-IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE WB_SlipNo_Str NVARCHAR(50);
     DECLARE WB_NetWt DECIMAL(19,6);
     DECLARE WB_InDate DATE;
