@@ -21648,7 +21648,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ReasonFail NVARCHAR(254);
     DECLARE v_ApprCOA NVARCHAR(5);
     DECLARE v_PSS NVARCHAR(5);
-    DECLARE v_Batch NVARCHAR(5);
+    DECLARE v_Batch NVARCHAR(100);
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
