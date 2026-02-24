@@ -19787,7 +19787,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1025;
             error_message := 'The OFFG from 2OF-QCR cannot be moved to any warehouse other than 2EX1QCR,2BT';
         end if;
-		if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-FG','2EX1OFFG','2OF-FLOR','2OF-QCR','2EX1QCR') then
+		if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-FG','2EX1OFFG','2OF-FLOR','2OF-QCR','2EX1QCR','2OF-TRD') then
             error := -1026;
             error_message := 'The OFFG from 2BT cannot be moved to any warehouse other than 1BT,2OF-FG,2EX1OFFG,2OF-FLOR,2OF-QCR,2EX1QCR';
         end if;
@@ -21471,7 +21471,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ReasonFail NVARCHAR(254);
     DECLARE v_ApprCOA NVARCHAR(5);
     DECLARE v_PSS NVARCHAR(5);
-    DECLARE v_Batch NVARCHAR(100);
+    DECLARE v_Batch NVARCHAR(5);
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
