@@ -830,6 +830,30 @@ If :Temp > 0 then
 	End If;
 End If;
 
+----------------------------- PR Generated - QuotePilot --------------------------------------------
+IF (:object_type = '1470000113' AND (:transaction_type IN ('A'))) THEN
+
+	select count(T0."DocEntry") INTO Temp from OPRQ T0 JOIN PRQ1 T1 ON T0."DocEntry" = T1."DocEntry"
+	WHERE (T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%PM%' OR T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%TR%')
+	and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPRQ T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID = 'app.test@matangiindustries.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := '';
+		ObjectType := 'R';
+		Mobi_TYPE := 'PR Generated - QuotePilot';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MILIVE') Then
+			CALL "MOBIALERT"."Add_Config_Proc" (334,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
 --SELECT * FROM View_Objdet
 
 -- Select the return values
