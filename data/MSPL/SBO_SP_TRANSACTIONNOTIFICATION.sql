@@ -22217,7 +22217,7 @@ SELECT Max("UserSign") INTO EUserId FROM "@ACONSIGNEEM" WHERE "Code" = :list_of_
 SELECT "UserSign" INTO UserId FROM "@CONSIGNEEM" WHERE "Code" = :list_of_cols_val_tab_del;
 SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del AND "CardType" = 'C';
 
-	IF UserId Not In (1,72,73) THEN
+	IF UserId Not In (1,146) THEN
 		error := -1209;
 		error_message := N'Access denied. Only SAP Team is authorized to add, update, or cancel Consignee Master records.';
 	END IF;
@@ -22228,7 +22228,7 @@ SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del 
     END IF;
 
     IF :transaction_type IN ('U','C') THEN
-    	IF EUserId Not In (1,72,73) THEN
+    	IF EUserId Not In (1,146) THEN
 			error := -1211;
 			error_message := N'Access denied. Only SAP Team is authorized to update, or cancel Consignee Master records.';
 		END IF;

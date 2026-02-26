@@ -1784,6 +1784,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE BaseDocBranch INT;
     DECLARE BaseTypeUDF NVARCHAR(50);
     DECLARE BaseDocNumUDF INT;
+    DECLARE BaseLineNum INT;
     DECLARE ItemBranch INT;
     DECLARE ItemClass CHAR(1); -- '1' for Service, '2' for Material
     DECLARE PackingType NVARCHAR(100);
@@ -1791,6 +1792,8 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE PackingCapacity INT;
     DECLARE HsnEntry INT;
     DECLARE SacEntry INT;
+    DECLARE POQty INT;
+    DECLARE PRQTY INT;
 
     -- Vendor Authorization Variables
     DECLARE VendorExists INT;
@@ -1823,10 +1826,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
     WHILE MIN_ROW <= MAX_ROW DO
 
-        SELECT T0."ItemCode", T0."Dscription", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
+        SELECT T0."ItemCode", T0."Dscription",T0."Quantity",T0."BaseLine", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
                T0."Project", T0."BaseEntry", T0."BaseType", T0."U_BASETYPE", T0."U_BASEDOCNO", T1."ItemClass",
                T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry"
-        INTO ItemCode, ItemDescription, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
+        INTO ItemCode, ItemDescription,POQty,BaseLineNum, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
              Project, BaseDocEntry, BaseDocType, BaseTypeUDF, BaseDocNumUDF, ItemClass,
              PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry
         FROM POR1 T0
@@ -1893,10 +1896,16 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
         IF BaseDocType = 1470000113 THEN
             SELECT T1."BPLId" INTO BaseDocBranch FROM OPRQ T1 WHERE T1."DocEntry" = BaseDocEntry;
+            SELECT SUM(T1."Quantity") INTO PRQty FROM PRQ1 T1 WHERE T1."DocEntry" = BaseDocEntry AND T1."ItemCode" = ItemCode;
             IF HeaderBranch <> BaseDocBranch THEN
                 error := -40006;
                 error_message := N'PO and Purchase Request must be of the same Branch.';
             END IF;
+
+            IF POQty > PRQty THEN
+				error := -40006;
+				error_message := N'PO Qty cannot exceed PR Qty for item '|| ItemCode || 'at Line '|| MIN_ROW + 1;
+			END IF;
         END IF;
 
         IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -2134,6 +2143,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         DECLARE BaseDocBranch INT;
         DECLARE BaseTypeUDF NVARCHAR(50);
         DECLARE BaseDocNumUDF INT;
+        DECLARE BaseLineNum INT;
         DECLARE ItemClass CHAR(1);
         DECLARE PackingType NVARCHAR(100);
         DECLARE PackingCode NVARCHAR(50);
@@ -2141,6 +2151,8 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         DECLARE HsnEntry INT;
         DECLARE SacEntry INT;
         DECLARE ItemBranch INT;
+        DECLARE POQty INT;
+    	DECLARE PRQTY INT;
 
         -- Vendor Authorization Variables
         DECLARE VendorExists INT;
@@ -2245,12 +2257,18 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             END IF;
 
             IF BaseDocType = 1470000113 THEN
-                SELECT T1."BPLId" INTO BaseDocBranch FROM OPRQ T1 WHERE T1."DocEntry" = BaseDocEntry;
-                IF HeaderBranch <> BaseDocBranch THEN
-                    error := -40036;
-                    error_message := N'PO and Purchase Request must be of the same Branch.';
-                END IF;
-            END IF;
+	            SELECT T1."BPLId" INTO BaseDocBranch FROM OPRQ T1 WHERE T1."DocEntry" = BaseDocEntry;
+	            SELECT SUM(T1."Quantity") INTO PRQty FROM PRQ1 T1 WHERE T1."DocEntry" = BaseDocEntry AND T1."ItemCode" = ItemCode;
+	            IF HeaderBranch <> BaseDocBranch THEN
+	                error := -40036;
+	                error_message := N'PO and Purchase Request must be of the same Branch.';
+	            END IF;
+
+	            IF POQty > PRQty THEN
+					error := -40036;
+					error_message := N'PO Qty cannot exceed PR Qty for item '|| ItemCode || 'at Line '|| MIN_ROW + 1;
+				END IF;
+	        END IF;
 
             IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
                 error := -40037;
@@ -2474,7 +2492,7 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 		SELECT DAYS_BETWEEN(:DocDate, NOW()) INTO TEMP_COUNTER FROM DUMMY;
 		IF :TEMP_COUNTER > 3 THEN
 			error := -41001;
-			error_message := N'Only today''s date is allowed to add a Purchase Request.';
+			error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 		END IF;
 	END IF;
 
@@ -2491,19 +2509,19 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 	IF :transaction_type = 'U' THEN
 		SELECT DAYS_BETWEEN(T0."DocDate", T0."UpdateDate") INTO TEMP_COUNTER
 		FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		IF :TEMP_COUNTER < 0 THEN
+		IF :TEMP_COUNTER > 3 THEN
 			error := -41004;
-			error_message := N'You are not allowed to edit the Posting Date.';
+			error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 		END IF;
 	END IF;
 
-	IF :transaction_type = 'U' THEN
+	/*IF :transaction_type = 'U' THEN
 		SELECT COUNT(*) INTO TEMP_COUNTER FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 		IF :TEMP_COUNTER > 0 THEN
 			error := -41005;
 			error_message := N'You are not allowed to update the Purchase Request as it is already approved.';
 		END IF;
-	END IF;
+	END IF;*/
 
 	SELECT T0."U_Priority" INTO Priority FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 	IF IFNULL(:Priority, '') = '' THEN
@@ -2670,16 +2688,16 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             SELECT DAYS_BETWEEN(:DocDate, NOW()) INTO TEMP_COUNTER FROM DUMMY;
             IF :TEMP_COUNTER > 3 THEN
                 error := -41030;
-                error_message := N'Only today''s date is allowed to add a Purchase Request.';
+                error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
             END IF;
         END IF;
 
 		IF :transaction_type = 'U' THEN
 			SELECT DAYS_BETWEEN(T0."DocDate", T0."UpdateDate") INTO TEMP_COUNTER
 			FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType"='1470000113';
-			IF :TEMP_COUNTER < 0 THEN
+			IF :TEMP_COUNTER > 3 THEN
 				error := -41032;
-				error_message := N'You are not allowed to edit the Posting Date.';
+				error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 			END IF;
 		END IF;
 
@@ -19745,7 +19763,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The PCRM from 2PC-QC cannot be moved to any warehouse other than 2PC-QCR,2PC-RAW,2PC-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR','2PC-QC') then
             error := -1033;
             error_message := 'The PCRM from 2BT cannot be moved to any warehouse other than 1BT,2PC-RAW,2PC-FLOR';
         end if;
@@ -19813,7 +19831,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The OFRM from 2OF-QC cannot be moved to any warehouse other than 2OF-QCR,2OF-RAW,2OF-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-RAW','2OF-FLOR') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-RAW','2OF-FLOR','2PC-QC') then
             error := -1033;
             error_message := 'The OFRM from 2BT cannot be moved to any warehouse other than 1BT,2OF-RAW,2OF-FLOR';
         end if;
@@ -19838,10 +19856,10 @@ select T1."FromWhsCod" into FromWhs from WTR1 T1 where T1."DocEntry" = :list_of_
 select T1."WhsCode" into ToWhs from WTR1 T1 where T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinIT;
 select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinIT;
 if Item like '%FG%' then
-    	/*if FromWhs = 'PC-FG' and ToWhs not in ('1BT') then
+    	if FromWhs = 'PC-FG' and ToWhs not in ('1BT') then
             error := -1037;
             error_message := 'The PCFG from PC-FG cannot be moved to any warehouse other than 1BT';
-        end if;*/
+        end if;
         if FromWhs = 'PC-QC' and ToWhs not in ('PC-QCR','PC-FG','1BT') then
             error := -1038;
             error_message := 'The PCFG from PC-QC cannot be moved to any warehouse other than PC-QCR,PC-FG';
@@ -19850,7 +19868,7 @@ if Item like '%FG%' then
             error := -1039;
             error_message := 'The PCFG from PC-QCR cannot be moved to any warehouse other than 1BT';
         end if;
-		if FromWhs = '1BT' and ToWhs not in ('2BT','PC-FG','PC-QCR','DI-FG','DI-QCR','OF-FG', 'OF-QC', 'OF-QCR','PC-QC-TR','PC-TRD') then
+		if FromWhs = '1BT' and ToWhs not in ('2BT','PC-FG','PC-QCR','DI-FG','DI-QCR','OF-FG', 'OF-QC', 'OF-QCR','PC-QC-TR','PC-TRD','OF-TRD') then
             error := -1040;
             error_message := 'The PCFG from 1BT cannot be moved to any warehouse other than 2BT,PC-FG,PC-QCR,DI-FG,DI-QCR';
         end if;
