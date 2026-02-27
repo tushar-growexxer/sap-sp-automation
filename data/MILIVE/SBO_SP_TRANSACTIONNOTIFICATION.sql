@@ -19769,7 +19769,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
         end if;
 	end if;
 	if Item like 'PCPM%' then
-		if FromWhs = '2PC-PAC' and ToWhs not in ('2EX1PCPM','2BT') then
+		if FromWhs = '2PC-PAC' and ToWhs not in ('2EX1PCPM','2BT','2RGP') then
             error := -1034;
             error_message := 'The PCPM from 2PC-PAC cannot be moved to any warehouse other than 2EX1PCPM,2BT';
         end if;
@@ -21489,7 +21489,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ReasonFail NVARCHAR(254);
     DECLARE v_ApprCOA NVARCHAR(5);
     DECLARE v_PSS NVARCHAR(5);
-    DECLARE v_Batch NVARCHAR(5);
+    DECLARE v_Batch NVARCHAR(25);
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
@@ -22267,7 +22267,6 @@ DECLARE PortLoad Nvarchar(50);
 
 	END IF;
 END IF;
-
 ---------------------------------- RM receipt in Special Prod Entry --------------------------------
 /*IF Object_type = '202' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE ProdType NVARCHAR(5);
@@ -22441,8 +22440,7 @@ DECLARE MaxAP Int;
 DECLARE LicTypeMainAP INT;
 DECLARE VendorCode varchar(50);
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
-if DraftObj = 18
-THEN
+IF DraftObj = 18 THEN
 	SELECT Min(T0."VisOrder") INTO MinAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	SELECT Max(T0."VisOrder") INTO MaxAP from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	SELECT T0."CardCode" into VendorCode FROM ODRF T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."ObjType"=18;
@@ -22537,10 +22535,7 @@ DECLARE VendorCode varchar(50);
 		END WHILE;
 	END IF;
 END IF;
-
-
 ----------------------------------- WeighBridge -----------------------------------------------------
-
 IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE WB_SlipNo_Str NVARCHAR(50);
     DECLARE WB_NetWt DECIMAL(19,6);

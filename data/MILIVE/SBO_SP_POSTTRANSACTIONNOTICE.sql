@@ -831,10 +831,10 @@ If :Temp > 0 then
 End If;
 
 ----------------------------- PR Generated - QuotePilot --------------------------------------------
-IF (:object_type = '1470000113' AND (:transaction_type IN ('A','U'))) THEN
+IF (:object_type = '1470000113' AND (:transaction_type IN ('A'))) THEN
 
 	select count(T0."DocEntry") INTO Temp from OPRQ T0 JOIN PRQ1 T1 ON T0."DocEntry" = T1."DocEntry"
-	WHERE (T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%PM%' OR T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%TR%')
+	WHERE (T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%PM%' /*OR T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%TR%'*/)
 	and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 	If :Temp > 0 then
