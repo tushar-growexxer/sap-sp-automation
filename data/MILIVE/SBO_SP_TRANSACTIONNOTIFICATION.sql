@@ -22537,7 +22537,7 @@ DECLARE VendorCode varchar(50);
 	END IF;
 END IF;
 ----------------------------------- WeighBridge -----------------------------------------------------
-IF object_type = '20' AND (:transaction_type = 'U') THEN
+/*IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE WB_SlipNo_Str NVARCHAR(50);
     DECLARE WB_NetWt DECIMAL(19,6);
     DECLARE WB_InDate DATE;
@@ -22615,6 +22615,7 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
         END IF;
     END IF;
 END IF;
+*/
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
