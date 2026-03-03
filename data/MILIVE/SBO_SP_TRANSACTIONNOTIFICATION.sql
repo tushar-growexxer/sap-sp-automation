@@ -1012,7 +1012,7 @@ END IF;
 -- Pallet Code NA allowed only for specific Packing Types
 IF SOPallet = 'NA'
    AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose')
-   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346','CPD0362')) THEN
+   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346')) THEN
     error := 30094;
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
@@ -1730,7 +1730,7 @@ END IF;
 -- Pallet Code NA allowed only for specific Packing Types
 IF SOPallet = 'NA'
    AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose')
-   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346','CPD0362')) THEN
+   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346')) THEN
     error := 30094;
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
