@@ -21649,6 +21649,10 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ApprCOA NVARCHAR(5);
     DECLARE v_PSS NVARCHAR(5);
     DECLARE v_Batch NVARCHAR(100);
+    DECLARE v_ResDate Date;
+    DECLARE v_OrderDate Date;
+    DECLARE v_Response NVARCHAR(25);
+    DECLARE v_OrderRec NVARCHAR(25);
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
@@ -21713,8 +21717,9 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     -- Start the loop to validate each row in QUT1
     WHILE v_MINN <= v_MAXX DO
         -- Retrieve values from QUT1 for mandatory fields for the current row
-        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS", T1."U_NoOfBatchRequired"
-        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS, v_Batch
+        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS", T1."U_NoOfBatchRequired",
+        T1."U_ResDate", T1."U_ResFrCust", T1."U_OrderDate", T1."U_OrderRec"
+        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS, v_Batch, v_ResDate, v_Response, v_OrderDate, v_OrderRec
         FROM QUT1 T1
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del
         AND T1."VisOrder" = v_MINN;
@@ -21756,6 +21761,12 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
         ELSEIF v_Batch IS NULL OR LENGTH(TRIM(v_Batch)) = 0 THEN
         	error := -1226;
         	error_message := 'Please enter No. of Batches Required.';
+        ELSEIF v_Response IN ('Pass', 'Fail') AND v_ResDate IS NULL THEN
+        	error := -1227;
+        	error_message := 'Please enter Response date from customer.';
+        ELSEIF v_OrderRec = 'Yes' AND v_OrderDate IS NULL THEN
+        	error := -1228;
+        	error_message := 'Please enter Order Received Date.';
         END IF;
         -- Increment the line index to move to the next row
          v_MINN = v_MINN + 1;
