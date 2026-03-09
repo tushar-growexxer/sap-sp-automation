@@ -136,8 +136,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     WHERE OCRD."CardCode" = :list_of_cols_val_tab_del;
 
 	IF CardType = 'S' AND :list_of_cols_val_tab_del LIKE 'V%' AND :list_of_cols_val_tab_del NOT LIKE 'V__I%' THEN
-	    IF EXISTS (
-	        SELECT 1 FROM CRD1 T0
+	    IF EXISTS (SELECT 1 FROM CRD1 T0
 	        INNER JOIN CRD1 T1 ON T0."GSTRegnNo" = T1."GSTRegnNo"
 	        INNER JOIN OCRD T2 ON T1."CardCode" = T2."CardCode"
 	        WHERE T0."CardCode" = :list_of_cols_val_tab_del
@@ -146,35 +145,29 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 	        AND IFNULL(T0."GSTRegnNo",'') <> ''
 	        AND T2."validFor" = 'Y'
 	        AND T2."CardCode" LIKE 'V%' AND T2."CardCode" NOT LIKE 'V__I%'
-	        AND (
-	            (T0."CardCode" LIKE 'VI%' AND T1."CardCode" LIKE 'VI%') OR
+	        AND ( (T0."CardCode" LIKE 'VI%' AND T1."CardCode" LIKE 'VI%') OR
 	            (T0."CardCode" LIKE 'VP%' AND T1."CardCode" LIKE 'VP%') OR
-	            (T0."CardCode" LIKE 'VO%' AND T1."CardCode" LIKE 'VO%')
-	        )
-	    ) THEN
+	            (T0."CardCode" LIKE 'VO%' AND T1."CardCode" LIKE 'VO%') ) ) THEN
 	        error := -20021;
 	        error_message := N'Duplicate GST Number found in an Active Pay-to address of another Vendor.';
 	    END IF;
 	END IF;
 
 	IF :list_of_cols_val_tab_del LIKE 'EMP%' THEN
-	    IF EXISTS (
-	        SELECT 1 FROM OCRD T0
+	    IF EXISTS (SELECT 1 FROM OCRD T0
 	        INNER JOIN OCRD T1 ON T0."CardFName" = T1."CardFName"
 	        WHERE T0."CardCode" = :list_of_cols_val_tab_del
 	        AND T1."CardCode" <> T0."CardCode"
 	        AND IFNULL(T0."CardFName",'') <> ''
 	        AND T1."validFor" = 'Y'
-	        AND T1."CardCode" LIKE 'EMP%'
-	    ) THEN
+	        AND T1."CardCode" LIKE 'EMP%') THEN
 	        error := -20022;
 	        error_message := N'Duplicate Foreign Name found. This name is already assigned to another Active Employee.';
 	    END IF;
 	END IF;
 
 	IF CardType = 'C' THEN
-	    IF EXISTS (
-	        SELECT 1 FROM CRD1 T0
+	    IF EXISTS (SELECT 1 FROM CRD1 T0
 	        INNER JOIN CRD1 T1 ON T0."GSTRegnNo" = T1."GSTRegnNo"
 	        INNER JOIN OCRD T2 ON T1."CardCode" = T2."CardCode"
 	        WHERE T0."CardCode" = :list_of_cols_val_tab_del
@@ -4368,7 +4361,7 @@ Declare OcrCode nvarchar(50);
                   error_message := N'Please Select Distr. Rule in Document';
          End If;
 End If;
-/*
+
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
@@ -4396,7 +4389,7 @@ DECLARE Series varchar(50);
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
 END IF;
-*/
+
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -9206,7 +9199,7 @@ DECLARE MaxPR int;
 	END WHILE;
 END IF;
 
-IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
+/*IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 Declare ICode Nvarchar(150);
 Declare Iname Nvarchar(500);
 Declare Srs Nvarchar(150);
@@ -9248,7 +9241,7 @@ DECLARE MaxGI int;
 	     	END IF;
 	     MinGI=MinGI+1;
 		END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A')  THEN
 Declare ICode Nvarchar(150);
