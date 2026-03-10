@@ -52,7 +52,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		MailID := 'cfo@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,Ramesh@matangiindustries.com';
+		EmailCC := 'saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,Ramesh@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'A';
 		Mobi_TYPE := 'Delivery Credit Limit Passed';
@@ -85,7 +85,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		SELECT T0."DocEntry" INTO DocEntry FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" = 15;
 
-		MailID := 'saleshead@matangiindustries.com,Salesmgr@matangiindustries.com';
+		MailID := 'saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,custsupport@matangiindustries.com';
 		Mobile := '';
 		EmailCC := 'Ramesh@matangiindustries.com';
 		EmailBCC := '';
@@ -121,7 +121,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		MailID := 'cfo@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'Ramesh@matangiindustries.com,saleshead@matangiindustries.com,Salesmgr@matangiindustries.com';
+		EmailCC := 'Ramesh@matangiindustries.com,saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'D';
 		Mobi_TYPE := 'Delivery - Credit Limit Passed3';
@@ -155,7 +155,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		MailID := 'cfo@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'Ramesh@matangiindustries.com,saleshead@matangiindustries.com,Salesmgr@matangiindustries.com';
+		EmailCC := 'Ramesh@matangiindustries.com,saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'E';
 		Mobi_TYPE := 'Delivery - Credit Limit Passed4';
@@ -189,7 +189,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		MailID := 'cfo@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'Ramesh@matangiindustries.com,saleshead@matangiindustries.com,Salesmgr@matangiindustries.com';
+		EmailCC := 'Ramesh@matangiindustries.com,saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'F';
 		Mobi_TYPE := 'Delivery - Credit Limit Passed5';
@@ -223,7 +223,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 		SELECT T0."DocEntry" INTO DocEntry FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" =13;
 		MailID := 'cfo@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'ramesh@matangiindustries.com,amsales1@matangiindustries.com';
+		EmailCC := 'ramesh@matangiindustries.com,amsales1@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'K';
 		Mobi_TYPE := 'Invoice - Credit Limit Passed06';
@@ -256,7 +256,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		SELECT T0."DocEntry" INTO DocEntry FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" =13;
 
-		MailID := 'amsales1@matangiindustries.com';
+		MailID := 'amsales1@matangiindustries.com,custsupport@matangiindustries.com';
 		Mobile := '';
 		EmailCC := 'ramesh@matangiindustries.com';
 		EmailBCC := '';
@@ -292,7 +292,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		MailID := 'cfo@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'ramesh@matangiindustries.com,amsales1@matangiindustries.com';
+		EmailCC := 'ramesh@matangiindustries.com,amsales1@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'I';
 		Mobi_TYPE := 'Invoice - Credit Limit Passed08';
@@ -331,7 +331,7 @@ where  Days_Between(A."MinDueDate",Current_Date)>10
 
 		SELECT T0."DocEntry" INTO DocEntry FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" = 13;
 
-		MailID := 'cfo@matangiindustries.com,amsales1@matangiindustries.com';
+		MailID := 'cfo@matangiindustries.com,amsales1@matangiindustries.com,custsupport@matangiindustries.com';
 		Mobile := '';
 		EmailCC := 'Ramesh@matangiindustries.com';
 		EmailBCC := '';
@@ -367,7 +367,7 @@ IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U'
 
 		MailID := 'cfo@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'ramesh@matangiindustries.com,amsales1@matangiindustries.com';
+		EmailCC := 'ramesh@matangiindustries.com,amsales1@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'J';
 		Mobi_TYPE := 'Invoice - Credit Limit Passed10';
@@ -437,7 +437,7 @@ If :Temp > 0 then
 		SELECT T0."DocEntry" INTO DocEntry FROM ORDR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 		MailID:= 'exports@matangiindustries.com,impex@matangiindustries.com,export.doc@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'mgrppc@matangiindustries.com,amexport@matangiindustries.com,saleshead@matangiindustries.com,salesmgr@matangiindustries.com';
+		EmailCC := 'mgrppc@matangiindustries.com,amexport@matangiindustries.com,saleshead@matangiindustries.com,salesmgr@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'S';
 		Mobi_TYPE := 'Sales Order Export Remarks Alert';
@@ -447,29 +447,6 @@ If :Temp > 0 then
 		END IF;
 	End If;
 End If;
-
----Sales Order Export remarks alert to Export team----
-/*IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
-
-select count(*) into Temp from ODRF T0
-where T0."CANCELED"='N'  and (T0."CardCode" like 'CPE%' or T0."CardCode" like 'COE%' or T0."CardCode" like 'CIE%')
-and CAST(T0."U_ExportRemarks" as Nvarchar)='Yes' and T0."DocEntry"=:list_of_cols_val_tab_del;
-
-If :Temp > 0 then
-
-		SELECT T0."DocEntry" INTO DocEntry FROM ORDR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
-		MailID:= 'exports@matangiindustries.com,impex@matangiindustries.com,export.doc@matangiindustries.com';
-		Mobile := '';
-		EmailCC := 'amexport@matangiindustries.com,salesmgr@matangiindustries.com';
-		EmailBCC := '';
-		ObjectType := 'S';
-		Mobi_TYPE := 'Sales Order Export Remarks Alert';
-		Select CURRENT_SCHEMA Into DBName from Dummy;
-		If(:DBName = 'MILIVE') Then
-		CALL "MOBIALERT"."Add_Config_Proc" (117,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
-		END IF;
-	End If;
-End If;*/
 
 ---Outgoing Payment Advice for RM/PM----
 IF (:object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
@@ -533,9 +510,9 @@ IF (:object_type = 'SHIPMASTER' AND (:transaction_type = 'A' OR :transaction_typ
 
 		SELECT T0."Code" INTO DocEntry FROM "@SHIPMASTER" T0 WHERE T0."Code"=:list_of_cols_val_tab_del;
 
-		SELECT CASE WHEN SUM(CASE WHEN T1."Email" IN ('sales4@matangiindustries.com','bde4@matangiindustries.com') THEN 1 ELSE 0 END) > 0 THEN CONCAT('saleshead@matangiindustries.com,', STRING_AGG(T1."Email", ','))
-			   		WHEN COUNT(T1."Email") > 0 THEN CONCAT('saleshead@matangiindustries.com,salesmgr@matangiindustries.com,', STRING_AGG(T1."Email", ','))
-		        	ELSE 'saleshead@matangiindustries.com,salesmgr@matangiindustries.com'
+		SELECT CASE WHEN SUM(CASE WHEN T1."Email" IN ('sales4@matangiindustries.com','bde4@matangiindustries.com') THEN 1 ELSE 0 END) > 0 THEN CONCAT('saleshead@matangiindustries.com,custsupport@matangiindustries.com,', STRING_AGG(T1."Email", ','))
+			   		WHEN COUNT(T1."Email") > 0 THEN CONCAT('saleshead@matangiindustries.com,salesmgr@matangiindustries.com,custsupport@matangiindustries.com,', STRING_AGG(T1."Email", ','))
+		        	ELSE 'saleshead@matangiindustries.com,salesmgr@matangiindustries.com,custsupport@matangiindustries.com'
 		       END AS "MailID" INTO MailID
 		FROM "@SHIPMASTER" S0
 		JOIN OCRD T0 ON S0."U_BPCode" = T0."CardCode"
@@ -613,7 +590,7 @@ IF (:object_type = '191' AND (:transaction_type = 'A' /*or :transaction_type = '
 
 	    UNION ALL
 
-	    SELECT 'saleshead@matangiindustries.com,salesmgr@matangiindustries.com' from dummy) E;
+	    SELECT 'saleshead@matangiindustries.com,salesmgr@matangiindustries.com,custsupport@matangiindustries.com' from dummy) E;
 
 
 	If :Temp > 0 then
@@ -679,7 +656,7 @@ IF (:object_type = 'SPLREQ' AND (:transaction_type = 'A' or :transaction_type = 
 		join "@SAMPLEREQH" on "@SAMPLEREQH"."U_ReqDocEntry" = oqut."DocEntry"
 		where "@SAMPLEREQH"."DocEntry" = :list_of_cols_val_tab_del ;
 		Mobile := '';
-		EmailCC := 'salesmgr@matangiindustries.com';
+		EmailCC := 'salesmgr@matangiindustries.com,custsupport@matangiindustries.com';
 		EmailBCC := 'sap2@matangiindustries.com,sap@matangiindustries.com';
 		ObjectType := 'S';
 		Mobi_TYPE := 'Sample Request (QC & RND)';

@@ -213,7 +213,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 
     END IF;
 
-    /*IF (((Series like 'COD%' or Series like 'CPD%' or Series like 'CSD%') AND GroupTypee <> '100')
+    IF (((Series like 'COD%' or Series like 'CPD%' or Series like 'CSD%') AND GroupTypee <> '100')
     	or ((Series like 'VSRD%' or Series like 'VPRD%' or Series like 'VORD%') AND GroupTypee <> '101')
     	or ((Series like 'COE%' or Series like 'CPE%' or Series like 'CSE%') AND GroupTypee <> '102')
     	or ((Series like 'VSRI%' or Series like 'VPRI%' or Series like 'VORI%') AND GroupTypee <> '105')
@@ -225,7 +225,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
        error := -20019;
        error_message := N'Series and Group not matching in Business Partner.';
 
-    END IF;*/
+    END IF;
 
     IF ValidFor = 'Y' THEN
         IF :transaction_type = 'A' THEN
@@ -362,18 +362,18 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
                     error_message := N'Please Enter MSME details for vendor';
                 END IF;
             END IF;
-                		/* Supplier only */
-		    /*IF EXISTS (SELECT 1 FROM OCRD T0 WHERE Left(T0."CardCode",4) in ('VSRD','VPRD','VPPD','VEXP','VFAS','VGPR','VLAB','VORD') and T0."CardCode" = :list_of_cols_val_tab_del AND (IFNULL(T0."WTLiable",'')='N' or T0."WTLiable"='N')) THEN
+                		-- Supplier only
+		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE Left(T0."CardCode",4) in ('VSRD','VPRD','VPPD','VEXP','VFAS','VGPR','VLAB','VORD') and T0."CardCode" = :list_of_cols_val_tab_del AND (IFNULL(T0."WTLiable",'')='N' or T0."WTLiable"='N')) THEN
         	error := -20019;
 	        error_message := 'Subject to Withholding Tax is mandatory for Supplier, please select in Account Tab.';
-    		END IF;*/
+    		END IF;
 
-		    /* WT Code must be assigned */
-		    /*IF EXISTS (SELECT 1 FROM OCRD T0 WHERE T0."CardCode" = :list_of_cols_val_tab_del AND T0."CardType" = 'S' AND T0."WTLiable" = 'Y' AND
+		    -- WT Code must be assigned
+		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE T0."CardCode" = :list_of_cols_val_tab_del AND T0."CardType" = 'S' AND T0."WTLiable" = 'Y' AND
     							NOT EXISTS (SELECT 1 FROM CRD4 T1 WHERE T1."CardCode" = T0."CardCode")) THEN
         	error := -20020;
 	        error_message := 'At least one Withholding Tax Code must be assigned for Supplier.';
-    		END IF;*/
+    		END IF;
         END IF;
     END IF;
 END IF;
@@ -747,9 +747,9 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error := 31027;
                 error_message := N'Quantity cannot exceed 150 MT for this item. [DRAFT]';
             END IF;
-            IF (SOItemCode LIKE 'OF%') AND Qty > 1000000 THEN
+            IF (SOItemCode LIKE 'OF%') AND Qty > 2200000 THEN
                 error := 31028;
-                error_message := N'Quantity cannot exceed 1000 MT for this item. [DRAFT]';
+                error_message := N'Quantity cannot exceed 2200 MT for this item. [DRAFT]';
             END IF;
 
             -- Validation 31019: License Number Check
@@ -1974,7 +1974,8 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
     IF :transaction_type = 'A' AND DocDate >= '2025-11-26' THEN
         SELECT COUNT(T0."ItemCode") INTO TempCounter FROM POR1 T0
-        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ItemCode" LIKE '%RM%' AND T0."ItemCode" NOT IN ('PCRM0018', 'PCRM0017', 'SCRM0010', 'OFRM0020', 'OFRM0001' ,'SCRM0016');
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ItemCode" LIKE '%RM%' AND T0."ItemCode" NOT LIKE 'OFRM%'
+        AND T0."ItemCode" NOT IN ('PCRM0018', 'PCRM0017', 'SCRM0010', 'OFRM0020', 'OFRM0001' ,'SCRM0016');
 
         SELECT DISTINCT T0."BaseEntry" INTO BaseDocEntry FROM POR1 T0
         WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = 0;
@@ -2285,7 +2286,8 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
         IF :transaction_type = 'A' AND DocDate >= '2025-11-26' THEN
             SELECT COUNT(T0."ItemCode") INTO TempCounter FROM DRF1 T0
-            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ItemCode" LIKE '%RM%' AND T0."ItemCode" NOT IN ('PCRM0018', 'PCRM0017', 'SCRM0010', 'OFRM0020', 'OFRM0001' ,'SCRM0016');
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ItemCode" LIKE '%RM%' AND T0."ItemCode" NOT LIKE 'OFRM%'
+            AND T0."ItemCode" NOT IN ('PCRM0018', 'PCRM0017', 'SCRM0010', 'OFRM0020', 'OFRM0001' ,'SCRM0016');
 
             SELECT DISTINCT T0."BaseEntry" INTO BaseDocEntry FROM DRF1 T0
             WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = 0;
