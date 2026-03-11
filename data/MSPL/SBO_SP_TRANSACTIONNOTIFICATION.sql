@@ -1385,7 +1385,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             error := 32025;
             error_message := N'Quantity cannot exceed 150 MT for this item.';
         END IF;
-        IF (SOItemCode LIKE 'OF%') AND Qty > 1000000 THEN
+        IF (SOItemCode LIKE 'OF%') AND Qty > 2200000 THEN
             error := 32025;
             error_message := N'Quantity cannot exceed 1000 MT for this item.';
         END IF;
@@ -2367,13 +2367,13 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 		END IF;
 	END IF;
 
-	/*IF :transaction_type = 'U' THEN
+	IF :transaction_type = 'U' THEN
 		SELECT COUNT(*) INTO TEMP_COUNTER FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 		IF :TEMP_COUNTER > 0 THEN
 			error := -41005;
 			error_message := N'You are not allowed to update the Purchase Request as it is already approved.';
 		END IF;
-	END IF;*/
+	END IF;
 
 	SELECT T0."U_Priority" INTO Priority FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 	IF IFNULL(:Priority, '') = '' THEN
@@ -2537,14 +2537,14 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             END IF;
         END IF;
 
-		IF :transaction_type = 'U' THEN
+		/*IF :transaction_type = 'U' THEN
 			SELECT DAYS_BETWEEN(T0."DocDate", T0."UpdateDate") INTO TEMP_COUNTER
 			FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType"='1470000113';
 			IF :TEMP_COUNTER > 3 THEN
 				error := -41032;
 				error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 			END IF;
-		END IF;
+		END IF;*/
 
 		-- Row-Level Validations (Unified Loop)
 		-----------------------------------------------------------------------------------
