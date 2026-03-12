@@ -1895,10 +1895,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error_message := N'PO and Purchase Request must be of the same Branch.';
             END IF;
 
-            IF POQty > PRQty THEN
+            /*IF POQty > PRQty THEN
 				error := -40006;
 				error_message := N'PO Qty cannot exceed PR Qty for item '|| ItemCode || 'at Line '|| MIN_ROW + 1;
-			END IF;
+			END IF;*/
         END IF;
 
         IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -2257,10 +2257,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 	                error_message := N'PO and Purchase Request must be of the same Branch.';
 	            END IF;
 
-	            IF POQty > PRQty THEN
+	            /*IF POQty > PRQty THEN
 					error := -40036;
 					error_message := N'PO Qty cannot exceed PR Qty for item '|| ItemCode || 'at Line '|| MIN_ROW + 1;
-				END IF;
+				END IF;*/
 	        END IF;
 
             IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
