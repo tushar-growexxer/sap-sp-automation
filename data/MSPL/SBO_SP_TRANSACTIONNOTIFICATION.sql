@@ -4559,10 +4559,7 @@ DECLARE Series varchar(50);
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
 END IF;
-
 -------------------------------------------------
-
-
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
 Declare MinIT Int;
@@ -5893,7 +5890,6 @@ DECLARE INSeries nvarchar(50);
 END IF;
 
 IF Object_type = '13' and (:transaction_type ='A' ) Then
-
 DECLARE ARrate decimal;
 DECLARE ARExrate decimal;
 DECLARE ARDocCur Nvarchar(50);
@@ -5916,8 +5912,7 @@ DECLARE ARSeries Nvarchar(50);
 		END IF;
 End If;
 
-IF object_type = '203' AND (:transaction_type = 'A' or :transaction_type='U') THEN
-
+/*IF object_type = '203' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE MinARD Int;
 DECLARE MaxARD Int;
 DECLARE PerUntQty Nvarchar(50);
@@ -5970,7 +5965,7 @@ DECLARE Nopltibc Nvarchar(50);
 			error_message := N'Please enter Type of pallets/IBC';
 		END IF;
 		IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
-		typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' then
+		typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' and typpltibc <> 'Loose' then
 			error :=132;
 			error_message := N'Please enter proper word Type of pallets/IBC';
 		END IF;
@@ -5992,10 +5987,9 @@ DECLARE Nopltibc Nvarchar(50);
 		END IF;
 		MinARD := MinARD + 1;
 	END WHILE;
-END IF;
+END IF;*/
 
-IF object_type = '13' AND (:transaction_type = 'A') THEN
-
+/*IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
 DECLARE PerUntQty Nvarchar(50);
@@ -6105,10 +6099,9 @@ DECLARE ExportAR Nvarchar(50);
 		END IF;
 		MinAR := MinAR + 1;
 	END WHILE;
-END IF;
+END IF;*/
 
-IF object_type = '13' AND (:transaction_type = 'A') THEN
-
+/*IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
 DECLARE typpltibc Nvarchar(50);
@@ -6139,10 +6132,10 @@ DECLARE SeriesAR Nvarchar(50);
 		END IF;
 		MinAR := MinAR + 1;
 	END WHILE;
-END IF;
+END IF;*/
 
 
-IF object_type = '15' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
+/*IF object_type = '15' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
 
 DECLARE MinDL Int;
 DECLARE MaxDL Int;
@@ -6234,7 +6227,7 @@ DECLARE ItemCd Nvarchar(10);
 		END IF;
 		MinDL := MinDL + 1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF Object_type = '18' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 Declare BaseType nvarchar(50);

@@ -4365,7 +4365,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4387,7 +4387,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -19899,7 +19899,7 @@ if Item like '%FG%' then
             error := -1046;
             error_message := 'The PCRM from PC-QC cannot be moved to any warehouse other than PC-QCR,PC-RAW';
         end if;
-		if FromWhs = '1BT' and ToWhs not in ('DI-RAW','PC-RAW', 'OF-RAW','PC-QC') then
+		if FromWhs = '1BT' and ToWhs not in ('DI-RAW','PC-RAW', 'OF-RAW','PC-QC','DI-QC') then
             error := -1047;
             error_message := 'The PCRM from 1BT cannot be moved to any warehouse other than DI-RAW,PC-RAW';
         end if;
