@@ -1785,8 +1785,8 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE PackingCapacity INT;
     DECLARE HsnEntry INT;
     DECLARE SacEntry INT;
-    DECLARE POQty INT;
-    DECLARE PRQTY INT;
+    DECLARE POQty DECIMAL(19,6);
+    DECLARE PRQTY DECIMAL(19,6);
 
     -- Vendor Authorization Variables
     DECLARE VendorExists INT;
@@ -1895,10 +1895,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error_message := N'PO and Purchase Request must be of the same Branch.';
             END IF;
 
-            /*IF POQty > PRQty THEN
+            IF POQty > (PRQty * 1.1) THEN
 				error := -40006;
-				error_message := N'PO Qty cannot exceed PR Qty for item '|| ItemCode || 'at Line '|| MIN_ROW + 1;
-			END IF;*/
+				error_message := N'PO Quantity exceeds the 10% allowed limit for PR item ' || ItemCode || ' at Line ' || MIN_ROW + 1;
+			END IF;
         END IF;
 
         IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -2096,7 +2096,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
     SELECT T0."ObjType" INTO DraftObj FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 
-    IF DraftObj = '22' THEN
+    IF DraftObj = 22 THEN
 
         -- ========== Variable Declaration ==========
         DECLARE MIN_ROW INT;
@@ -2144,8 +2144,8 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         DECLARE HsnEntry INT;
         DECLARE SacEntry INT;
         DECLARE ItemBranch INT;
-        DECLARE POQty INT;
-    	DECLARE PRQTY INT;
+        DECLARE POQty DECIMAL(19,6);
+    	DECLARE PRQTY DECIMAL(19,6);
 
         -- Vendor Authorization Variables
         DECLARE VendorExists INT;
@@ -2162,30 +2162,31 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         INNER JOIN OUSR T3 ON T0."UserSign" = T3."USERID"
         INNER JOIN OCRD T4 ON T0."CardCode" = T4."CardCode"
         INNER JOIN NNM1 T5 ON T0."Series" = T5."Series"
-        WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType" = 22;
 
         SELECT T1."PymntGroup" INTO BpPaymentTerm
         FROM OCRD T0
         INNER JOIN OCTG T1 ON T0."GroupNum" = T1."GroupNum"
         WHERE T0."CardCode" = VendorCode;
 
-        SELECT T2."Name" INTO PlaceOfSupply FROM DRF12 T0 INNER JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."LocStatCod" = T2."Code" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
-        SELECT T2."Name" INTO ShipToState FROM DRF12 T0 INNER JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."StateB" = T2."Code" AND T0."CountryB" = T2."Country" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
+        SELECT T2."Name" INTO PlaceOfSupply FROM DRF12 T0 INNER JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."LocStatCod" = T2."Code" WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."ObjType" = 22;
+        SELECT T2."Name" INTO ShipToState FROM DRF12 T0 INNER JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."StateB" = T2."Code" AND T0."CountryB" = T2."Country" WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."ObjType" = 22;
 
         -- ========== Row Level Validations (Single Loop) ==========
-        SELECT MIN(T0."VisOrder"), MAX(T0."VisOrder") INTO MIN_ROW, MAX_ROW FROM DRF1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+        SELECT MIN(T0."VisOrder"), MAX(T0."VisOrder") INTO MIN_ROW, MAX_ROW FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."ObjType" = 22;
 
         WHILE MIN_ROW <= MAX_ROW DO
 
-            SELECT T0."ItemCode", T0."Dscription", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
+            SELECT T0."ItemCode", T0."Dscription",T0."Quantity", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
                    T0."Project", T0."BaseEntry", T0."BaseType", T0."U_BASETYPE", T0."U_BASEDOCNO", T1."ItemClass",
                    T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry"
-            INTO ItemCode, ItemDescription, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
+            INTO ItemCode, ItemDescription,POQty, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
                  Project, BaseDocEntry, BaseDocType, BaseTypeUDF, BaseDocNumUDF, ItemClass,
                  PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry
             FROM DRF1 T0
+            JOIN ODRF T2 ON T0."DocEntry" = T2."DocEntry"
             INNER JOIN OITM T1 ON T0."ItemCode" = T1."ItemCode"
-            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = MIN_ROW;
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = MIN_ROW AND T2."ObjType" = 22;
 
             -- ========== VENDOR AUTHORIZATION CHECK ==========
             -- Check if this vendor is authorized for specific restricted items
@@ -2257,10 +2258,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 	                error_message := N'PO and Purchase Request must be of the same Branch.';
 	            END IF;
 
-	            /*IF POQty > PRQty THEN
+	            IF POQty > (PRQty * 1.1) THEN
 					error := -40036;
-					error_message := N'PO Qty cannot exceed PR Qty for item '|| ItemCode || 'at Line '|| MIN_ROW + 1;
-				END IF;*/
+					error_message := N'PO Quantity exceeds the 10% allowed limit for PR item ' || ItemCode || ' at Line ' || MIN_ROW + 1;
+				END IF;
 	        END IF;
 
             IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -4282,26 +4283,29 @@ Declare ItmCode nvarchar(50);
 		END WHILE;
 End If;
 
-IF object_type = '18' AND (:transaction_type = 'A'OR :transaction_type = 'U' ) THEN
-DECLARE MinAP Int;
-DECLARE MaxAP Int;
-DECLARE TCAP Nvarchar(50);
-DECLARE CurrAP Nvarchar(50);
-	SELECT Min(T0."VisOrder") INTO MinAP from PCH1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT Max(T0."VisOrder") INTO MaxAP from PCH1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT t1."DocCur" into CurrAP FROM OPCH t1 inner join pch1  t2 on T1."DocEntry"=T2."DocEntry" WHERE t1."DocEntry" = :list_of_cols_val_tab_del and t2."VisOrder"=MinAP;
+IF object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
+DECLARE v_cnt INT;
+DECLARE CurrAP NVARCHAR(50);
 
-IF CurrAP <> 'INR' THEN
-		WHILE :MinAP <= :MaxAP DO
-			SELECT PCH1."TaxCode" into TCAP FROM PCH1 WHERE PCH1."DocEntry" = :list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
-			IF TCAP = 'RIGST18' THEN
-				error :=60;
-				error_message := N'Select proper "RIGST18T" Taxcode for import party';
-			END IF;
-			MinAP := MinAP+1;
-		END WHILE;
-	END IF;
+SELECT IFNULL(MAX("DocCur"),'INR') INTO CurrAP
+FROM OPCH
+WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+IF :CurrAP <> 'INR' THEN
+
+    SELECT COUNT(*) INTO v_cnt
+    FROM PCH1
+    WHERE "DocEntry" = :list_of_cols_val_tab_del
+    AND "TaxCode" = 'RIGST18';
+
+    IF :v_cnt > 0 THEN
+        error := 60;
+        error_message := N'Select proper "RIGST18T" Taxcode for import party';
+    END IF;
+
+END IF;
+
 END IF;
 
 IF object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
@@ -4365,7 +4369,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4387,7 +4391,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -19915,10 +19919,10 @@ if Item like '%FG%' then
             error := -1118;
             error_message := 'The OFRM from OF-QC cannot be moved to any warehouse other than OF-QCR,OF-RAW';
         end if;
-		if FromWhs = 'OF-RAW' and ToWhs not in ('1BT') then
+		/*if FromWhs = 'OF-RAW' and ToWhs not in ('1BT') then
             error := -1045;
-            error_message := 'The PCRM from OF-RAW cannot be moved to any warehouse other than 1BT';
-        end if;
+            error_message := 'The OFRM from OF-RAW cannot be moved to any warehouse other than 1BT';
+        end if;*/
 	end if;
 	if Item like '%PM%' then
 		if FromWhs = 'PC-PAC' and ToWhs not in ('1BT') then
@@ -22608,6 +22612,135 @@ END IF;
     END IF;
 END IF;
 */
+---------------------------------------------------------
+IF :object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE DelayDays INT;
+
+SELECT MAX(CASE WHEN DAYS_BETWEEN(T2."DocDate", T0."DocDate") - 7 > 0 THEN DAYS_BETWEEN(T2."DocDate", T0."DocDate") - 7 ELSE 0 END) INTO DelayDays FROM OVPM T0
+INNER JOIN VPM9 T1 ON T0."DocEntry" = T1."DocEntry"
+INNER JOIN OPOR T2 ON T1."RefDocEntr" = T2."DocEntry"
+WHERE T0."CardCode" like 'VEXP%' and T0."DocEntry" = :list_of_cols_val_tab_del AND T1."RefObjType" = '22'; -- Purchase Order
+
+
+	IF :DelayDays > 0 THEN
+
+		IF EXISTS (SELECT 1 FROM OVPM WHERE "DocEntry" = :list_of_cols_val_tab_del AND (IFNULL("U_AdvPayDelReason",'') = '' OR "U_AdvPayDelReason"='N/A')) THEN
+			error := -1225;
+			error_message := 'Advance payment delayed by ' || :DelayDays || ' days. Please select delay reason.';
+		END IF;
+
+	END IF;
+END IF;
+----------------------------------------------------------------
+IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE DelayDays INT;
+
+SELECT MAX(CASE WHEN DAYS_BETWEEN(T3."DocDueDate", T0."DocDate") > 0 THEN DAYS_BETWEEN(T3."DocDueDate", T0."DocDate") ELSE 0 END) INTO DelayDays FROM OPDN T0
+INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
+INNER JOIN POR1 T2 ON T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+INNER JOIN OPOR T3 ON T3."DocEntry" = T2."DocEntry"
+WHERE T0."CardCode" like 'VEXP%' and T1."ItemCode" Not Like '%SER%' and T1."ItemCode" Not Like '%RM%'
+and T1."ItemCode" Not Like '%FG%' and T1."ItemCode" Not Like '%PM%' and T0."DocEntry" = :list_of_cols_val_tab_del
+AND T1."BaseType" = 22;
+
+	IF :DelayDays > 0 THEN
+
+		IF EXISTS (SELECT 1 FROM OPDN WHERE "DocEntry" = :list_of_cols_val_tab_del AND (IFNULL("U_GRNDelayReason",'') = '' OR "U_GRNDelayReason"='N/A') ) THEN
+			error := -1226;
+			error_message := 'GRN is delayed by ' || :DelayDays || ' days compared to PO Delivery Date. Please select GRN Delay Reason.';
+
+		END IF;
+	END IF;
+END IF;
+---------------------------------AP Invoice Posting Delay Reason and Current Date[Draft]------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+DECLARE DelayDays INT;
+
+SELECT MAX(
+    CASE
+        WHEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7 > 0
+        THEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7
+        ELSE 0
+    END)
+INTO DelayDays
+FROM ODRF H
+INNER JOIN DRF1 L ON H."DocEntry" = L."DocEntry"
+INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry"
+                  AND L."BaseLine" = D."LineNum"
+INNER JOIN OPDN G ON D."DocEntry" = G."DocEntry"
+WHERE H."DocEntry" = :list_of_cols_val_tab_del
+AND H."ObjType" = '18'
+AND L."BaseType" = 20
+AND L."ItemCode" NOT LIKE '%SER%'
+AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
+
+
+/* SLA Delay Validation */
+
+IF :DelayDays > 0 THEN
+    IF EXISTS (
+        SELECT 1
+        FROM ODRF
+        WHERE "DocEntry" = :list_of_cols_val_tab_del
+        AND "ObjType" = '18'
+        AND IFNULL("U_APInvDelayReason",'') = ''
+    ) THEN
+        error := -1227;
+        error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
+    END IF;
+END IF;
+
+
+/* System Date Backdate Restriction */
+
+IF EXISTS (
+    SELECT 1
+    FROM ODRF
+    WHERE "DocEntry" = :list_of_cols_val_tab_del
+    AND "ObjType" = '18'
+    AND "DocDate" < CURRENT_DATE
+) THEN
+    error := -1228;
+    error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
+END IF;
+
+END IF;
+---------------------------------AP Invoice Posting Delay Reason and Current Date------------------------
+IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE DelayDays INT;
+
+SELECT MAX(
+    CASE
+        WHEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7 > 0
+        THEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7
+        ELSE 0
+    END)
+INTO DelayDays
+FROM OPCH H
+INNER JOIN PCH1 L ON H."DocEntry" = L."DocEntry"
+INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry" AND L."BaseLine" = D."LineNum"
+INNER JOIN OPDN G ON D."DocEntry" = G."DocEntry"
+WHERE H."DocEntry" = :list_of_cols_val_tab_del
+AND L."BaseType" = 20
+AND L."ItemCode" NOT LIKE '%SER%'
+AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
+
+/* SLA Delay Validation */
+
+		IF :DelayDays > 0 THEN
+			IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND IFNULL("U_APInvDelayReason",'') = '') THEN
+				error := -1227;
+				error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
+			END IF;
+		END IF;
+
+/* System Date Backdate Restriction */
+		IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND "DocDate" < CURRENT_DATE) THEN
+			error := -1228;
+			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
+		END IF;
+END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;

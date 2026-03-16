@@ -4550,7 +4550,7 @@ End If;
 -- FORM Name   : Delivery
 -- Added Date  :
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4558,7 +4558,7 @@ DECLARE Series varchar(50);
 			error :=66;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -22248,7 +22248,81 @@ SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del 
 		END IF;
 	END IF;
 END IF;
+---------------------------------------------------------
+IF :object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE DelayDays INT;
 
+SELECT MAX(CASE WHEN DAYS_BETWEEN(T2."DocDate", T0."DocDate") - 7 > 0 THEN DAYS_BETWEEN(T2."DocDate", T0."DocDate") - 7 ELSE 0 END) INTO DelayDays FROM OVPM T0
+INNER JOIN VPM9 T1 ON T0."DocEntry" = T1."DocEntry"
+INNER JOIN OPOR T2 ON T1."RefDocEntr" = T2."DocEntry"
+WHERE T0."CardCode" like 'VEXP%' and T0."DocEntry" = :list_of_cols_val_tab_del AND T1."RefObjType" = '22'; -- Purchase Order
+
+
+	IF :DelayDays > 0 THEN
+
+		IF EXISTS (SELECT 1 FROM OVPM WHERE "DocEntry" = :list_of_cols_val_tab_del AND (IFNULL("U_AdvPayDelReason",'') = '' OR "U_AdvPayDelReason"='N/A')) THEN
+			error := -1225;
+			error_message := 'Advance payment delayed by ' || :DelayDays || ' days. Please select delay reason.';
+		END IF;
+
+	END IF;
+END IF;
+----------------------------------------------------------------
+IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE DelayDays INT;
+
+SELECT MAX(CASE WHEN DAYS_BETWEEN(T3."DocDueDate", T0."DocDate") > 0 THEN DAYS_BETWEEN(T3."DocDueDate", T0."DocDate") ELSE 0 END) INTO DelayDays FROM OPDN T0
+INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
+INNER JOIN POR1 T2 ON T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+INNER JOIN OPOR T3 ON T3."DocEntry" = T2."DocEntry"
+WHERE T0."CardCode" like 'VEXP%' and T1."ItemCode" Not Like '%SER%' and T1."ItemCode" Not Like '%RM%'
+and T1."ItemCode" Not Like '%FG%' and T1."ItemCode" Not Like '%PM%' and T0."DocEntry" = :list_of_cols_val_tab_del
+AND T1."BaseType" = 22;
+
+	IF :DelayDays > 0 THEN
+
+		IF EXISTS (SELECT 1 FROM OPDN WHERE "DocEntry" = :list_of_cols_val_tab_del AND (IFNULL("U_GRNDelayReason",'') = '' OR "U_GRNDelayReason"='N/A') ) THEN
+			error := -1226;
+			error_message := 'GRN is delayed by ' || :DelayDays || ' days compared to PO Delivery Date. Please select GRN Delay Reason.';
+
+		END IF;
+	END IF;
+END IF;
+------------------------------------------------------------------------------------
+IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE DelayDays INT;
+
+SELECT MAX(
+    CASE
+        WHEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7 > 0
+        THEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7
+        ELSE 0
+    END)
+INTO DelayDays
+FROM OPCH H
+INNER JOIN PCH1 L ON H."DocEntry" = L."DocEntry"
+INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry" AND L."BaseLine" = D."LineNum"
+INNER JOIN OPDN G ON D."DocEntry" = G."DocEntry"
+WHERE H."DocEntry" = :list_of_cols_val_tab_del
+AND L."BaseType" = 20
+AND L."ItemCode" NOT LIKE '%SER%'
+AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
+
+/* SLA Delay Validation */
+
+		IF :DelayDays > 0 THEN
+			IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND IFNULL("U_APInvDelayReason",'') = '') THEN
+				error := -1227;
+				error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
+			END IF;
+		END IF;
+
+/* System Date Backdate Restriction */
+		IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND "DocDate" < CURRENT_DATE) THEN
+			error := -1228;
+			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
+		END IF;
+END IF;
 
 -----------------------------------------------
 -- Select the return values-
