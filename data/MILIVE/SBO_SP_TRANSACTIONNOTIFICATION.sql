@@ -22610,8 +22610,8 @@ END IF;
             END IF;
         END IF;
     END IF;
-END IF;
-*/
+END IF;*/
+
 ---------------------------------------------------------
 IF :object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE DelayDays INT;
@@ -22676,7 +22676,7 @@ AND L."ItemCode" NOT LIKE '%SER%'
 AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 
 
-/* SLA Delay Validation */
+--SLA Delay Validation--
 
 IF :DelayDays > 0 THEN
     IF EXISTS (
@@ -22692,7 +22692,7 @@ IF :DelayDays > 0 THEN
 END IF;
 
 
-/* System Date Backdate Restriction */
+--System Date Backdate Restriction --
 
 IF EXISTS (
     SELECT 1
@@ -22726,7 +22726,7 @@ AND L."BaseType" = 20
 AND L."ItemCode" NOT LIKE '%SER%'
 AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 
-/* SLA Delay Validation */
+--SLA Delay Validation--
 
 		IF :DelayDays > 0 THEN
 			IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND IFNULL("U_APInvDelayReason",'') = '') THEN
@@ -22735,7 +22735,7 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 			END IF;
 		END IF;
 
-/* System Date Backdate Restriction */
+--System Date Backdate Restriction --
 		IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND "DocDate" < CURRENT_DATE) THEN
 			error := -1228;
 			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';

@@ -5437,9 +5437,12 @@ DECLARE GRNCapacity Int;
 																																							IF GRNCapacity = 240 THEN
 																																							else
 																																								IF GRNCapacity = 1250 THEN
-																																							else
-																																								error :=105;
-																																								error_message := N'Capacity may wrong';
+																																								else
+																																									IF GRNCapacity = 175 THEN
+																																									else
+																																										error :=105;
+																																										error_message := N'Capacity may wrong';
+																																									END IF;
 																																							END IF;
 																																						END IF;
 																																					END IF;
@@ -22288,7 +22291,59 @@ AND T1."BaseType" = 22;
 		END IF;
 	END IF;
 END IF;
-------------------------------------------------------------------------------------
+
+---------------------------------AP Invoice Posting Delay Reason and Current Date[Draft]------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+DECLARE DelayDays INT;
+
+SELECT MAX(
+    CASE
+        WHEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7 > 0
+        THEN DAYS_BETWEEN(G."DocDate", H."DocDate") - 7
+        ELSE 0
+    END)
+INTO DelayDays
+FROM ODRF H
+INNER JOIN DRF1 L ON H."DocEntry" = L."DocEntry"
+INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry"
+                  AND L."BaseLine" = D."LineNum"
+INNER JOIN OPDN G ON D."DocEntry" = G."DocEntry"
+WHERE H."DocEntry" = :list_of_cols_val_tab_del
+AND H."ObjType" = '18'
+AND L."BaseType" = 20
+AND L."ItemCode" NOT LIKE '%SER%'
+AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
+
+
+--SLA Delay Validation--
+
+IF :DelayDays > 0 THEN
+    IF EXISTS (SELECT 1 FROM ODRF
+        WHERE "DocEntry" = :list_of_cols_val_tab_del
+        AND "ObjType" = '18'
+        AND IFNULL("U_APInvDelayReason",'') = '') THEN
+        error := -1227;
+        error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
+    END IF;
+END IF;
+
+
+--System Date Backdate Restriction---
+
+IF EXISTS (
+    SELECT 1
+    FROM ODRF
+    WHERE "DocEntry" = :list_of_cols_val_tab_del
+    AND "ObjType" = '18'
+    AND "DocDate" < CURRENT_DATE
+) THEN
+    error := -1228;
+    error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
+END IF;
+
+END IF;
+------------------AP Invoice Posting Delay Reason and Current Date---------------------------
 IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE DelayDays INT;
 
@@ -22308,7 +22363,7 @@ AND L."BaseType" = 20
 AND L."ItemCode" NOT LIKE '%SER%'
 AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 
-/* SLA Delay Validation */
+--SLA Delay Validation--
 
 		IF :DelayDays > 0 THEN
 			IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND IFNULL("U_APInvDelayReason",'') = '') THEN
@@ -22317,7 +22372,7 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 			END IF;
 		END IF;
 
-/* System Date Backdate Restriction */
+--System Date Backdate Restriction--
 		IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND "DocDate" < CURRENT_DATE) THEN
 			error := -1228;
 			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
