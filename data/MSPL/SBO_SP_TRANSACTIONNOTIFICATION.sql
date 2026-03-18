@@ -814,12 +814,12 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 					END IF;
 
             -- Validation 31021: SAP Packing Code Check
-            /*IF SOItemCode NOT LIKE '%PM%' AND SOItemCode NOT LIKE '%RM%' AND SOItemCode NOT IN ('WSTG0001', 'WSTG0004') THEN
+            IF SOItemCode NOT LIKE '%PM%' AND SOItemCode NOT LIKE '%RM%' AND SOItemCode NOT IN ('WSTG0001', 'WSTG0004') THEN
                 IF SOPackType NOT LIKE '%Tanker%' AND SOPackType NOT LIKE '%ISO%' AND (SOPckCode IS NULL OR SOPckCode = '') THEN
                     error := 31031;
                     error_message := N'Please select SAP Packing Code. [DRAFT]';
                 END IF;
-            END IF;*/
+            END IF;
 
             IF SOItemCode NOT LIKE '%PM%' and SOItemCode NOT LIKE '%RM%' and SOItemCode <> 'WSTG0001' and SOItemCode <> 'WSTG0004'then
 			IF SOPackType NOT LIKE '%Tanker%' THEN
@@ -1149,6 +1149,8 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     DECLARE SOPackng NVARCHAR(100);
     DECLARE SOName nvarchar(100);
     DECLARE COA_Appr NVARCHAR(5);
+    DECLARE PackingType NVARCHAR(25);
+    DECLARE SOPallet NVARCHAR(100);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -1341,26 +1343,28 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     WHILE MinSO <= MaxSO DO
         -- Get all line-level data in a single, efficient query
         SELECT
-            T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
+            T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",T1."U_Pkg_Type",
             T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             COUNT(T1."U_TOPLT"), T1."FreeTxt",
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA"
+            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA",
+            T1."U_Opack"
         INTO
-            SOEntryType, SOItemCode, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,
+            SOEntryType, SOItemCode, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,PackingType,
             SOPckCode, SOPackType, Capacity, HASCOM, Commission, CommissionPer,
             typpltibc, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
-            U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, SOPackng, COA_Appr
+            U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, SOPackng, COA_Appr,
+            SOPallet
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO
-        GROUP BY T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",
+        GROUP BY T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",T1."U_Pkg_Type",
             T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA";
+            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA",T1."U_Opack";
 
         -- Validation 32024: Entry Type Check (Only for Add)
         IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -1668,6 +1672,19 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         	error := 32041;
         	error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1;
         END IF;
+-- =================================================
+-- Validation 30091: Packing Type & Pallet Code Check
+-- =================================================
+-- Packing Type must be selected
+IF IFNULL(PackingType, '') = '' THEN
+    error := 30091;
+    error_message := N'Packing Type cannot be left blank.';
+END IF;
+-- Pallet Code must not be blank
+IF IFNULL(SOPallet, '') = '' THEN
+    error := 30092;
+    error_message := N'Pallet Code is mandatory. Allowed values: NA or pallet codes mapped with the selected Customer.';
+END IF;
 
         MinSO := MinSO + 1;
     END WHILE;
@@ -5915,7 +5932,7 @@ DECLARE ARSeries Nvarchar(50);
 		END IF;
 End If;
 
-/*IF object_type = '203' AND (:transaction_type = 'A' or :transaction_type='U') THEN
+IF object_type = '203' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE MinARD Int;
 DECLARE MaxARD Int;
 DECLARE PerUntQty Nvarchar(50);
@@ -5990,9 +6007,9 @@ DECLARE Nopltibc Nvarchar(50);
 		END IF;
 		MinARD := MinARD + 1;
 	END WHILE;
-END IF;*/
+END IF;
 
-/*IF object_type = '13' AND (:transaction_type = 'A') THEN
+IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
 DECLARE PerUntQty Nvarchar(50);
@@ -6083,11 +6100,6 @@ DECLARE ExportAR Nvarchar(50);
 				error_message := N'Please enter No of Pallates/IBC';
 			END IF;
 		END IF;
-	    --IF ItemCd in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and (QCBatchNo IS NULL or QCBatchNo = '') then
-			--error := 133;
-			--error_message := N'Please enter QC Batch No.';
-		--END IF;
-
 		IF ExportAR='Y' THEN
 			IF lictype IS NULL  then
 				error :=133;
@@ -6102,9 +6114,9 @@ DECLARE ExportAR Nvarchar(50);
 		END IF;
 		MinAR := MinAR + 1;
 	END WHILE;
-END IF;*/
+END IF;
 
-/*IF object_type = '13' AND (:transaction_type = 'A') THEN
+IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
 DECLARE typpltibc Nvarchar(50);
@@ -6135,10 +6147,10 @@ DECLARE SeriesAR Nvarchar(50);
 		END IF;
 		MinAR := MinAR + 1;
 	END WHILE;
-END IF;*/
+END IF;
 
 
-/*IF object_type = '15' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
+IF object_type = '15' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
 
 DECLARE MinDL Int;
 DECLARE MaxDL Int;
@@ -6230,7 +6242,7 @@ DECLARE ItemCd Nvarchar(10);
 		END IF;
 		MinDL := MinDL + 1;
 	END WHILE;
-END IF;*/
+END IF;
 
 IF Object_type = '18' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 Declare BaseType nvarchar(50);
@@ -6614,7 +6626,7 @@ DECLARE MaxLineITQ Int;
 END IF;
 ------------------------------------------------------
 ------------------------------------------------------
-/*IF object_type = '18' AND (:transaction_type = 'A') THEN
+IF object_type = '18' AND (:transaction_type = 'A') THEN
 
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
@@ -6644,7 +6656,7 @@ DECLARE APSeries varchar(50);
 			MinAP := MinAP+1;
 		END WHILE;
 	END IF;
-END IF;*/
+END IF;
 
 IF object_type = '13' AND (:transaction_type = 'A') THEN
 
@@ -6845,7 +6857,7 @@ Declare CardCode nvarchar(50);
          End If;
 End If;
 
-/*IF Object_type = '20' and (:transaction_type ='A' or :transaction_type ='U' ) Then
+IF Object_type = '20' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 Declare ItCode nvarchar(50);
 Declare whssss nvarchar(50);
 Declare WhsType nvarchar(50);
@@ -6898,7 +6910,7 @@ DECLARE BPLId int;
 	END WHILE;
 	End If;
 
-End If;*/
+End If;
 
 IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 Declare CmpltQty Int;
