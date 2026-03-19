@@ -6880,9 +6880,9 @@ DECLARE BPLId int;
 
 		IF WhsType = 'N' THEN
 	         IF (ItCode LIKE '%PM%') then
-	         	IF  whssss NOT LIKE '%PAC%'  then
+	         	IF  (whssss NOT LIKE '%PAC%' AND whssss NOT LIKE 'JW%')  then
 	              error :=159;
-	              error_message := N'please select packing material warehouse..';
+	              error_message := N'please select packing material warehouse......';
 	            END IF;
 	         END IF;
         END IF;
@@ -6900,7 +6900,7 @@ DECLARE BPLId int;
 
 		IF WhsType = 'N' THEN
 	         IF (ItCode LIKE 'PM%') then
-	         	IF (whssss NOT LIKE '%PAC%' OR whssss NOT LIKE '2EX1PCPM') then
+	         	IF (whssss NOT LIKE '%PAC%' AND whssss NOT LIKE '2EX1PCPM' AND whssss NOT LIKE 'JW%') then
 	              error :=159;
 	              error_message := N'please select packing material warehouse..';
 	            END IF;
