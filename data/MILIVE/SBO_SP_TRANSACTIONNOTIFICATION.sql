@@ -8184,7 +8184,7 @@ Select MAX(T0."VisOrder") into MAXX from PDN1 T0 WHERE T0."DocEntry" = :list_of_
 			select T1."WhsCode" into Whs FROM PDN1 T1 WHERE T1."DocEntry"= :list_of_cols_val_tab_del and T1."VisOrder" = MINN;
 
 			IF Icode <> 'DIRM0019' THEN
-				IF Icode LIKE 'DI%' and (Whs LIKE '%PC%' OR Whs LIKE '2EX%') then
+				IF Icode LIKE 'DI%' and (Whs LIKE '%PC%' OR Whs LIKE '2EX%') and Icode NOT LIKE 'DICO%' then
 					error:='242';
 					error_message := 'Warehouse selection error.pls coordinate SAP team.';
 				END IF;
@@ -17281,7 +17281,7 @@ if DraftObj = 20 THEN
 			select T1."WhsCode" into Whs FROM DRF1 T1 WHERE T1."DocEntry"= :list_of_cols_val_tab_del and T1."VisOrder" = MINN;
 
 			IF Icode <> 'DIRM0019' THEN
-				IF Icode LIKE 'DI%' and Whs LIKE '%PC%' then
+				IF Icode LIKE 'DI%' and Whs LIKE '%PC%' and Icode NOT LIKE 'DICO%' then
 					error:='242';
 					error_message := 'Warehouse selection error.pls coordinate SAP team.';
 				END IF;
