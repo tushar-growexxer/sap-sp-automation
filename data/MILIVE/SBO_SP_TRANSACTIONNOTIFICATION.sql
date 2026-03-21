@@ -2664,14 +2664,6 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 			error_message := N'Required Date cannot be less than the Posting Date.';
 		END IF;
 
-        /*IF :transaction_type = 'U' THEN
-            SELECT COUNT(*) INTO TEMP_COUNTER FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType"='1470000113';
-            IF :TEMP_COUNTER > 0 THEN
-                error := -41028;
-                error_message := N'You are not allowed to update the Purchase Request as it is already approved.';
-            END IF;
-        END IF;*/
-
         SELECT T0."U_Priority" INTO Priority FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType"='1470000113';
         IF IFNULL(:Priority, '') = '' THEN
             error := -41029;
