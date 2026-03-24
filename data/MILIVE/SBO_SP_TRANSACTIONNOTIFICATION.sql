@@ -22603,8 +22603,28 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
         END IF;
     END IF;
 END IF;
+---------------------------------Outgoing Payment Delay Reason Compulsory, Payment after 7 Days against PO Date[Draft]------------------------
+IF :object_type = '112'  AND :transaction_type IN ('A', 'U') THEN
+  DECLARE DelayDays INT;
 
----------------------------------------------------------
+  -- Confirm this draft is an Outgoing Payment (DocObjType 46)
+  -- and calculate max delay days across linked PO lines
+  SELECT MAX(CASE WHEN DAYS_BETWEEN(T2."DocDate", T0."DocDate") - 7 > 0 THEN DAYS_BETWEEN(T2."DocDate", T0."DocDate") - 7 ELSE 0 END) INTO DelayDays FROM OPDF T0
+    INNER JOIN PDF9 T1 ON  T0."DocEntry"  = T1."DocEntry"
+    INNER JOIN OPOR T2 ON  T1."RefDocEntr" = T2."DocEntry"
+  WHERE T0."ObjType" = '46'       -- Outgoing Payment drafts only
+    AND T0."CardCode"   LIKE 'VEXP%'
+    AND T0."DocEntry"   = :list_of_cols_val_tab_del
+    AND T1."RefObjType"   = '22';       -- PO line reference
+
+  IF :DelayDays > 0 THEN
+    IF EXISTS (SELECT 1 FROM OPDF WHERE "DocEntry"  = :list_of_cols_val_tab_del AND "ObjType" = '46' AND (IFNULL("U_AdvPayDelReason", '') = '' OR "U_AdvPayDelReason" = 'N/A') ) THEN
+      error := -1225;
+      error_message := 'Advance payment delayed by '|| :DelayDays || ' days. Please select delay reason.';
+    END IF;
+  END IF;
+END IF;
+---------------------------------Outgoing Payment Delay Reason Compulsory, Payment after 7 Days against PO Date------------------------
 IF :object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE DelayDays INT;
 
@@ -22646,7 +22666,6 @@ AND T1."BaseType" = 22;
 END IF;
 ---------------------------------AP Invoice Posting Delay Reason and Current Date[Draft]------------------------
 IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-
 DECLARE DelayDays INT;
 
 SELECT MAX(
@@ -22667,7 +22686,6 @@ AND L."BaseType" = 20
 AND L."ItemCode" NOT LIKE '%SER%'
 AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 
-
 --SLA Delay Validation--
 
 IF :DelayDays > 0 THEN
@@ -22682,7 +22700,6 @@ IF :DelayDays > 0 THEN
         error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
     END IF;
 END IF;
-
 
 --System Date Backdate Restriction --
 
