@@ -4575,6 +4575,20 @@ DECLARE Series varchar(50);
 			error :=66;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
+END IF;
+-----------------------
+-- FORM Name   : A/R Invoice
+-- Added Date  :
+-- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
+IF object_type = '13' AND (:transaction_type ='A') THEN
+DECLARE tim varchar(50);
+DECLARE Series varchar(50);
+	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
+	(select "SeriesName" into Series from OINV INNER JOIN NNM1 ON NNM1."Series" = OINV."Series" WHERE "DocEntry" = list_of_cols_val_tab_del);
+		IF tim > 181500 and Series NOT LIKE 'CL%' THEN
+			error :=73;
+			error_message := N'Not allowed to enter after 6:15 PM..';
+		END IF;
 END IF;*/
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -4652,20 +4666,7 @@ DECLARE ARItemCode int;
 	 MinAR=MinAR+1;
 	END WHILE;
 END IF;
------------------------
--- FORM Name   : A/R Invoice
--- Added Date  :
--- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-/*IF object_type = '13' AND (:transaction_type ='A') THEN
-DECLARE tim varchar(50);
-DECLARE Series varchar(50);
-	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
-	(select "SeriesName" into Series from OINV INNER JOIN NNM1 ON NNM1."Series" = OINV."Series" WHERE "DocEntry" = list_of_cols_val_tab_del);
-		IF tim > 181500 and Series NOT LIKE 'CL%' THEN
-			error :=73;
-			error_message := N'Not allowed to enter after 6:15 PM..';
-		END IF;
-END IF;*/
+
 
 IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -5963,46 +5964,46 @@ DECLARE Nopltibc Nvarchar(50);
 			error_message := N'Please enter Per unit quantity';
 		END IF;
 		IF Ttlunt IS NULL  then
-			error :=132;
+			error :=136;
 			error_message := N'Please enter Total unit';
 		END IF;
 		IF Wghtpckng IS NULL  then
-			error :=132;
+			error :=137;
 			error_message := N'Please enter weight of packing type';
 		END IF;
 		IF pckngtype IS NULL  then
-			error :=132;
+			error :=138;
 			error_message := N'Please enter packing type';
 		END IF;
 		IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
 		 pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
-			error :=132;
+			error :=139;
 			error_message := N'Please select proper packing type';
 		END IF;
 		IF typpltibc IS NULL
 		  then
-			error :=132;
+			error :=140;
 			error_message := N'Please enter Type of pallets/IBC';
 		END IF;
 		IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
 		typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' and typpltibc <> 'Loose' then
-			error :=132;
+			error :=141;
 			error_message := N'Please enter proper word Type of pallets/IBC';
 		END IF;
 		IF lictype IS NULL  then
-			error :=132;
+			error :=142;
 			error_message := N'Please enter License Type';
 		END IF;
 		IF pltibc IS NULL  then
-			error :=132;
+			error :=143;
 			error_message := N'Please enter Pallates/IBC';
 		END IF;
-		IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
-			error :=132;
+		IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND pltibc <> 'BOX' AND pltibc <> 'Loose' then
+			error :=144;
 			error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
 		END IF;
 		IF Nopltibc IS NULL  then
-			error :=132;
+			error :=145;
 			error_message := N'Please enter No of Pallates/IBC';
 		END IF;
 		MinARD := MinARD + 1;
@@ -6048,66 +6049,66 @@ DECLARE ExportAR Nvarchar(50);
 
 		IF SeriesAR LIKE 'E%' then
 			IF PerUntQty IS NULL  then
-				error :=133;
+				error :=146;
 				error_message := N'Please enter Per unit quantity';
 			END IF;
 			IF Ttlunt IS NULL  then
-				error :=133;
+				error :=147;
 				error_message := N'Please enter Total unit';
 			END IF;
 			IF Wghtpckng IS NULL  then
-				error :=133;
+				error :=147;
 				error_message := N'Please enter weight of packing type';
 			END IF;
 			IF pckngtype IS NULL  then
-				error :=133;
+				error :=148;
 				error_message := N'Please enter packing type';
 			END IF;
 			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
 		 	pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
-				error :=133;
+				error :=148;
 				error_message := N'Please select proper packing type';
 			END IF;
 			IF typpltibc IS NULL  then
-				error :=133;
+				error :=149;
 				error_message := N'Please enter Type of pallets/IBC';
 			END IF;
 			IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
-			typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' then
-				error :=133;
+			typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' and typpltibc <> 'Loose' then
+				error :=150;
 				error_message := N'Please enter Type of pallets/IBC/ISO';
 			END IF;
 			IF lictype IS NULL  then
-				error :=133;
+				error :=151;
 				error_message := N'Please enter License Type';
 			END IF;
 			IF lictype <> 'No Required' then
 				IF licno IS NULL THEN
-					error :=133;
+					error :=152;
 					error_message := N'Please enter License No';
 				END IF;
 			END IF;
 			IF pltibc IS NULL  then
-				error :=189;
+				error :=153;
 				error_message := N'Please enter Pallates/IBC';
 			END IF;
-			IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
-				error :=133;
+			IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' AND  pltibc <> 'Loose' then
+				error :=154;
 				error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
 			END IF;
 			IF Nopltibc IS NULL  then
-				error :=133;
+				error :=155;
 				error_message := N'Please enter No of Pallates/IBC';
 			END IF;
 		END IF;
 		IF ExportAR='Y' THEN
 			IF lictype IS NULL  then
-				error :=133;
+				error :=156;
 				error_message := N'Please enter License Type';
 			END IF;
 			IF lictype <> 'No Required' then
 				IF licno IS NULL THEN
-					error :=1355;
+					error :=157;
 					error_message := N'Please enter License No';
 				END IF;
 			END IF;
@@ -6132,16 +6133,16 @@ DECLARE SeriesAR Nvarchar(50);
 		SELECT T1."U_TAmount" into Nopltibc FROM INV1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinAR;
 		IF SeriesAR LIKE 'E%' then
 			IF typpltibc IS NULL  then
-				error :=134;
+				error :=158;
 				error_message := N'Please enter Type of pallets/IBC';
 			END IF;
 			IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
-			typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS'  and typpltibc <> 'BOX' then
-				error :=134;
+			typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS'  and typpltibc <> 'BOX' and typpltibc <> 'Loose' then
+				error :=159;
 				error_message := N'Please enter proper Type of pallets/IBC';
 			END IF;
 			IF Nopltibc IS NULL  then
-				error :=134;
+				error :=160;
 				error_message := N'Please enter No of Pallates/IBC';
 			END IF;
 		END IF;
@@ -6201,7 +6202,7 @@ DECLARE ItemCd Nvarchar(10);
 				error :=135;
 				error_message := N'Please enter packing type';
 			END IF;
-			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
+			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND pckngtype <> 'Loose' AND
 		 		pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
 				error :=135;
 				error_message := N'Please select proper packing type';
@@ -6210,7 +6211,7 @@ DECLARE ItemCd Nvarchar(10);
 				error :=135;
 				error_message := N'Please enter Type of pallets/IBC';
 			END IF;
-			IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
+			IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and typpltibc <> 'Loose' and
 				typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' then
 				error :=135;
 				error_message := N'Please enter proper Type of pallets/IBC/ISO';
@@ -6227,7 +6228,7 @@ DECLARE ItemCd Nvarchar(10);
 				error :=135;
 				error_message := N'Please enter Pallates/IBC';
 			END IF;
-			IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
+			IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' AND  pltibc <> 'Loose' then
 				error :=135;
 				error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
 			END IF;
@@ -22310,7 +22311,7 @@ INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
 INNER JOIN POR1 T2 ON T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
 INNER JOIN OPOR T3 ON T3."DocEntry" = T2."DocEntry"
 WHERE T0."CardCode" like 'VEXP%' and T1."ItemCode" Not Like '%SER%' and T1."ItemCode" Not Like '%RM%'
-and T1."ItemCode" Not Like '%FG%' and T1."ItemCode" Not Like '%PM%' and T0."DocEntry" = :list_of_cols_val_tab_del
+and T1."ItemCode" Not Like '%FG%' and T1."ItemCode" Not Like '%PM%' and T1."ItemCode" Not Like '%DICO%' and T0."DocEntry" = :list_of_cols_val_tab_del
 AND T1."BaseType" = 22;
 
 	IF :DelayDays > 0 THEN
