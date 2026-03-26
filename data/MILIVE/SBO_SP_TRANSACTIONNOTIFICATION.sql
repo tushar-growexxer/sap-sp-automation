@@ -2063,7 +2063,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := N'Payment term does not match the Business Partner Master record.';
     END IF;
 
-    IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
+    IF IFNULL(DeliveryTerm,'') NOT IN ('FOB', 'CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
         error := -40028;
         error_message := N'Please select a valid Delivery Term.';
     END IF;
@@ -2419,7 +2419,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             error_message := N'Payment term does not match the Business Partner Master record.';
         END IF;
 
-        IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
+        IF IFNULL(DeliveryTerm,'') NOT IN ('FOB', 'CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
             error := -40058;
             error_message := N'Please select a valid Delivery Term.';
         END IF;
@@ -4181,7 +4181,7 @@ Declare COUNT1 Int;
 		select Count(*) INTO COUNT1 from "@TANKERLOAD" WHERE "Code" IN(ItemCDPQD);
 
 		IF COUNT1 = 0 THEN
-			IF ItemCDPQD NOT LIKE 'E%' THEN
+			IF ItemCDPQD NOT LIKE 'E%' and ItemCDPQD not in ('PCPM0099','PCPM0100')THEN
 			IF  :DOCTPDQ = 'I' And (:GRPOQTD > POQTB) THEN
 				error :=54;
 				error_message := N'GRPO Qty. should not greater then P.O Qty...!'||ItemCDPQD;
@@ -22680,21 +22680,25 @@ INNER JOIN DRF1 L ON H."DocEntry" = L."DocEntry"
 INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry"
                   AND L."BaseLine" = D."LineNum"
 INNER JOIN OPDN G ON D."DocEntry" = G."DocEntry"
+INNER JOIN NNM1 S1 ON H."Series" = S1."Series"
+
 WHERE H."DocEntry" = :list_of_cols_val_tab_del
 AND H."ObjType" = '18'
 AND L."BaseType" = 20
 AND L."ItemCode" NOT LIKE '%SER%'
-AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
+AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A')
+AND S1."SeriesName" NOT LIKE 'CL%';
 
 --SLA Delay Validation--
 
 IF :DelayDays > 0 THEN
     IF EXISTS (
         SELECT 1
-        FROM ODRF
-        WHERE "DocEntry" = :list_of_cols_val_tab_del
-        AND "ObjType" = '18'
-        AND IFNULL("U_APInvDelayReason",'') = ''
+        FROM ODRF t0
+        JOIN NNM1 S1 ON T0."Series" = S1."Series"
+        WHERE t0."DocEntry" = :list_of_cols_val_tab_del
+        AND t0."ObjType" = '18'
+        AND IFNULL("U_APInvDelayReason",'') = '' AND s1."SeriesName" NOT LIKE 'CL%'
     ) THEN
         error := -1227;
         error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
@@ -22703,16 +22707,17 @@ END IF;
 
 --System Date Backdate Restriction --
 
-IF EXISTS (
+/*IF EXISTS (
     SELECT 1
-    FROM ODRF
-    WHERE "DocEntry" = :list_of_cols_val_tab_del
+    FROM ODRF t0
+    JOIN NNM1 S1 ON T0."Series" = S1."Series"
+    WHERE t0."DocEntry" = :list_of_cols_val_tab_del
     AND "ObjType" = '18'
-    AND "DocDate" < CURRENT_DATE
+    AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%'
 ) THEN
     error := -1228;
     error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-END IF;
+END IF;*/
 
 END IF;
 ---------------------------------AP Invoice Posting Delay Reason and Current Date------------------------
@@ -22730,6 +22735,8 @@ FROM OPCH H
 INNER JOIN PCH1 L ON H."DocEntry" = L."DocEntry"
 INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry" AND L."BaseLine" = D."LineNum"
 INNER JOIN OPDN G ON D."DocEntry" = G."DocEntry"
+INNER JOIN NNM1 S1 ON H."Series" = S1."Series"
+
 WHERE H."DocEntry" = :list_of_cols_val_tab_del
 AND L."BaseType" = 20
 AND L."ItemCode" NOT LIKE '%SER%'
@@ -22738,18 +22745,19 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 --SLA Delay Validation--
 
 		IF :DelayDays > 0 THEN
-			IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND IFNULL("U_APInvDelayReason",'') = '') THEN
+			IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND IFNULL("U_APInvDelayReason",'') = '' AND s1."SeriesName" NOT LIKE 'CL%') THEN
 				error := -1227;
 				error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
 			END IF;
 		END IF;
 
 --System Date Backdate Restriction --
-		IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND "DocDate" < CURRENT_DATE) THEN
-			error := -1228;
-			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-		END IF;
+		--IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
+			--error := -1228;
+			--error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
+		--END IF;
 END IF;
+
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
