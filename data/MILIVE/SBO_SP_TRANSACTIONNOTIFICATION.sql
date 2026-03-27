@@ -342,6 +342,7 @@ END IF;
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
 
 ------------------------- SALES ORDER START -------------------------------
+
 IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
     -- =====================================
     -- VARIABLE DECLARATIONS
@@ -402,7 +403,13 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE Qty DOUBLE;
     DECLARE SOPackType NVARCHAR(500);
     DECLARE SOPckCode NVARCHAR(500);
-    DECLARE Capacity INT;
+
+    -- FIXED: Changed to DECIMAL(18,6) to handle 190.5 accurately
+    DECLARE Capacity DECIMAL(18,6);
+    DECLARE Pack1C, Pack2C, U_Pack3C, U_Pack4C, U_Pack5C, U_Pack6C, U_Pack7C,
+            U_Pack8C, U_Pack9C, U_Pack10C, U_Pack11C, U_Pack12C, U_Pack13C,
+            U_Pack14C, U_Pack15C DECIMAL(18,6);
+
     DECLARE SOPackng NVARCHAR(100);
     DECLARE HASCOM NVARCHAR(50);
     DECLARE Commission INT;
@@ -420,64 +427,24 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE ExpectedDelDate DATE;
     DECLARE LeadTime DOUBLE;
     DECLARE ExpeLT DOUBLE;
-    DECLARE Pack1C INT;
-    DECLARE Pack1 NVARCHAR(50);
-    DECLARE Pack2C INT;
-    DECLARE Pack2 NVARCHAR(50);
-    DECLARE U_Pack3C INT;
-    DECLARE U_Pack3 NVARCHAR(50);
-    DECLARE U_Pack4C INT;
-    DECLARE U_Pack4 NVARCHAR(50);
-    DECLARE U_Pack5C INT;
-    DECLARE U_Pack5 NVARCHAR(50);
-    DECLARE U_Pack6C INT;
-    DECLARE U_Pack6 NVARCHAR(50);
-    DECLARE U_Pack7C INT;
-    DECLARE U_Pack7 NVARCHAR(50);
-    DECLARE U_Pack8C INT;
-    DECLARE U_Pack8 NVARCHAR(50);
-    DECLARE U_Pack9C INT;
-    DECLARE U_Pack9 NVARCHAR(50);
-    DECLARE U_Pack10C INT;
-    DECLARE U_Pack10 NVARCHAR(50);
-    DECLARE U_Pack11C INT;
-    DECLARE U_Pack11 NVARCHAR(50);
-    DECLARE U_Pack12C INT;
-    DECLARE U_Pack12 NVARCHAR(50);
-    DECLARE U_Pack13C INT;
-    DECLARE U_Pack13 NVARCHAR(50);
-    DECLARE U_Pack14C INT;
-    DECLARE U_Pack14 NVARCHAR(50);
-    DECLARE U_Pack15C INT;
-    DECLARE U_Pack15 NVARCHAR(50);
-    DECLARE U_Agro_Chem NVARCHAR(50);
-    DECLARE U_Per_HM_CR NVARCHAR(50);
-    DECLARE U_Food NVARCHAR(50);
-    DECLARE U_Paints_Pigm NVARCHAR(50);
-    DECLARE U_Indus_Care NVARCHAR(50);
-    DECLARE U_Lube_Additiv NVARCHAR(50);
-    DECLARE U_Oil_Gas NVARCHAR(50);
-    DECLARE U_Textile NVARCHAR(50);
-    DECLARE U_CAS_No NVARCHAR(50);
-    DECLARE U_Other1 NVARCHAR(50);
-    DECLARE U_Other2 NVARCHAR(50);
-    DECLARE U_Pharma NVARCHAR(50);
-    DECLARE U_Mining NVARCHAR(50);
-    DECLARE Country NVARCHAR(50);
+
+    DECLARE Pack1, Pack2, U_Pack3, U_Pack4, U_Pack5, U_Pack6, U_Pack7,
+            U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13,
+            U_Pack14, U_Pack15 NVARCHAR(50);
+
+    DECLARE U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care,
+            U_Lube_Additiv, U_Oil_Gas, U_Textile, U_CAS_No, U_Other1,
+            U_Other2, U_Pharma, U_Mining, Country NVARCHAR(50);
     DECLARE EOSellType NVARCHAR(100);
     DECLARE v_cnt INT;
     DECLARE COA_Appr int;
-    DECLARE SOPallet NVARCHAR(50);
-	DECLARE Pallet1 NVARCHAR(50);
-	DECLARE Pallet2 NVARCHAR(50);
-	DECLARE Pallet3 NVARCHAR(50);
-	DECLARE PackingType NVARCHAR(50);
+    DECLARE SOPallet, Pallet1, Pallet2, Pallet3, PackingType NVARCHAR(50);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
     -- =======================================================
     SELECT
-        T0."CardCode", T0."DocCur", T0."Comments", T0."SlpCode", T0."U_RMRKPRD", T0."U_RMRKSTR", T0."U_RMRKQC",
+        T0."CardCode", T0."DocCur", ifnull(T0."Comments", ''), T0."SlpCode", T0."U_RMRKPRD", T0."U_RMRKSTR", T0."U_RMRKQC",
         T0."DocDate", T0."DocDueDate", T0."U_PLoad", T0."U_PDischrg", T0."U_CNPJ_Num", T0."U_CEP_Num", T0."U_CUIT_Num",
         T0."U_Tax_ID", T0."U_Notify_CNPJ", T0."U_Notify_CEP", T0."U_FinlDest", T0."U_Export_Remark", T0."U_ExportRemarks",
         T0."DocRate", T0."CardName", T3."BPLName",
@@ -754,104 +721,35 @@ END IF;
             INTO Pack1, Pack2, U_Pack3, U_Pack4, U_Pack5, U_Pack6, U_Pack7, U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13, U_Pack14, U_Pack15
             FROM "@SOPACKING" T0 WHERE T0."Code" = SOItemCode;
 
-        IF SOCmnt NOT LIKE '%sample%' AND SOPackType NOT LIKE 'ISO%' THEN
-        IF Capacity = Pack1C then
-			else
-				IF Capacity = U_Pack15C then
-				else
-					IF Capacity = Pack2C then
-					else
-						IF Capacity = U_Pack3C then
-						else
-							IF Capacity = U_Pack4C then
-							else
-								IF Capacity = U_Pack5C then
-								else
-									IF Capacity = U_Pack6C then
-									else
-										IF Capacity = U_Pack7C then
-										else
-											IF Capacity = U_Pack8C then
-											else
-												IF Capacity = U_Pack9C then
-												else
-													IF Capacity = U_Pack10C then
-													else
-														IF Capacity = U_Pack11C then
-														else
-															IF Capacity = U_Pack12C then
-															else
-																IF Capacity = U_Pack13C then
-																else
-																	IF Capacity = U_Pack14C then
-																	else
-																		error:=30039;
-																		error_message:=N'Please Select proper capacity from list';
-																	END IF;
-																END IF;
-															END IF;
-														END IF;
-													END IF;
-												END IF;
-											END IF;
-										END IF;
-									END IF;
-								END IF;
-							END IF;
-						END IF;
-					END IF;
-				END IF;
-			END IF;
+            IF (SOCmnt NOT LIKE '%sample%') AND (SOPackType NOT LIKE 'ISO%') THEN
+                -- 30039: Capacity Check
+				IF (:Capacity != IFNULL(:Pack1C, -1)) AND (:Capacity != IFNULL(:Pack2C, -1)) AND
+                   (:Capacity != IFNULL(:U_Pack3C, -1)) AND (:Capacity != IFNULL(:U_Pack4C, -1)) AND
+                   (:Capacity != IFNULL(:U_Pack5C, -1)) AND (:Capacity != IFNULL(:U_Pack6C, -1)) AND
+                   (:Capacity != IFNULL(:U_Pack7C, -1)) AND (:Capacity != IFNULL(:U_Pack8C, -1)) AND
+                   (:Capacity != IFNULL(:U_Pack9C, -1)) AND (:Capacity != IFNULL(:U_Pack10C, -1)) AND
+                   (:Capacity != IFNULL(:U_Pack11C, -1)) AND (:Capacity != IFNULL(:U_Pack12C, -1)) AND
+                   (:Capacity != IFNULL(:U_Pack13C, -1)) AND (:Capacity != IFNULL(:U_Pack14C, -1)) AND
+                   (:Capacity != IFNULL(:U_Pack15C, -1)) THEN
+                	error := 30039;
+                    error_message := N'Capacity ' || CAST(:Capacity AS NVARCHAR) || ' is not valid for item ' || :SOItemCode;
+                END IF;
 
-            IF SOPckCode = Pack1 then
-			else
-				IF SOPckCode = U_Pack15 then
-				else
-					IF SOPckCode = Pack2 then
-					else
-						IF SOPckCode = U_Pack3 then
-						else
-							IF SOPckCode = U_Pack4 then
-							else
-								IF SOPckCode = U_Pack5 then
-								else
-									IF SOPckCode = U_Pack6 then
-									else
-										IF SOPckCode = U_Pack7 then
-										else
-											IF SOPckCode = U_Pack8 then
-											else
-												IF SOPckCode = U_Pack9 then
-												else
-													IF SOPckCode = U_Pack10 then
-													else
-														IF SOPckCode = U_Pack11 then
-														else
-															IF SOPckCode = U_Pack12 then
-															else
-																IF SOPckCode = U_Pack13 then
-																else
-																	IF SOPckCode = U_Pack14 then
-																	else
-																		error:=30040;
-																		error_message:=N'Please Select Packing code from list';
-																	END IF;
-																END IF;
-															END IF;
-														END IF;
-													END IF;
-												END IF;
-											END IF;
-										END IF;
-									END IF;
-								END IF;
-							END IF;
-						END IF;
-					END IF;
-				END IF;
-			END IF;
+                -- 30040: Packing Code Check
+				IF (:SOPckCode != IFNULL(:Pack1, 'NA')) AND (:SOPckCode != IFNULL(:Pack2, 'NA')) AND
+                   (:SOPckCode != IFNULL(:U_Pack3, 'NA')) AND (:SOPckCode != IFNULL(:U_Pack4, 'NA')) AND
+                   (:SOPckCode != IFNULL(:U_Pack5, 'NA')) AND (:SOPckCode != IFNULL(:U_Pack6, 'NA')) AND
+                   (:SOPckCode != IFNULL(:U_Pack7, 'NA')) AND (:SOPckCode != IFNULL(:U_Pack8, 'NA')) AND
+                   (:SOPckCode != IFNULL(:U_Pack9, 'NA')) AND (:SOPckCode != IFNULL(:U_Pack10, 'NA')) AND
+                   (:SOPckCode != IFNULL(:U_Pack11, 'NA')) AND (:SOPckCode != IFNULL(:U_Pack12, 'NA')) AND
+                   (:SOPckCode != IFNULL(:U_Pack13, 'NA')) AND (:SOPckCode != IFNULL(:U_Pack14, 'NA')) AND
+                   (:SOPckCode != IFNULL(:U_Pack15, 'NA')) THEN
+                	error := 30040;
+                    error_message := N'Packing Code ' || :SOPckCode || ' is not valid for item ' || :SOItemCode;
+                END IF;
+            END IF;
         END IF;
-        END IF;
+
         -- Validation 30041-30042: Commission Check (Export Series)
         IF Series LIKE 'E%' AND HASCOM = 'Y' AND (Commission = 0 OR Commission IS NULL OR CommissionPer = 0 OR CommissionPer IS NULL) THEN
             error := 30041;
@@ -1013,153 +911,96 @@ END IF;
     END WHILE;
 END IF;
 
+
 IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
     SELECT T0."ObjType" INTO DraftObj FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
     -- All validations below apply only to Sales Order Drafts (Object Type 17)
     IF DraftObj = 17 THEN
-    DECLARE MinSO INT;
-    DECLARE MaxSO INT;
-    DECLARE SOEntryType NVARCHAR(50);
-    DECLARE SOItemCode NVARCHAR(50);
-    DECLARE TaxCode NVARCHAR(50);
-    DECLARE SOWhse NVARCHAR(50);
-    DECLARE OcrCode NVARCHAR(50);
-    DECLARE SOParty NVARCHAR(50);
-    DECLARE SOSeries NVARCHAR(50);
-    DECLARE CustRef NVARCHAR(200);
-    DECLARE SESO INT;
-    DECLARE RMRKPRD NVARCHAR(500);
-    DECLARE RMRKSTR NVARCHAR(500);
-    DECLARE RMRKQC NVARCHAR(500);
-    DECLARE Series NVARCHAR(50);
-    DECLARE LicenseTypeSO NVARCHAR(50);
-    DECLARE LicenseNoSO NVARCHAR(50);
-    DECLARE CardCodeSO NVARCHAR(50);
-    DECLARE SOCmnt NVARCHAR(500);
-    DECLARE PSS NVARCHAR(100);
-    DECLARE SOrate DECIMAL(18,2);
-    DECLARE SOExrate DECIMAL(18,2);
-    DECLARE SOCurrency NVARCHAR(50);
-    DECLARE SOdate DATE;
-    DECLARE SOExrateCount INT;
-    DECLARE SOPckCode NVARCHAR(50);
-    DECLARE SOTanker NVARCHAR(500);
-    DECLARE Capacity INT;
-    DECLARE Pack1C INT;
-    DECLARE Pack2C INT;
-    DECLARE U_Pack3C INT;
-    DECLARE U_Pack4C INT;
-    DECLARE U_Pack5C INT;
-    DECLARE U_Pack6C INT;
-    DECLARE U_Pack7C INT;
-    DECLARE U_Pack8C INT;
-    DECLARE U_Pack9C INT;
-    DECLARE U_Pack10C INT;
-    DECLARE U_Pack11C INT;
-    DECLARE U_Pack12C INT;
-    DECLARE U_Pack13C INT;
-    DECLARE U_Pack14C INT;
-    DECLARE U_Pack15C INT;
-    DECLARE Series1 NVARCHAR(50);
-    DECLARE SOPackType NVARCHAR(500);
-    DECLARE SOPackng NVARCHAR(100);
-    DECLARE Pack1 NVARCHAR(50);
-    DECLARE Pack2 NVARCHAR(50);
-    DECLARE U_Pack3 NVARCHAR(50);
-    DECLARE U_Pack4 NVARCHAR(50);
-    DECLARE U_Pack5 NVARCHAR(50);
-    DECLARE U_Pack6 NVARCHAR(50);
-    DECLARE U_Pack7 NVARCHAR(50);
-    DECLARE U_Pack8 NVARCHAR(50);
-    DECLARE U_Pack9 NVARCHAR(50);
-    DECLARE U_Pack10 NVARCHAR(50);
-    DECLARE U_Pack11 NVARCHAR(50);
-    DECLARE U_Pack12 NVARCHAR(50);
-    DECLARE U_Pack13 NVARCHAR(50);
-    DECLARE U_Pack14 NVARCHAR(50);
-    DECLARE U_Pack15 NVARCHAR(50);
-    DECLARE SOOtherPackng NVARCHAR(100);
-    DECLARE SeriesOpack NVARCHAR(50);
-    DECLARE HASCOM NVARCHAR(50);
-    DECLARE Commission INT;
-    DECLARE CommissionPer INT;
-    DECLARE DLDate DATE;
-    DECLARE ItmHSN NVARCHAR(50);
-    DECLARE InvHSN NVARCHAR(50);
-    DECLARE ExpRmkO NVARCHAR(5000);
-    DECLARE ExpRmk NVARCHAR(5000);
-    DECLARE CCode NVARCHAR(50);
-    DECLARE CCodeType NVARCHAR(5);
-    DECLARE ItemCodeType NVARCHAR(5);
-    DECLARE CARDCODE_TEMP INT;
-    DECLARE ITEMCODE_TEMP INT;
-    DECLARE SOItemGrpCode NVARCHAR(50);
-    DECLARE SOItemCategory NVARCHAR(50);
-    DECLARE SOItemSubCategory NVARCHAR(50);
-    DECLARE CreditLimit INT;
-    DECLARE DueBalance INT;
-    DECLARE DueDays INT;
-    DECLARE CardType NVARCHAR(50);
-    DECLARE CardCode NVARCHAR(50);
-    DECLARE BatchCount NVARCHAR(50);
-    DECLARE BPSLP INT;
-    DECLARE SOSLP INT;
-    DECLARE BPSlpName VARCHAR(100);
-    DECLARE SOSlpName VARCHAR(100);
-    DECLARE BPName VARCHAR(100);
-    DECLARE CNPJ NVARCHAR(50);
-    DECLARE CEP NVARCHAR(50);
-    DECLARE CUIT NVARCHAR(50);
-    DECLARE TaxID NVARCHAR(50);
-    DECLARE NotifyCNPJ NVARCHAR(50);
-    DECLARE NotifyCEP NVARCHAR(50);
-    DECLARE City NVARCHAR(50);
-    DECLARE REXClause NVARCHAR(500);
-    DECLARE REXNo NVARCHAR(50);
-    DECLARE ShowREX VARCHAR(10);
-    DECLARE Qty INT;
-    DECLARE PLoad NVARCHAR(50);
-    DECLARE PDischrg NVARCHAR(50);
-    DECLARE PrtCnt INT;
-    DECLARE PrtCnt1 INT;
-    DECLARE POPayment NVARCHAR(200);
-    DECLARE BPPayment NVARCHAR(200);
-    DECLARE Name NVARCHAR(50);
-    DECLARE BPCode NVARCHAR(20);
-    DECLARE typpltibc NVARCHAR(50);
-    DECLARE LeadTime DOUBLE;
-    DECLARE ExpeLT DOUBLE;
-    DECLARE ExpectedDelDate DATE;
-	DECLARE SOName nvarchar(100);
-	DECLARE Freetext nvarchar(50);
-	DECLARE U_Agro_Chem nvarchar(50);
-	DECLARE U_Per_HM_CR nvarchar(50);
-	DECLARE U_Food nvarchar(50);
-	DECLARE U_Paints_Pigm nvarchar(50);
-	DECLARE U_Indus_Care nvarchar(50);
-	DECLARE U_Lube_Additiv nvarchar(50);
-	DECLARE U_Oil_Gas nvarchar(50);
-	DECLARE U_Textile nvarchar(50);
-	DECLARE U_CAS_No nvarchar(50);
-	DECLARE U_Other2 nvarchar(50);
-	DECLARE U_Other1 nvarchar(50);
-	DECLARE U_Pharma nvarchar(50);
-	DECLARE U_Mining nvarchar(50);
-	DECLARE Country NVARCHAR(50);
-	DECLARE EOSellType NVARCHAR(100);
-    DECLARE v_cnt INT;
-    DECLARE COA_Appr int;
-    DECLARE SOPallet NVARCHAR(50);
-	DECLARE Pallet1 NVARCHAR(50);
-	DECLARE Pallet2 NVARCHAR(50);
-	DECLARE Pallet3 NVARCHAR(50);
-	DECLARE PackingType NVARCHAR(50);
+            DECLARE MinSO INT;
+        DECLARE MaxSO INT;
+        DECLARE SOEntryType NVARCHAR(50);
+        DECLARE SOItemCode NVARCHAR(50);
+        DECLARE TaxCode NVARCHAR(50);
+        DECLARE SOWhse NVARCHAR(50);
+        DECLARE OcrCode NVARCHAR(50);
+        DECLARE SOParty NVARCHAR(50);
+        DECLARE SOSeries NVARCHAR(50);
+        DECLARE CustRef NVARCHAR(200);
+        DECLARE SESO INT;
+        DECLARE RMRKPRD NVARCHAR(500);
+        DECLARE RMRKSTR NVARCHAR(500);
+        DECLARE RMRKQC NVARCHAR(500);
+        DECLARE Series NVARCHAR(50);
+        DECLARE LicenseTypeSO NVARCHAR(50);
+        DECLARE LicenseNoSO NVARCHAR(50);
+        DECLARE CardCodeSO NVARCHAR(50);
+        DECLARE SOCmnt NVARCHAR(500);
+        DECLARE PSS NVARCHAR(100);
+        DECLARE SOrate DECIMAL(18,2);
+        DECLARE SOExrate DECIMAL(18,2);
+        DECLARE SOCurrency NVARCHAR(50);
+        DECLARE SOdate DATE;
+        DECLARE SOExrateCount INT;
+        DECLARE SOPckCode NVARCHAR(50);
+
+        -- FIXED: Changed Capacity and Master variables to DECIMAL(18,6)
+        DECLARE Capacity DECIMAL(18,6);
+        DECLARE Pack1C, Pack2C, U_Pack3C, U_Pack4C, U_Pack5C, U_Pack6C, U_Pack7C,
+                U_Pack8C, U_Pack9C, U_Pack10C, U_Pack11C, U_Pack12C, U_Pack13C,
+                U_Pack14C, U_Pack15C DECIMAL(18,6);
+
+        DECLARE SOPackType NVARCHAR(500);
+        DECLARE SOPackng NVARCHAR(100);
+        DECLARE Pack1, Pack2, U_Pack3, U_Pack4, U_Pack5, U_Pack6, U_Pack7,
+                U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13,
+                U_Pack14, U_Pack15 NVARCHAR(50);
+
+        DECLARE SOOtherPackng NVARCHAR(100);
+        DECLARE HASCOM NVARCHAR(50);
+        DECLARE Commission INT;
+        DECLARE CommissionPer INT;
+        DECLARE DLDate DATE;
+        DECLARE ItmHSN NVARCHAR(50);
+        DECLARE InvHSN NVARCHAR(50);
+        DECLARE ExpRmkO NVARCHAR(5000);
+        DECLARE ExpRmk NVARCHAR(5000);
+        DECLARE CCodeType NVARCHAR(5);
+        DECLARE ItemCodeType NVARCHAR(5);
+        DECLARE SOItemGrpCode NVARCHAR(50);
+        DECLARE SOItemCategory NVARCHAR(50);
+        DECLARE SOItemSubCategory NVARCHAR(50);
+        DECLARE CardCode NVARCHAR(50);
+        DECLARE BatchCount NVARCHAR(50);
+        DECLARE BPSLP INT;
+        DECLARE SOSLP INT;
+        DECLARE BPSlpName VARCHAR(100);
+        DECLARE SOSlpName VARCHAR(100);
+        DECLARE BPName VARCHAR(100);
+        DECLARE CNPJ, CEP, CUIT, TaxID, NotifyCNPJ, NotifyCEP, City NVARCHAR(50);
+        DECLARE REXClause NVARCHAR(500);
+        DECLARE REXNo NVARCHAR(50);
+        DECLARE ShowREX VARCHAR(10);
+        DECLARE Qty DOUBLE; -- Changed to Double for precision
+        DECLARE PLoad, PDischrg NVARCHAR(50);
+        DECLARE PrtCnt, PrtCnt1 INT;
+        DECLARE POPayment, BPPayment NVARCHAR(200);
+        DECLARE Name NVARCHAR(50);
+        DECLARE typpltibc INT;
+        DECLARE LeadTime, ExpeLT DOUBLE;
+        DECLARE ExpectedDelDate DATE;
+        DECLARE SOName, Freetext NVARCHAR(100);
+        DECLARE U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care,
+                U_Lube_Additiv, U_Oil_Gas, U_Textile, U_CAS_No, U_Other2,
+                U_Other1, U_Pharma, U_Mining, Country NVARCHAR(50);
+        DECLARE EOSellType NVARCHAR(100);
+        DECLARE COA_Appr INT;
+        DECLARE SOPallet, Pallet1, Pallet2, Pallet3, PackingType NVARCHAR(50);
     ----------------------------------------------------------------------------------------------------
     -- SECTION 1: UPFRONT DATA RETRIEVAL (EXECUTED ONCE)
     ----------------------------------------------------------------------------------------------------
     -- Get Draft Object Type and other header details
     SELECT T0."CardCode", T0."DocCur", T1."SeriesName", T0."NumAtCard", T0."SlpCode", T0."U_RMRKPRD",
-           T0."U_RMRKSTR", T0."U_RMRKQC", T0."Comments", T0."DocRate", T0."DocDate", T0."DocDueDate", T0."U_Export_Remark",
+           T0."U_RMRKSTR", T0."U_RMRKQC", ifnull(T0."Comments", ''), T0."DocRate", T0."DocDate", T0."DocDueDate", T0."U_Export_Remark",
            T0."U_ExportRemarks", T0."SlpCode", T0."U_CNPJ_Num", T0."U_CEP_Num", T0."U_CUIT_Num", T0."U_Tax_ID",
            T0."U_Notify_CNPJ", T0."U_Notify_CEP", T0."U_FinlDest", T0."U_PLoad", T0."U_PDischrg", T0."BPLName", T2."Country",T0."U_EOSellType"
     INTO
@@ -1458,104 +1299,33 @@ END IF;
                  INTO Pack1, Pack2, U_Pack3, U_Pack4, U_Pack5, U_Pack6, U_Pack7, U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13, U_Pack14, U_Pack15
                  FROM "@SOPACKING" T0 WHERE T0."Code" = SOItemCode;
 
-                IF SOCmnt NOT LIKE '%sample%' AND SOPackType NOT LIKE 'ISO%' THEN
-		        IF Capacity = Pack1C then
-					else
-						IF Capacity = U_Pack15C then
-						else
-							IF Capacity = Pack2C then
-							else
-								IF Capacity = U_Pack3C then
-								else
-									IF Capacity = U_Pack4C then
-									else
-										IF Capacity = U_Pack5C then
-										else
-											IF Capacity = U_Pack6C then
-											else
-												IF Capacity = U_Pack7C then
-												else
-													IF Capacity = U_Pack8C then
-													else
-														IF Capacity = U_Pack9C then
-														else
-															IF Capacity = U_Pack10C then
-															else
-																IF Capacity = U_Pack11C then
-																else
-																	IF Capacity = U_Pack12C then
-																	else
-																		IF Capacity = U_Pack13C then
-																		else
-																			IF Capacity = U_Pack14C then
-																			else
-																				error:=30068;
-																				error_message:=N'Please Select proper capacity from list';
-																			END IF;
-																		END IF;
-																	END IF;
-																END IF;
-															END IF;
-														END IF;
-													END IF;
-												END IF;
-											END IF;
-										END IF;
-									END IF;
-								END IF;
-							END IF;
-						END IF;
-					END IF;
+                IF (IFNULL(SOCmnt,'') NOT LIKE '%sample%') AND (IFNULL(SOPackType,'') NOT LIKE 'ISO%') THEN
+                    -- Numeric Capacity Validation
+                       IF (:Capacity != IFNULL(:Pack1C, -1)) AND (:Capacity != IFNULL(:Pack2C, -1)) AND
+		                   (:Capacity != IFNULL(:U_Pack3C, -1)) AND (:Capacity != IFNULL(:U_Pack4C, -1)) AND
+		                   (:Capacity != IFNULL(:U_Pack5C, -1)) AND (:Capacity != IFNULL(:U_Pack6C, -1)) AND
+		                   (:Capacity != IFNULL(:U_Pack7C, -1)) AND (:Capacity != IFNULL(:U_Pack8C, -1)) AND
+		                   (:Capacity != IFNULL(:U_Pack9C, -1)) AND (:Capacity != IFNULL(:U_Pack10C, -1)) AND
+		                   (:Capacity != IFNULL(:U_Pack11C, -1)) AND (:Capacity != IFNULL(:U_Pack12C, -1)) AND
+		                   (:Capacity != IFNULL(:U_Pack13C, -1)) AND (:Capacity != IFNULL(:U_Pack14C, -1)) AND
+		                   (:Capacity != IFNULL(:U_Pack15C, -1)) THEN
+                        error := 30068;
+                        error_message := N'Capacity ' || CAST(:Capacity AS NVARCHAR) || ' is not allowed for ' || :SOItemCode || ' [Draft]';
+                    END IF;
 
-		            IF SOPackng = Pack1 then
-					else
-						IF SOPackng = U_Pack15 then
-						else
-							IF SOPackng = Pack2 then
-							else
-								IF SOPackng = U_Pack3 then
-								else
-									IF SOPackng = U_Pack4 then
-									else
-										IF SOPackng = U_Pack5 then
-										else
-											IF SOPackng = U_Pack6 then
-											else
-												IF SOPackng = U_Pack7 then
-												else
-													IF SOPackng = U_Pack8 then
-													else
-														IF SOPackng = U_Pack9 then
-														else
-															IF SOPackng = U_Pack10 then
-															else
-																IF SOPackng = U_Pack11 then
-																else
-																	IF SOPackng = U_Pack12 then
-																	else
-																		IF SOPackng = U_Pack13 then
-																		else
-																			IF SOPackng = U_Pack14 then
-																			else
-																				error:=30067;
-																				error_message:=N'Please Select Packing code from list';
-																			END IF;
-																		END IF;
-																	END IF;
-																END IF;
-															END IF;
-														END IF;
-													END IF;
-												END IF;
-											END IF;
-										END IF;
-									END IF;
-								END IF;
-							END IF;
-						END IF;
-					END IF;
-		        END IF;
-
+                    -- Packing Code String Validation
+                    IF (:SOPackng != IFNULL(:Pack1, 'NA')) AND (:SOPackng != IFNULL(:Pack2, 'NA')) AND
+	                   (:SOPackng != IFNULL(:U_Pack3, 'NA')) AND (:SOPackng != IFNULL(:U_Pack4, 'NA')) AND
+	                   (:SOPackng != IFNULL(:U_Pack5, 'NA')) AND (:SOPackng != IFNULL(:U_Pack6, 'NA')) AND
+	                   (:SOPackng != IFNULL(:U_Pack7, 'NA')) AND (:SOPackng != IFNULL(:U_Pack8, 'NA')) AND
+	                   (:SOPackng != IFNULL(:U_Pack9, 'NA')) AND (:SOPackng != IFNULL(:U_Pack10, 'NA')) AND
+	                   (:SOPackng != IFNULL(:U_Pack11, 'NA')) AND (:SOPackng != IFNULL(:U_Pack12, 'NA')) AND
+	                   (:SOPackng != IFNULL(:U_Pack13, 'NA')) AND (:SOPackng != IFNULL(:U_Pack14, 'NA')) AND
+	                   (:SOPackng != IFNULL(:U_Pack15, 'NA')) THEN
+                        error := 30067;
+                        error_message := N'Packing Code ' || :SOPackng || ' is not allowed for ' || :SOItemCode || ' [Draft]';
+                    END IF;
+                END IF;
             END IF;
 
             -- Validation 30068: Other Packing Check
@@ -22525,7 +22295,7 @@ DECLARE VendorCode varchar(50);
 	END IF;
 END IF;
 ----------------------------------- WeighBridge -----------------------------------------------------
-IF object_type = '20' AND (:transaction_type = 'U') THEN
+/*IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE WB_SlipNo_Str NVARCHAR(50);
     DECLARE WB_NetWt DECIMAL(19,6);
     DECLARE WB_InDate DATE;
@@ -22602,7 +22372,7 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
             END IF;
         END IF;
     END IF;
-END IF;
+END IF;*/
 ---------------------------------Outgoing Payment Delay Reason Compulsory, Payment after 7 Days against PO Date[Draft]------------------------
 IF :object_type = '112'  AND :transaction_type IN ('A', 'U') THEN
   DECLARE DelayDays INT;
