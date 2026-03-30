@@ -1554,7 +1554,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     WHERE T0."CardCode" = VendorCode;
 
     SELECT T2."Name" INTO PlaceOfSupply FROM POR12 T0 INNER JOIN OPOR T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."LocStatCod" = T2."Code" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
-    SELECT T2."Name" INTO ShipToState FROM POR12 T0 INNER JOIN OPOR T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."StateB" = T2."Code" AND T0."CountryB" = T2."Country" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT T2."Name" INTO ShipToState FROM POR12 T0 INNER JOIN OPOR T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."StateS" = T2."Code" AND T0."CountryS" = T2."Country" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
 
     -- ========== Row Level Validations (Single Loop) ==========
     SELECT MIN(T0."VisOrder"), MAX(T0."VisOrder") INTO MIN_ROW, MAX_ROW FROM POR1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;

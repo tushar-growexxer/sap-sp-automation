@@ -4128,7 +4128,7 @@ Declare OcrCode nvarchar(50);
          End If;
 End If;
 
-----------------------------------------------
+/*----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
 IF object_type = '15' AND (:transaction_type ='A' ) THEN
@@ -4154,7 +4154,7 @@ DECLARE Series varchar(50);
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
 END IF;
-
+*/
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
