@@ -22117,7 +22117,7 @@ AND T1."BaseType" = 22;
 END IF;
 
 ---------------------------------AP Invoice Posting Delay Reason and Current Date[Draft]------------------------
-IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '112' AND (:transaction_type = 'A') THEN
 DECLARE DelayDays INT;
 
 SELECT MAX(
@@ -22162,7 +22162,7 @@ END IF;
 
 END IF;
 ------------------AP Invoice Posting Delay Reason and Current Date---------------------------
-IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '18' AND (:transaction_type = 'A') THEN
 DECLARE DelayDays INT;
 
 SELECT MAX(
@@ -22195,6 +22195,60 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 			error := -1228;
 			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
 		END IF;
+END IF;
+--------------------------AP Invoice License BL entry Compulsory-----------------------
+IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
+
+    -- Check if any line has ADVANCE + LicenseNum
+    IF EXISTS (SELECT 1 FROM PCH1 T1
+        WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T1."U_LicenseType",'') = 'ADVANCE' AND IFNULL(T1."U_LicenseNum",'') <> '') THEN
+
+        -- Case 1: Import/Export = 'N' (invalid scenario)
+        IF EXISTS (SELECT 1 FROM PCH12 T2
+            WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T2."ImpORExp",'') = 'N')  THEN
+
+            error := -1229;
+            error_message := 'Import/Export must be YES when License Type is ADVANCE';
+
+        -- Case 2: Import/Export = 'Y' but details missing
+        ELSEIF EXISTS (SELECT 1 FROM PCH12 T2
+            WHERE T2."DocEntry" = :list_of_cols_val_tab_del
+            AND IFNULL(T2."ImpORExp",'') = 'Y'
+            AND (IFNULL(T2."PortCode",'') = '' OR IFNULL(T2."ImpExpNo",'') = '' OR T2."ImpExpDate" IS NULL OR IFNULL(T2."BoEValue",0) = 0) ) THEN
+            error := -1230;
+            error_message := 'Please fill all Import/Export details when License Type is ADVANCE';
+
+        END IF;
+
+    END IF;
+END IF;
+--------------------------AP Invoice License BL entry Compulsory (Draft)-----------------------
+IF :object_type = '112' AND :transaction_type IN ('A','U') THEN   -- Draft
+
+    -- Check if draft is for AP Invoice
+    IF EXISTS (SELECT 1 FROM ODRF H WHERE H."DocEntry" = :list_of_cols_val_tab_del AND H."ObjType" = '18') THEN
+
+        -- Check ADVANCE License in rows
+        IF EXISTS (SELECT 1 FROM DRF1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+            AND IFNULL(T1."U_LicenseType",'') = 'ADVANCE'
+            AND IFNULL(T1."U_LicenseNum",'') <> '') THEN
+
+            -- Case 1: Import/Export = 'N'
+            IF EXISTS (SELECT 1 FROM DRF12 T2 WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T2."ImpORExp",'') = 'N') THEN
+
+                error := -1231;
+                error_message := 'Import/Export must be YES when License Type is ADVANCE (Draft)';
+
+            -- Case 2: Import/Export = 'Y' but details missing
+            ELSEIF EXISTS (SELECT 1 FROM DRF12 T2 WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T2."ImpORExp",'') = 'Y'
+            				AND (IFNULL(T2."PortCode",'') = '' OR IFNULL(T2."ImpExpNo",'') = '' OR T2."ImpExpDate" IS NULL OR IFNULL(T2."BoEValue",0) = 0)
+            	) THEN
+
+                error := -1232;
+                error_message := 'Please fill all Import/Export details when License Type is ADVANCE (Draft)';
+            END IF;
+        END IF;
+    END IF;
 END IF;
 
 -----------------------------------------------
