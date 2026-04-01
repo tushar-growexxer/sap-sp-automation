@@ -2490,7 +2490,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 			END IF;
 
 			IF :transaction_type = 'A' AND :ItemCode LIKE 'E%' THEN
-				IF :DocBPLId = 3 AND :DocSeriesID <> 2483 THEN
+				/*IF :DocBPLId = 3 AND :DocSeriesID <> 2483 THEN
 					error := -41021;
 					error_message := N'Please Select EG1 Current Series for Unit 1.';
 				END IF;
@@ -2501,7 +2501,20 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 IF :DocBPLId = 5 AND :SeriesName NOT LIKE 'EG3%' THEN
                     error := -41031;
                     error_message := N'Please Select EG3 Series for Unit 3.';
-                END IF;
+                END IF;*/
+
+				IF :DocBPLId = 3 AND :SeriesName NOT LIKE 'EG1%' THEN
+					error := -41021;
+					error_message := N'Please Select EG1 Series for Unit 1.';
+				END IF;
+				IF :DocBPLId = 4 AND :SeriesName NOT LIKE 'EG2%' THEN
+					error := -41022;
+					error_message := N'Please Select EG2 Series for Unit 2.';
+				END IF;
+				IF :DocBPLId = 5 AND :SeriesName NOT LIKE 'EG3%' THEN
+					error := -41023;
+					error_message := N'Please Select EG3 Series for Unit 3.';
+				END IF;
 			END IF;
 
 			IF IFNULL(:OcrCode, '') = '' THEN
@@ -21754,7 +21767,7 @@ IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 
             -- If the Invoice Quantity exceeds the License Quantity by more than 5%, trigger an error
             IF DiffQty > 0 THEN
-                error := 304;
+                error := 1237;
                 error_message := N'Tolerance exceeded: Invoice Quantity exceeds License Quantity by '
                                  || TO_NVARCHAR(DiffQty) || ' items. Allowed Quantity: '
                                  || TO_NVARCHAR(ToleranceQty) || '. Invoice Quantity: '
@@ -21796,7 +21809,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
               AND T0."ItemCode" like 'E%' AND T0."ItemCode" not in ('EMMA0407','EMMA0608','EMMA0609');
 
             IF ItemCode >0 THEN
-                error := 1300;
+                error := 1236;
                 error_message := 'You are not allowed to do Consumption Entry';
             END IF;
 
@@ -21924,34 +21937,34 @@ IF (:object_type = 'SPLREQ') AND (:transaction_type = 'A' OR :transaction_type =
 
         -- Validations
         IF (:TEMP_COUNTER > 1) THEN
-            error := -1239;
+            error := -1240;
             error_message := N'Only 1 day backdate allowed for Sample Ready Date at line ' || MinLine || '.';
         END IF;
 
         IF (:TEMP_COUNTER < 0) THEN
-            error := -1240;
+            error := -1241;
             error_message := N'Forward date not allowed for Sample Ready Date at line ' || MinLine || '.';
         END IF;
 
         IF (DocDateCt = 0 OR SampleDocEntry = 0 OR SampleNo = 0 OR ItemDetails = 0 OR
             ItemCode = 0 OR BrandName = 0 OR TypeSample = 0 OR Packing = 0 OR
             Qty = 0 OR UoM = 0 OR SampleReadyCt = 0) THEN
-            error := -1241;
+            error := -1242;
             error_message := N'Please enter all details at line ' || MinLine || '.';
         END IF;
 
         IF (SampleReady = 'Yes' AND SampleReadyDate = 0) THEN
-            error := -1242;
+            error := -1243;
             error_message := N'Please enter Sample Ready Date at line ' || MinLine || '.';
         END IF;
 
         IF (SampleReady = 'No' AND SampleReadyDate > 0) THEN
-            error := -1243;
+            error := -1244;
             error_message := N'Not allowed to enter Sample Ready Date at line ' || MinLine || '.';
         END IF;
 
         IF (Status = 1 AND SampleReadyDate = 1) THEN
-            error := -1243;
+            error := -1245;
             error_message := N'Status only allowed when Sample Ready Date is empty ' || MinLine || '.';
         END IF;
 
@@ -21998,7 +22011,7 @@ IF (:object_type = 'SPLREQ') AND (:transaction_type = 'A' OR :transaction_type =
                 AND (T0."Canceled" <> 'Y' OR T0."Canceled" IS NULL); -- Exclude canceled entries
 
             IF (DuplicateLineNum > 0) THEN
-                error := -1244;
+                error := -1246;
                 error_message := N'Line Number ' || CurrentLineNum || ' has already been used for this Requisition Document Entry.';
                 BREAK;
             END IF;
@@ -22020,7 +22033,7 @@ DECLARE PortLoad Nvarchar(50);
     -- Normalize and check
 	IF ExportAR = 'Y' THEN
 	    IF portCode IS NULL OR LENGTH(TRIM(portCode)) = 0 OR portCode not like'IN%' THEN
-    	    error := -1245;
+    	    error := -1247;
         	error_message := 'Invalid Port Code.';
 	    END IF;
 
@@ -22035,7 +22048,7 @@ select OWOR."Type" into ProdType from OWOR WHERE OWOR."DocEntry"= :list_of_cols_
 select OWOR."ItemCode" into ProdItem from OWOR WHERE OWOR."DocEntry"= :list_of_cols_val_tab_del;
 	IF ProdType = 'P' THEN
 		IF ProdItem LIKE '%RM%' THEN
-			error := -1245;
+			error := -1248;
 			error_message := N'Not allowed to Receipt RM in Special production entry.';
 		END IF;
 	END IF;
@@ -22093,7 +22106,7 @@ IF Object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             AND T1."VisOrder" = MinAR;
 
             IF SampleReqExists = 0 THEN
-                error := 74;
+                error := 1249;
                 error_message := N'Sample Ready QC Entry not found for this invoice line.';
             END IF;
 
@@ -22108,7 +22121,7 @@ IF Object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
                 AND IFNULL(T3."U_SampleReady", '') <> 'Yes';
 
                 IF SampleNotReady > 0 THEN
-                    error := 73;
+                    error := 1250;
                     error_message := N'Sample is not ready. Cannot create AR Invoice until all samples are marked as Ready.';
                 END IF;
             END IF;
@@ -22143,7 +22156,7 @@ DECLARE RMCount int;
 
 	     -- If more than 1 DISTINCT RM item exists, throw error
 	     IF RMCount > 1 THEN
-	         error := -1207;
+	         error := -1251;
 	         error_message := N'Multiple different RM items are not allowed in production order.';
 	     ELSEIF RMCount = 1 THEN
 	         -- Check if the RM item matches MainItemCode
@@ -22173,18 +22186,18 @@ SELECT "UserSign" INTO UserId FROM "@CONSIGNEEM" WHERE "Code" = :list_of_cols_va
 SELECT COUNT(*) INTO Cnt FROM OCRD WHERE "CardCode" = :list_of_cols_val_tab_del AND "CardType" = 'C';
 
 	IF UserId Not In (1,72,73) THEN
-		error := -1209;
+		error := -1252;
 		error_message := N'Access denied. Only SAP Team is authorized to add, update, or cancel Consignee Master records.';
 	END IF;
 ---------------------- Validate Consignee Code exists as Customer (Code = Customer Code)-----------------------------
     IF Cnt = 0 THEN
-        error := -1210;
+        error := -1253;
         error_message := N'Invalid Customer Code. Consignee Code must exist in Customer Master (OCRD).';
     END IF;
 
     IF :transaction_type IN ('U','C') THEN
     	IF EUserId Not In (1,72,73) THEN
-			error := -1211;
+			error := -1254;
 			error_message := N'Access denied. Only SAP Team is authorized to update, or cancel Consignee Master records.';
 		END IF;
 	END IF;
@@ -22208,7 +22221,7 @@ IF DraftObj = 18 THEN
 		WHILE :MinAP<=MaxAP DO
 			SELECT COUNT(DRF1."U_LicenseType") into LicTypeMainAP FROM DRF1 WHERE DRF1."DocEntry" = list_of_cols_val_tab_del and DRF1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 0  then
-				error := -1212;
+				error := -1255;
 				error_message := N'Please Select License Type.';
 			END IF;
 			MinAP := MinAP+1;
@@ -22233,7 +22246,7 @@ DECLARE VendorCode varchar(50);
 		WHILE :MinAP<=MaxAP DO
 			SELECT COUNT(PCH1."U_LicenseType") into LicTypeMainAP FROM PCH1 WHERE PCH1."DocEntry" = list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 0 then
-				error := -1213;
+				error := -1256;
 				error_message := N'Please Select License Type.';
 			END IF;
 			MinAP := MinAP+1;
@@ -22259,7 +22272,7 @@ if DraftObj = 18 THEN
 			SELECT DRF1."U_LicenseNum" into LicenseAP FROM DRF1 WHERE DRF1."DocEntry" = list_of_cols_val_tab_del and DRF1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 'ADVANCE' then
 				IF (LicenseAP IS NULL OR LicenseAP = '') THEN
-					error := -1214;
+					error := -1257;
 					error_message := N'License No cannot be empty as Advance License is selected.';
 				END IF;
 			END IF;
@@ -22286,7 +22299,7 @@ DECLARE VendorCode varchar(50);
 			SELECT PCH1."U_LicenseNum" into LicenseAP FROM PCH1 WHERE PCH1."DocEntry" = list_of_cols_val_tab_del and PCH1."VisOrder"=MinAP;
 			IF LicTypeMainAP = 'ADVANCE' then
 				IF (LicenseAP IS NULL OR LicenseAP = '') THEN
-					error := -1215;
+					error := -1258;
 					error_message := N'License No cannot be empty as Advance License is selected.';
 				END IF;
 			END IF;
@@ -22335,7 +22348,7 @@ END IF;
             WHERE "U_WeighBridgeSlipNo" = CAST(CAST(:GRN_SlipNo_Num AS INT) AS NVARCHAR);
 
             IF :RowCount = 0 THEN
-                error := -1219;
+                error := -1259;
                 error_message := 'Invalid Slip! Weighbridge Slip ' || CAST(:GRN_SlipNo_Num AS NVARCHAR) || ' not found.';
             ELSE
                 -- 3. Fetch Weighbridge details
@@ -22352,20 +22365,20 @@ END IF;
 
                 -- Check Weight
                 IF :GRN_ActualQty <> :WB_NetWt THEN
-                    error := -1216;
+                    error := -1260;
                     error_message := 'Weight Mismatch! GRN: ' || :GRN_ActualQty || ' vs WeighBridge: ' || :WB_NetWt;
                 END IF;
 
                 -- Check Date
                 IF :error = 0 AND :GRN_GateDate <> :WB_InDate THEN
-                    error := -1217;
+                    error := -1261;
                     error_message := 'Date Mismatch! Gate Entry Date: ' || TO_VARCHAR(:GRN_GateDate, 'yyyyMMdd') || ' vs WeighBridge In Date: ' || TO_VARCHAR(:WB_InDate, 'yyyyMMdd');
                 END IF;
 
                 -- Check Vehicle (Regularized)
                 IF :error = 0 AND UPPER(REPLACE(REPLACE(REPLACE(:GRN_Vehicle, ' ', ''), '-', ''), '.', '')) <>
                    UPPER(REPLACE(REPLACE(REPLACE(:WB_Vehicle, ' ', ''), '-', ''), '.', '')) THEN
-                    error := -1218;
+                    error := -1262;
                     error_message := 'Vehicle No Mismatch! GRN: ' || :GRN_Vehicle || ' vs WeighBridge: ' || :WB_Vehicle;
                 END IF;
 
@@ -22385,11 +22398,11 @@ IF :object_type = '112'  AND :transaction_type IN ('A', 'U') THEN
   WHERE T0."ObjType" = '46'       -- Outgoing Payment drafts only
     AND T0."CardCode"   LIKE 'VEXP%'
     AND T0."DocEntry"   = :list_of_cols_val_tab_del
-    AND T1."RefObjType"   = '22';       -- PO line reference
+    AND T1."RefObjType"   = '1263';       -- PO line reference
 
   IF :DelayDays > 0 THEN
     IF EXISTS (SELECT 1 FROM OPDF WHERE "DocEntry"  = :list_of_cols_val_tab_del AND "ObjType" = '46' AND (IFNULL("U_AdvPayDelReason", '') = '' OR "U_AdvPayDelReason" = 'N/A') ) THEN
-      error := -1225;
+      error := -1264;
       error_message := 'Advance payment delayed by '|| :DelayDays || ' days. Please select delay reason.';
     END IF;
   END IF;
@@ -22407,7 +22420,7 @@ WHERE T0."CardCode" like 'VEXP%' and T0."DocEntry" = :list_of_cols_val_tab_del A
 	IF :DelayDays > 0 THEN
 
 		IF EXISTS (SELECT 1 FROM OVPM WHERE "DocEntry" = :list_of_cols_val_tab_del AND (IFNULL("U_AdvPayDelReason",'') = '' OR "U_AdvPayDelReason"='N/A')) THEN
-			error := -1225;
+			error := -1265;
 			error_message := 'Advance payment delayed by ' || :DelayDays || ' days. Please select delay reason.';
 		END IF;
 
@@ -22428,7 +22441,7 @@ AND T1."BaseType" = 22;
 	IF :DelayDays > 0 THEN
 
 		IF EXISTS (SELECT 1 FROM OPDN WHERE "DocEntry" = :list_of_cols_val_tab_del AND (IFNULL("U_GRNDelayReason",'') = '' OR "U_GRNDelayReason"='N/A') ) THEN
-			error := -1226;
+			error := -1266;
 			error_message := 'GRN is delayed by ' || :DelayDays || ' days compared to PO Delivery Date. Please select GRN Delay Reason.';
 
 		END IF;
@@ -22447,47 +22460,32 @@ SELECT MAX(
 INTO DelayDays
 FROM ODRF H
 INNER JOIN DRF1 L ON H."DocEntry" = L."DocEntry"
-INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry"
-                  AND L."BaseLine" = D."LineNum"
+INNER JOIN PDN1 D ON L."BaseEntry" = D."DocEntry" AND L."BaseLine" = D."LineNum"
 INNER JOIN OPDN G ON D."DocEntry" = G."DocEntry"
 INNER JOIN NNM1 S1 ON H."Series" = S1."Series"
-
-WHERE H."DocEntry" = :list_of_cols_val_tab_del
-AND H."ObjType" = '18'
-AND L."BaseType" = 20
-AND L."ItemCode" NOT LIKE '%SER%'
-AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A')
-AND S1."SeriesName" NOT LIKE 'CL%';
+WHERE H."DocEntry" = :list_of_cols_val_tab_del AND H."ObjType" = '18' AND L."BaseType" = 20 AND L."ItemCode" NOT LIKE '%SER%'
+AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A') AND S1."SeriesName" NOT LIKE 'CL%';
 
 --SLA Delay Validation--
 
 IF :DelayDays > 0 THEN
     IF EXISTS (
-        SELECT 1
-        FROM ODRF t0
+        SELECT 1 FROM ODRF t0
         JOIN NNM1 S1 ON T0."Series" = S1."Series"
-        WHERE t0."DocEntry" = :list_of_cols_val_tab_del
-        AND t0."ObjType" = '18'
-        AND IFNULL("U_APInvDelayReason",'') = '' AND s1."SeriesName" NOT LIKE 'CL%'
-    ) THEN
-        error := -1227;
+        WHERE t0."DocEntry" = :list_of_cols_val_tab_del AND t0."ObjType" = '18' AND IFNULL("U_APInvDelayReason",'') = '' AND s1."SeriesName" NOT LIKE 'CL%') THEN
+        error := -1267;
         error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
     END IF;
 END IF;
 
 --System Date Backdate Restriction --
 
-IF EXISTS (
-    SELECT 1
-    FROM ODRF t0
+/*IF EXISTS (SELECT 1 FROM ODRF t0
     JOIN NNM1 S1 ON T0."Series" = S1."Series"
-    WHERE t0."DocEntry" = :list_of_cols_val_tab_del
-    AND "ObjType" = '18'
-    AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%'
-) THEN
-    error := -1228;
+    WHERE t0."DocEntry" = :list_of_cols_val_tab_del AND "ObjType" = '18' AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
+    error := -1268;
     error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-END IF;
+END IF;*/
 
 END IF;
 ---------------------------------AP Invoice Posting Delay Reason and Current Date------------------------
@@ -22516,16 +22514,16 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 
 		IF :DelayDays > 0 THEN
 			IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND IFNULL("U_APInvDelayReason",'') = '' AND s1."SeriesName" NOT LIKE 'CL%') THEN
-				error := -1227;
+				error := -1269;
 				error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
 			END IF;
 		END IF;
 
 --System Date Backdate Restriction --
-		IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
-			error := -1228;
+		/*IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
+			error := -1270;
 			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-		END IF;
+		END IF;*/
 END IF;
 --------------------------AP Invoice License BL entry Compulsory-----------------------
 IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
@@ -22538,7 +22536,7 @@ IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
         IF EXISTS (SELECT 1 FROM PCH12 T2
             WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T2."ImpORExp",'') = 'N')  THEN
 
-            error := -1229;
+            error := -1271;
             error_message := 'Import/Export must be YES when License Type is ADVANCE';
 
         -- Case 2: Import/Export = 'Y' but details missing
@@ -22546,7 +22544,7 @@ IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
             WHERE T2."DocEntry" = :list_of_cols_val_tab_del
             AND IFNULL(T2."ImpORExp",'') = 'Y'
             AND (IFNULL(T2."PortCode",'') = '' OR IFNULL(T2."ImpExpNo",'') = '' OR T2."ImpExpDate" IS NULL OR IFNULL(T2."BoEValue",0) = 0) ) THEN
-            error := -1230;
+            error := -1272;
             error_message := 'Please fill all Import/Export details when License Type is ADVANCE';
 
         END IF;
@@ -22575,7 +22573,7 @@ IF :object_type = '112' AND :transaction_type IN ('A','U') THEN   -- Draft
             				AND (IFNULL(T2."PortCode",'') = '' OR IFNULL(T2."ImpExpNo",'') = '' OR T2."ImpExpDate" IS NULL OR IFNULL(T2."BoEValue",0) = 0)
             	) THEN
 
-                error := -1232;
+                error := -1273;
                 error_message := 'Please fill all Import/Export details when License Type is ADVANCE (Draft)';
             END IF;
         END IF;
