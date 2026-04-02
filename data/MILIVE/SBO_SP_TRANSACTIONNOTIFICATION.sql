@@ -4544,7 +4544,7 @@ DECLARE GRNItemCode nvarchar(50);
 	END WHILE;
 END IF;
 
-/*IF object_type = '59' AND (:transaction_type = 'A') THEN
+IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -4567,7 +4567,7 @@ DECLARE Series Nvarchar(50);
 			MinGR := MinGR+1;
 		END WHILE;
 	END IF;
-END IF;*/
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
@@ -20539,7 +20539,7 @@ IF Object_type = '112' and (:transaction_type ='A' OR :transaction_type ='U' ) T
 	end if;
 End If;
 
-/*
+
 IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 	DECLARE MinGRN INT;
     DECLARE MaxGRN INT;
@@ -20611,7 +20611,7 @@ IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 		end if;
 	END IF;
 END IF;
-*/
+
 IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 	DECLARE FromWhs NVARCHAR(15);
 	DECLARE ToWhs NVARCHAR(15);
@@ -22308,7 +22308,7 @@ DECLARE VendorCode varchar(50);
 	END IF;
 END IF;
 ----------------------------------- WeighBridge -----------------------------------------------------
-/*IF object_type = '20' AND (:transaction_type = 'U') THEN
+IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE WB_SlipNo_Str NVARCHAR(50);
     DECLARE WB_NetWt DECIMAL(19,6);
     DECLARE WB_InDate DATE;
@@ -22385,7 +22385,7 @@ END IF;
             END IF;
         END IF;
     END IF;
-END IF;*/
+END IF;
 ---------------------------------Outgoing Payment Delay Reason Compulsory, Payment after 7 Days against PO Date[Draft]------------------------
 IF :object_type = '112'  AND :transaction_type IN ('A', 'U') THEN
   DECLARE DelayDays INT;
