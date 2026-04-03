@@ -1553,8 +1553,8 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     INNER JOIN OCTG T1 ON T0."GroupNum" = T1."GroupNum"
     WHERE T0."CardCode" = VendorCode;
 
-    SELECT T2."Name" INTO PlaceOfSupply FROM POR12 T0 INNER JOIN OPOR T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."LocStatCod" = T2."Code" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
-    SELECT T2."Name" INTO ShipToState FROM POR12 T0 INNER JOIN OPOR T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."StateS" = T2."Code" AND T0."CountryS" = T2."Country" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
+	SELECT T2."Name" INTO PlaceOfSupply FROM POR12 T0 INNER JOIN OPOR T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."LocStatCod" = T2."Code" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT T2."Name" INTO ShipToState FROM POR12 T0 INNER JOIN OPOR T1 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN OCST T2 ON T0."StateB" = T2."Code" AND T0."CountryB" = T2."Country" WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
 
     -- ========== Row Level Validations (Single Loop) ==========
     SELECT MIN(T0."VisOrder"), MAX(T0."VisOrder") INTO MIN_ROW, MAX_ROW FROM POR1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
@@ -1663,7 +1663,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
         END IF;
 
-        IF Suffix LIKE 'PO%' AND ItemClass = '1' THEN
+        IF Suffix LIKE 'PO%' AND ItemClass = '1' AND SeriesName like 'DM%' THEN
             error := -40016;
             error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
         END IF;
@@ -1952,7 +1952,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
             END IF;
 
-            IF Suffix LIKE 'PO%' AND ItemClass = '1' THEN
+            IF Suffix LIKE 'PO%' AND ItemClass = '1' and SeriesName like 'DM%' THEN
                 error := -40042;
                 error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
             END IF;
