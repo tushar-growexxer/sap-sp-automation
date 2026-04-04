@@ -19660,7 +19660,7 @@ if Item like '%FG%' then
             error := -1119;
             error_message := 'The OFFG from OF-QC cannot be moved to any warehouse other than OF-QCR,OF-FG';
         end if;
-        if FromWhs = 'OF-FG' and ToWhs not in ('1BT') then
+        if FromWhs = 'OF-FG' and ToWhs not in ('1BT','OF-TRD') then
             error := -1119;
             error_message := 'The OFFG from OF-FG cannot be moved to any warehouse other than 1BT';
         end if;
@@ -19965,7 +19965,7 @@ DECLARE PRO Nvarchar(50);
 		select T0."U_RecEntry" INTO RFP from "@Q_QCCH" T0 WHERE T0."Code" = :list_of_cols_val_tab_del;
 		IF RFP IS NOT NULL then
 		select distinct T1."BaseRef" INTO RFPPRO from OIGN T0 INNER JOIN IGN1 T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = RFP;
-		select distinct T0."Status" INTO PRO from OWOR T0 WHERE T0."DocNum" = RFPPRO and T0."PostDate">='20250401';
+		select distinct T0."Status" INTO PRO from OWOR T0 WHERE T0."DocNum" = RFPPRO and T0."PostDate">='20260401';
 			IF  PRO <> 'L' THEN
 				error :=-1075;
 				error_message := N'Not allowed. as Production team not closed production order yet...!';
