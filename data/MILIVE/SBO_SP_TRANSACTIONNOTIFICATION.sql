@@ -22308,7 +22308,7 @@ DECLARE VendorCode varchar(50);
 	END IF;
 END IF;
 ----------------------------------- WeighBridge -----------------------------------------------------
-IF object_type = '20' AND (:transaction_type = 'U') THEN
+/*IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE WB_SlipNo_Str NVARCHAR(50);
     DECLARE WB_NetWt DECIMAL(19,6);
     DECLARE WB_InDate DATE;
@@ -22385,7 +22385,7 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
             END IF;
         END IF;
     END IF;
-END IF;
+END IF;*/
 ---------------------------------Outgoing Payment Delay Reason Compulsory, Payment after 7 Days against PO Date[Draft]------------------------
 IF :object_type = '112'  AND :transaction_type IN ('A', 'U') THEN
   DECLARE DelayDays INT;

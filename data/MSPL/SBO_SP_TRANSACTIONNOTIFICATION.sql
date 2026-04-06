@@ -22021,13 +22021,13 @@ IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
             	error_message := N'The Challan Quantity does not match with the Total Billing Quantity. Difference: ' || TO_NVARCHAR(v_DiffQty);
 			END IF;
     END IF;
-        IF v_GLCount > 0 THEN
+        /*IF v_GLCount > 0 THEN
 	        IF  v_SubChallanQty = 0 THEN
 
         	    error := 1321;
             	error_message := N'Enter the Jobwork Challan "Total Quantity" at row level and link the Production Order via the Accounting tab --> Reference Document. This is mandatory for Jobwork bill.';
 			END IF;
-    END IF;
+    END IF;*/
 END IF;
 ---------------------------- Consignee Master Validation-------------------------------
 IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN
