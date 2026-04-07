@@ -377,11 +377,9 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         END IF;
     END IF;
 END IF;
-
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
 
 --------------------------------- SALES ORDER START ----------------------------------
-
 IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
     -- =====================================
@@ -22241,8 +22239,7 @@ IF :object_type = '112' AND :transaction_type IN ('A','U') THEN   -- Draft
 
             -- Case 2: Import/Export = 'Y' but details missing
             ELSEIF EXISTS (SELECT 1 FROM DRF12 T2 WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T2."ImpORExp",'') = 'Y'
-            				AND (IFNULL(T2."PortCode",'') = '' OR IFNULL(T2."ImpExpNo",'') = '' OR T2."ImpExpDate" IS NULL OR IFNULL(T2."BoEValue",0) = 0)
-            	) THEN
+            				AND (IFNULL(T2."PortCode",'') = '' OR IFNULL(T2."ImpExpNo",'') = '' OR T2."ImpExpDate" IS NULL OR IFNULL(T2."BoEValue",0) = 0) ) THEN
 
                 error := -1232;
                 error_message := 'Please fill all Import/Export details when License Type is ADVANCE (Draft)';
@@ -22250,7 +22247,32 @@ IF :object_type = '112' AND :transaction_type IN ('A','U') THEN   -- Draft
         END IF;
     END IF;
 END IF;
+--------------------------Payment Term Master Type Lock-----------------------------------
+IF :object_type = '40' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
 
+    SELECT COUNT(*) INTO cnt FROM OCTG
+    WHERE "GroupNum" = :list_of_cols_val_tab_del AND IFNULL("U_PayTermType", '') = '';
+
+    IF :cnt > 0 THEN
+        error := 1233;
+        error_message := 'Payment Term Type cannot be left blank in [UDF]';
+    END IF;
+END IF;
+
+IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+    SELECT COUNT(*) INTO cnt FROM OCRD T0
+    INNER JOIN OCTG T1 ON T0."GroupNum" = T1."GroupNum"
+    WHERE T0."CardCode" = :list_of_cols_val_tab_del AND UPPER(IFNULL(T1."PymntGroup", '')) LIKE '%UNUSED%';
+
+    IF :cnt > 0 THEN
+        error := 1234;
+        error_message := 'Payment Term starting with UNUSED is not allowed in Business Partner';
+    END IF;
+
+END IF;
 -----------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;

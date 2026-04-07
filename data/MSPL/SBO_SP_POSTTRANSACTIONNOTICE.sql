@@ -140,7 +140,7 @@ If :Temp > 0 then
 
 		MailID:= 'purchasemgr1@minalspecialities.com,purchase5@minalspecialities.com,sanjay@minalspecialities.com,deepak@minalspecialities.com';
 		Mobile := '';
-		EmailCC := 'devarsh@minalspecialities.com';
+		EmailCC := '';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'D';
 		Mobi_TYPE := 'Po Generated PC,SC/DI,OF';
@@ -167,7 +167,7 @@ If :Temp > 0 then
 
 		MailID:= 'purchasemgr1@minalspecialities.com,purchase5@minalspecialities.com,sanjay@minalspecialities.com,deepak@minalspecialities.com';
 		Mobile := '';
-		EmailCC := 'devarsh@minalspecialities.com';
+		EmailCC := '';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'C';
 		Mobi_TYPE := 'Pr to Po Generated PC,SC/DI,OF';
@@ -388,6 +388,87 @@ If :Temp > 0 then
 End If;
 
 --------
+
+--- Direct Purchase Order Generated : SC,OF  (DJ) ----
+IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
+
+select count(*) into Temp from OPOR T0
+Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
+Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
+where T0."CANCELED"='N' and (T1."ItemCode" like 'SC%' OR T1."ItemCode" like 'OF%') AND T1."BaseType"<>'1470000113'
+and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID:= 'devarsh@minalspecialities.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'K';
+		Mobi_TYPE := 'PO Direct Generated SC,OF (DJ) - MSPL';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+--- Purchase Request to Purchase Order Generated : SC,OF (DJ) ----
+IF (:object_type = '22' AND (:transaction_type IN ('A','U'))) THEN
+
+select count(*) into Temp from OPOR T0
+Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
+Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
+where T0."CANCELED"='N' and (T1."ItemCode" like 'SC%' OR T1."ItemCode" like 'OF%') AND T1."BaseType"='1470000113'
+and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID:= 'devarsh@minalspecialities.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'X';
+		Mobi_TYPE := 'PR to PO Generated SC,OF (DJ) - MSPL';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+
+---Purchase Request to PO Generate Alert for MSPL Unit-I   (DJ)----
+IF (:object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
+
+select count(*) into Temp from OPOR T0
+Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
+Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
+where T0."CANCELED"='N' and T1."BaseType"='1470000113' and T2."ItmsGrpCod" in ('109','110','111','112','114','115','117','119') and T0."BPLId"='3' and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+		MailID:= 'devarsh@minalspecialities.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'Q';
+		Mobi_TYPE := 'PO Generate for PR MSPL U1 (DJ)';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+
 --------------------------------------------------------------------------------------------------------------------------------
 -- Select the return values
 select :error, :error_message FROM dummy;

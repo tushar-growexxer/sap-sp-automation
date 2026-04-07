@@ -1299,7 +1299,7 @@ END IF;
                  INTO Pack1, Pack2, U_Pack3, U_Pack4, U_Pack5, U_Pack6, U_Pack7, U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13, U_Pack14, U_Pack15
                  FROM "@SOPACKING" T0 WHERE T0."Code" = SOItemCode;
 
-                IF (IFNULL(SOCmnt,'') NOT LIKE '%sample%') AND (IFNULL(SOPackType,'') NOT LIKE 'ISO%') THEN
+                IF (IFNULL(SOCmnt,'') NOT LIKE '%sample%') AND (IFNULL(SOPackType,'') NOT LIKE 'ISO%' ) THEN
                     -- Numeric Capacity Validation
                        IF (:Capacity != IFNULL(:Pack1C, -1)) AND (:Capacity != IFNULL(:Pack2C, -1)) AND
 		                   (:Capacity != IFNULL(:U_Pack3C, -1)) AND (:Capacity != IFNULL(:U_Pack4C, -1)) AND
@@ -2359,12 +2359,12 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 			END IF;
 		END IF;
 
-		/*IF :ItemCode LIKE 'LB%' THEN
+		IF :ItemCode LIKE 'LB%' THEN
 			IF IFNULL(:UDF_QC_RD, '') IN ('', '-') THEN
 				error := -41014;
 				error_message := N'For lab items ' || :ItemCode || ', please select whether the request is for the R&D or QC department.';
 			END IF;
-		END IF;*/
+		END IF;
 
 		IF :SeriesName LIKE 'EG%' THEN
 
@@ -2490,19 +2490,6 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 			END IF;
 
 			IF :transaction_type = 'A' AND :ItemCode LIKE 'E%' THEN
-				/*IF :DocBPLId = 3 AND :DocSeriesID <> 2483 THEN
-					error := -41021;
-					error_message := N'Please Select EG1 Current Series for Unit 1.';
-				END IF;
-				IF :DocBPLId = 4 AND :DocSeriesID <> 2486 THEN
-					error := -41022;
-					error_message := N'Please Select EG2 Series for Unit 2.';
-				END IF;
-                IF :DocBPLId = 5 AND :SeriesName NOT LIKE 'EG3%' THEN
-                    error := -41031;
-                    error_message := N'Please Select EG3 Series for Unit 3.';
-                END IF;*/
-
 				IF :DocBPLId = 3 AND :SeriesName NOT LIKE 'EG1%' THEN
 					error := -41021;
 					error_message := N'Please Select EG1 Series for Unit 1.';
@@ -2574,7 +2561,7 @@ IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 END IF;
 
 
-/*IF Object_type = '30' and (:transaction_type ='A' OR :transaction_type ='U') Then
+IF Object_type = '30' and (:transaction_type ='A' OR :transaction_type ='U') Then
 DECLARE MinJV int;
 DECLARE MaxJV int;
 DECLARE Drule Nvarchar(250);
@@ -2596,7 +2583,7 @@ DECLARE TransType int;
 		END IF;
 	 MinJV=MinJV+1;
 	END WHILE;
-END IF;*/
+END IF;
 
 
 IF Object_type = '202' and (:transaction_type ='A' OR :transaction_type = 'U') Then
@@ -4141,7 +4128,7 @@ Declare OcrCode nvarchar(50);
          End If;
 End If;
 
-/*----------------------------------------------
+----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
 IF object_type = '15' AND (:transaction_type ='A' ) THEN
@@ -4167,7 +4154,7 @@ DECLARE Series varchar(50);
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
 END IF;
-*/
+
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -4561,7 +4548,7 @@ DECLARE Series Nvarchar(50);
 			IF ItemGR LIKE 'PCFG%' and WhsGR NOT LIKE '%QC' and ItemGR <> 'PCFG0263'
 				and ItemGR <> 'PCFG0316' and ItemGR <> 'PCFG0309' and ItemGR <> 'PCFG0308' and ItemGR <> 'PCFG0307' and ItemGR <> 'PCFG0306' and ItemGR <> 'PCFG0515'
 				and ItemGR <> 'PCFG0305' and ItemGR <> 'DIFG0017' THEN
-				error :=90;
+				error :=-9001;
 				error_message := N'Please Enter Proper Warehouse..';
 			END IF;
 			MinGR := MinGR+1;
@@ -4633,7 +4620,7 @@ END IF;
 
 --------------------------------------
 -- when creating/updating/deleting a Goods Receipt (object_type = 59)
-/*IF :object_type = '59' AND (:transaction_type = 'A') THEN
+IF :object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE IssuedQty NUMERIC(19,6);
 DECLARE BaseType int;
 
@@ -4649,7 +4636,7 @@ DECLARE BaseType int;
 		error_message := N'Issue for Production Entry not Done for this Production order so the Receipt from Production not Possible';
 		END IF;
 	END IF;
-END IF;*/
+END IF;
 ---------------------------------------------
 IF Object_type = '20' and (:transaction_type ='A') Then
 DECLARE MinGRN int;
@@ -4740,7 +4727,7 @@ DECLARE FromWhsCode Nvarchar(50);
 	END IF;
 END IF;
 -----------Inventory transfer 'FT2' Series
-/*IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
 DECLARE MaxIT Int;
 DECLARE SeriesName Varchar (50);
@@ -4765,7 +4752,7 @@ DECLARE Whscode Varchar(50);
 		END IF;
 		MinIT := MinIT+1;
 	END WHILE;
-END IF;*/
+END IF;
 ----------------inventory transfer Base document (Floor warehouse)
 IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
@@ -5399,7 +5386,7 @@ DECLARE Nopltibc Nvarchar(50);
 	END WHILE;
 END IF;
 
-/*IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
 DECLARE PerUntQty Nvarchar(50);
@@ -5526,7 +5513,7 @@ DECLARE SeriesAR Nvarchar(50);
 		END IF;
 		MinAR := MinAR + 1;
 	END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 
@@ -5915,7 +5902,7 @@ END IF;
 
 
 ----------------Qc dept can transfer rejected material only to QC related warehouse---------
-/*IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
+IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
 
 Declare Usr nvarchar(50);
 Declare Frmwhs nvarchar(50);
@@ -5944,7 +5931,7 @@ DECLARE MaxLineITQ Int;
 
 		MinLineITQ := MinLineITQ+1;
 	END WHILE;
-END IF;*/
+END IF;
 
 ----------------------------Branch Transfer is allowed to store dept only-------------
 IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
@@ -6305,7 +6292,7 @@ DECLARE BPLId int;
 
 End If;
 
-/*IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U' ) Then
+IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 Declare CmpltQty Int;
 Declare IssueQty Int;
 Declare Prdstatus nvarchar(50);
@@ -6323,7 +6310,7 @@ Declare Prdstatus nvarchar(50);
 	               error_message := N'Not allowed to close production order..Contact to SAP.';
 	         End If;
          End If;
-End If;*/
+End If;
 
 IF Object_type = '13' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 Declare Unit nvarchar(50);
@@ -6400,7 +6387,7 @@ If object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 	END IF;
 END IF;
 
-/*IF object_type = '20' AND (:transaction_type = 'A' ) THEN
+IF object_type = '20' AND (:transaction_type = 'A' ) THEN
 DECLARE DateGRN1 date;
 Declare Seris varchar(100);
 Declare ItemC varchar(100);
@@ -6424,7 +6411,7 @@ DECLARE MAXXIT int;
 			END IF;
 		MINNIT = MINNIT + 1;
 		END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
@@ -7825,7 +7812,7 @@ Declare FreeSample nvarchar(5);
 				error_message := N'Please enter PDC Date';
 			End If;
 		End If;
-		/*IF Pterm LIKE '%Advance%' then
+		IF Pterm LIKE '%Advance%' then
 			IF advanceno IS NULL OR advanceno = '' then
 				error :=236;
 				error_message := N'Please enter Advance Cheque no';
@@ -7834,7 +7821,7 @@ Declare FreeSample nvarchar(5);
 			error :=236;
 			error_message := N'Please enter Advance Date';
 			End If;
-		End If;*/
+		End If;
 	End If;
 END IF;
 
@@ -8653,7 +8640,7 @@ DECLARE Srs Nvarchar(250);
 
 END IF;
 
-/*IF object_type = '60' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
+IF object_type = '60' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
 DECLARE CNT Int;
 DECLARE Comments Nvarchar(500);
 DECLARE Srs Nvarchar(500);
@@ -8667,10 +8654,10 @@ DECLARE Srs Nvarchar(500);
 		CNT:= 0;
 	END IF;
 END IF;
-*/
 
 
-/*IF object_type = '59' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
+
+IF object_type = '59' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
 DECLARE CNT Int;
 DECLARE Comments Nvarchar(150);
 DECLARE Srs Nvarchar(150);
@@ -8683,34 +8670,7 @@ DECLARE Srs Nvarchar(150);
 		error_message := 'Duplicate Batch Number Exist Check Batch No Again';
 		CNT:= 0;
 	END IF;
-END IF;*/
-
-/*IF object_type = '60' AND ( :transaction_type = 'A') THEN
-DECLARE MINN int;
-DECLARE MAXX int;
-DECLARE CNT Int;
-DECLARE Comments Nvarchar(150);
-DECLARE Srs Nvarchar(150);
-Declare Itm nvarchar(250);
-
-	Select MIN(T0."VisOrder") into MINN from IGE1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-	Select MAX(T0."VisOrder") into MAXX from IGE1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-
-	SELECT "Ref2" INTO Comments FROM OIGE T1 where T1."DocEntry" = :list_of_cols_val_tab_del;
-	SELECT T1."SeriesName" INTO Srs FROM OIGE T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" where T0."DocEntry" = :list_of_cols_val_tab_del;
-	SELECT COUNT(*) INTO CNT FROM OIGE T1 where T1."Ref2" = Comments;
-	WHILE MINN<=MAXX DO
-		select "ItemCode" into Itm FROM IGE1 T0 WHERE T0."DocEntry"=list_of_cols_val_tab_del and T0."VisOrder" = MINN;
-		IF Itm LIKE 'PC%' then
-		IF :CNT>1 and (Srs NOT LIKE 'DI%' or Srs NOT LIKE 'OF%') and Comments IS NOT NULL THEN
-			error := 265;
-			error_message := 'Duplicate Batch Number Exist Check Batch No Again';
-			CNT:= 0;
-		END IF;
-		END IF;
-	MINN = MINN + 1;
-	END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = 'QcInProcess' AND ( :transaction_type = 'A' OR :transaction_type = 'U')   THEN
 DECLARE CNT Int;
@@ -8916,7 +8876,7 @@ DECLARE MaxGI int;
 
 			IF Whss LIKE '%BT%' THEN
 				IF Srss NOT LIKE '%BT%' then
-		    		error :=283;
+		    		error :=-2831;
 		        	error_message := N'Select BT warhouse for BT Series.';
 		        END IF;
 	     	End If;
@@ -9001,11 +8961,11 @@ DECLARE MaxGI int;
 				        error_message := N'Not allowed to issue Jumbo bag.';
 			     	End If;
 			     	IF ICode LIKE '%RM%'AND ICode <> 'DIRM0019' AND ICode <> 'PCRM0017' AND ICode <> 'DIRM0030' AND ICode <> 'PCRM0167' THEN
-				    	error :=287;
+				    	error :=288;
 				        error_message := N'Not allowed to issue RM directly. Contact SAP team';
 			     	End If;
 			     	IF ICode LIKE '%FG%' THEN
-				    	error :=287;
+				    	error :=289;
 				        error_message := N'Not allowed to issue FG directly. Contact SAP team';
 			     	End If;
 			     	IF ICode LIKE '%PM%' AND ICode NOT IN ('PCPM0117') THEN
@@ -9181,15 +9141,15 @@ Declare MN Nvarchar(150);
 		SELECT "U_UNE_TransportName" Into TN FROM OIGE T1 where T1."DocEntry" = :list_of_cols_val_tab_del;
 		SELECT "U_Mobile_No" Into MN FROM OIGE T1 where T1."DocEntry" = :list_of_cols_val_tab_del;
 		IF VN IS NULL THEN
-		    error :=295;
+		    error :=-2956;
 		    error_message := N'Please enter vehicle no';
 	    End If;
 	    IF MN IS NULL THEN
-		    error :=296;
+		    error :=-2967;
 		    error_message := N'Please enter Mobile no';
 		End If;
 	    IF TN IS NULL THEN
-		    error :=297;
+		    error :=-2978;
 		    error_message := N'Please enter Transport name';
 	    End If;
 	END IF;
@@ -10014,7 +9974,6 @@ DECLARE BRGRN Int;
 END IF;
 ----------------
 IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-
 DECLARE UserName Nvarchar(50);
 DECLARE UserNameU Nvarchar(50);
 DECLARE BRGRN Int;
@@ -10035,7 +9994,6 @@ DECLARE BRGRN Int;
 END IF;
 
 IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-
 DECLARE UserName Nvarchar(50);
 DECLARE UserNameU Nvarchar(50);
 DECLARE BRGRN Int;
@@ -10049,7 +10007,7 @@ DECLARE BRGRN Int;
 
 		IF BRGRN = 4 THEN
 			IF (UserName = 'engg02' OR UserNameU = 'engg02') THEN
-				error :=348;
+				error :=-3489;
 				error_message := N'You are not allowed for UNIT - II Goods issue entry';
 			END IF;
 		END IF;
@@ -10210,7 +10168,7 @@ DECLARE TransType Int;
 			END IF;
 END IF;
 --------------------------------Delay Remarks------------------------------
-/*IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
+IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE DelayRemark Nvarchar(50);
 
 		SELECT T1."U_RMKSTR" into DelayRemark FROM OINV T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
@@ -10229,7 +10187,7 @@ DECLARE BLdelayRemark Nvarchar(50);
 			error :=361;
 			error_message := N'Please select proper BL delay remark';
 		END IF;
-END IF;*/
+END IF;
 
 IF object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE DocType Nvarchar(50);
@@ -13676,7 +13634,7 @@ if DraftObj = 20 THEN
 	END IF;
 END IF;
 
-/*IF object_type='112' AND (:transaction_type = 'A') THEN
+IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
 DECLARE WhseAP Nvarchar(50);
@@ -13695,7 +13653,7 @@ if DraftObj = 18 THEN
 		MinAP := MinAP+1;
 	END WHILE;
 	END IF;
-END IF;*/
+END IF;
 
 IF Object_type='112' and (:transaction_type ='A') Then
 DECLARE MinGRN int;
@@ -16991,7 +16949,7 @@ IF FreeSample='No' or FreeSample is null THEN
 				error_message := N'Please enter PDC Date';
 			End If;
 		End If;
-		/*IF Pterm LIKE '%Advance%' then
+		IF Pterm LIKE '%Advance%' then
 			IF advanceno IS NULL OR advanceno = '' then
 				error :=236;
 				error_message := N'Please enter Advance Cheque no';
@@ -17000,7 +16958,7 @@ IF FreeSample='No' or FreeSample is null THEN
 			error :=236;
 			error_message := N'Please enter Advance Date';
 			End If;
-		End If;*/
+		End If;
 End If;
 	END IF;
 END IF;
@@ -17718,7 +17676,7 @@ if DraftObj = 60 THEN
 END IF;
 END IF;
 
-/*IF object_type='112' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
+IF object_type='112' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
 DECLARE Pterm Nvarchar(150);
 DECLARE Rate Int;
 DECLARE Bsdoc Int;
@@ -17759,7 +17717,7 @@ if DraftObj = 13 THEN
 		END WHILE;
 	END IF;
 END IF;
-END IF;*/
+END IF;
 
 
 IF Object_type = '112' and (:transaction_type ='A') Then
@@ -17864,7 +17822,7 @@ if DraftObj = 60 THEN
 
 			IF Whss LIKE '%BT%' THEN
 				IF Srss NOT LIKE '%BT%' then
-		    		error :=283;
+		    		error :=-2834;
 		        	error_message := N'Select BT warhouse for BT Series.';
 		        END IF;
 	     	End If;
@@ -17931,7 +17889,6 @@ END IF;
 END IF;
 
 IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
-
 Declare ICode Nvarchar(150);
 Declare Iname Nvarchar(200);
 Declare Srs Nvarchar(150);
@@ -17952,20 +17909,20 @@ if DraftObj = 60 THEN
 			IF IBE = 0 then
 				IF Srs NOT LIKE '%BT%' then
 					IF ICode = 'DIPM0004' or ICode = 'DIPM0005' THEN
-				    	error :=287;
+				    	error :=2873;
 				        error_message := N'Not allowed to issue Jumbo bag.';
 			     	End If;
 			     	IF ICode LIKE '%RM%'AND ICode <> 'DIRM0019' AND ICode <> 'PCRM0017' AND ICode <> 'DIRM0030' AND ICode <> 'PCRM0167' THEN
-				    	error :=287;
+				    	error :=2874;
 				        error_message := N'Not allowed to issue RM directly. Contact SAP team';
 			     	End If;
 			     	IF ICode LIKE '%FG%' THEN
-				    	error :=287;
+				    	error :=2875;
 				        error_message := N'Not allowed to issue FG directly. Contact SAP team';
 			     	End If;
 			     	IF ICode LIKE '%PM%' AND ICode NOT IN ('PCPM0117') THEN
 			     		IF Iname NOT LIKE '%Ply%' and Iname NOT LIKE '%Pallet%' and Iname NOT LIKE '%Seal%' and Iname NOT LIKE '%seal%' and Iname <> 'Box strapping roll' and Iname <> 'Stretch film' then
-					    	error :=287;
+					    	error :=2876;
 					        error_message := N'Not allowed to issue PM directly. Contact SAP team';
 				     	End If;
 			     	End If;
@@ -18861,10 +18818,10 @@ END IF;
 
 ----------------
 IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-
 DECLARE UserName Nvarchar(50);
 DECLARE UserNameU Nvarchar(50);
 DECLARE BRGRN Int;
+
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
 if DraftObj = 60 THEN
 	SELECT ODRF."BPLId" into BRGRN FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
@@ -18876,15 +18833,14 @@ if DraftObj = 60 THEN
 
 		IF BRGRN = 3 THEN
 			IF (UserName = 'engg07' OR UserNameU =  'engg07') THEN
-				error :=347;
+				error :=-3471;
 				error_message := N'You are not allowed for UNIT - I Goods issue entry';
 			END IF;
 		END IF;
-END IF;
+	END IF;
 END IF;
 
 IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-
 DECLARE UserName Nvarchar(50);
 DECLARE UserNameU Nvarchar(50);
 DECLARE BRGRN Int;
@@ -18899,7 +18855,7 @@ if DraftObj = 60 THEN
 
 		IF BRGRN = 4 THEN
 			IF (UserName = 'engg02' OR UserNameU = 'engg02') THEN
-				error :=348;
+				error :=-3485;
 				error_message := N'You are not allowed for UNIT - II Goods issue entry';
 			END IF;
 		END IF;
@@ -21781,7 +21737,7 @@ IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     END WHILE;
 END IF;
 
-IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE ItemCode NVARCHAR(50);
     DECLARE MinGI INT;
     DECLARE MaxGI INT;
@@ -21809,14 +21765,14 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
               AND T0."ItemCode" like 'E%' AND T0."ItemCode" not in ('EMMA0407','EMMA0608','EMMA0609');
 
             IF ItemCode >0 THEN
-                error := 1236;
+                error := -1236;
                 error_message := 'You are not allowed to do Consumption Entry';
             END IF;
 
             MinGI = MinGI + 1;
         END WHILE;
     END IF;
-END IF;
+END IF;*/
 
 ------------------------------------------ SAMPLE REQUEST (UDO) VLAIDATIONS ---------------------------------------
 IF (:object_type = 'SPLREQ') AND (:transaction_type = 'U') THEN
@@ -22578,6 +22534,32 @@ IF :object_type = '112' AND :transaction_type IN ('A','U') THEN   -- Draft
             END IF;
         END IF;
     END IF;
+END IF;
+--------------------------Payment Term Master Type Lock-----------------------------------
+IF :object_type = '40' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+    SELECT COUNT(*) INTO cnt FROM OCTG
+    WHERE "GroupNum" = :list_of_cols_val_tab_del AND IFNULL("U_PayTermType", '') = '';
+
+    IF :cnt > 0 THEN
+        error := 1233;
+        error_message := 'Payment Term Type cannot be left blank in [UDF]';
+    END IF;
+END IF;
+
+IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+    SELECT COUNT(*) INTO cnt FROM OCRD T0
+    INNER JOIN OCTG T1 ON T0."GroupNum" = T1."GroupNum"
+    WHERE T0."CardCode" = :list_of_cols_val_tab_del AND UPPER(IFNULL(T1."PymntGroup", '')) LIKE '%UNUSED%';
+
+    IF :cnt > 0 THEN
+        error := 1234;
+        error_message := 'Payment Term starting with UNUSED is not allowed in Business Partner';
+    END IF;
+
 END IF;
 
 ------------------------------------------------------------------------------------------------
