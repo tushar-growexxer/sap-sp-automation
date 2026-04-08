@@ -4727,7 +4727,7 @@ DECLARE FromWhsCode Nvarchar(50);
 	END IF;
 END IF;
 -----------Inventory transfer 'FT2' Series
-IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
 DECLARE MaxIT Int;
 DECLARE SeriesName Varchar (50);
@@ -4752,7 +4752,7 @@ DECLARE Whscode Varchar(50);
 		END IF;
 		MinIT := MinIT+1;
 	END WHILE;
-END IF;
+END IF;*/
 ----------------inventory transfer Base document (Floor warehouse)
 IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
@@ -4819,7 +4819,7 @@ DECLARE ITCapacity Int;
 	END WHILE;
 END IF;
 
-IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinGRN Int;
 DECLARE MaxGRN Int;
 DECLARE GRNCapacity Int;
@@ -4941,7 +4941,7 @@ DECLARE GRNCapacity Int;
 			END IF;
 		MinGRN := MinGRN+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF Object_type = '67' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 
@@ -5419,60 +5419,60 @@ DECLARE ExportAR Nvarchar(50);
 
 		IF SeriesAR LIKE 'E%' then
 			IF PerUntQty IS NULL  then
-				error :=133;
+				error :=-1334;
 				error_message := N'Please enter Per unit quantity';
 			END IF;
 			IF Ttlunt IS NULL  then
-				error :=133;
+				error :=-1335;
 				error_message := N'Please enter Total unit';
 			END IF;
 			IF Wghtpckng IS NULL  then
-				error :=133;
+				error :=-1336;
 				error_message := N'Please enter weight of packing type';
 			END IF;
 			IF pckngtype IS NULL  then
-				error :=133;
+				error :=-1337;
 				error_message := N'Please enter packing type';
 			END IF;
-			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
+			/*IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
 		 	pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
-				error :=133;
+				error :=-1338;
 				error_message := N'Please select proper packing type';
-			END IF;
+			END IF;*/
 			IF typpltibc IS NULL  then
-				error :=133;
+				error :=-1339;
 				error_message := N'Please enter Type of pallets/IBC';
 			END IF;
-			IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
-			typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' then
-				error :=133;
+			/*IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
+				typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' then
+				error :=-1340;
 				error_message := N'Please enter Type of pallets/IBC/ISO';
-			END IF;
+			END IF;*/
 			IF lictype IS NULL  then
-				error :=133;
+				error :=-1341;
 				error_message := N'Please enter License Type';
 			END IF;
 			IF pltibc IS NULL  then
-				error :=189;
+				error :=-1342;
 				error_message := N'Please enter Pallates/IBC';
 			END IF;
-			IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
-				error :=133;
+			/*IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' then
+				error :=-1343;
 				error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
-			END IF;
+			END IF;*/
 			IF Nopltibc IS NULL  then
-				error :=133;
+				error :=-1344;
 				error_message := N'Please enter No of Pallates/IBC';
 			END IF;
 		END IF;
 		IF ExportAR='Y' THEN
 			IF lictype IS NULL  then
-				error :=133;
+				error :=-1345;
 				error_message := N'Please enter License Type';
 			END IF;
 		IF lictype NOT IN ('No Required', 'DBK') THEN
     		IF licno IS NULL THEN
-		        error := 1355;
+		        error :=-1346;
 		        error_message := N'Please enter License No';
 		    END IF;
 		END IF;
@@ -8650,23 +8650,6 @@ DECLARE Srs Nvarchar(500);
 
 	IF :CNT>1 and Srs NOT LIKE 'DI%' and Comments IS NOT NULL THEN
 		error := 263;
-		error_message := 'Duplicate Batch Number Exist Check Batch No Again';
-		CNT:= 0;
-	END IF;
-END IF;
-
-
-
-IF object_type = '59' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
-DECLARE CNT Int;
-DECLARE Comments Nvarchar(150);
-DECLARE Srs Nvarchar(150);
-	SELECT "Ref2" INTO Comments FROM OIGN T1 where T1."DocEntry" = :list_of_cols_val_tab_del;
-	SELECT "SeriesName" INTO Srs FROM OIGN T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" where T0."DocEntry" = :list_of_cols_val_tab_del;
-	SELECT COUNT(*) INTO CNT FROM OIGN T1 where T1."Ref2" = Comments;
-
-	IF :CNT>1 and (Srs NOT LIKE 'DI%' or Srs NOT LIKE 'OF%') and Comments IS NOT NULL THEN
-		error := 264;
 		error_message := 'Duplicate Batch Number Exist Check Batch No Again';
 		CNT:= 0;
 	END IF;
@@ -17697,7 +17680,7 @@ if DraftObj = 13 THEN
 		SELECT Count("RefDocEntr") INTO DocNumber from RCT9 T1 where T1."RefDocEntr" = Bsdoc;
 
 			IF DocNumber = 0 THEN
-				error:=275;
+				error:=-2757;
 				error_message:=N'Error. Payment not received';
 			END IF;
 		MinAR=MinAR+1;
@@ -17710,7 +17693,7 @@ if DraftObj = 13 THEN
 		SELECT Count("RefDocEntr") INTO DocNumber from RCT9 T1 where T1."RefDocEntr" = Bsdoc;
 
 			IF DocNumber = 0 THEN
-				error:=276;
+				error:=-2767;
 				error_message:=N'Error. Payment not received';
 			END IF;
 		MinAR=MinAR+1;
@@ -19913,22 +19896,46 @@ T0."Code" = :list_of_cols_val_tab_del AND T0."LineId" = MinLinePDQ;
 	END WHILE;
 END IF;
 ----------------------------------------------------------------------------------------------------
+IF object_type = 'Q_QCCH' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE RFP NVARCHAR(50) := NULL;
+    DECLARE RFPPRO INT := NULL;
+    DECLARE PRO NVARCHAR(50) := NULL;
 
-IF object_type = 'Q_QCCH' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
-DECLARE RFP Nvarchar(50);
-DECLARE RFPPRO int;
-DECLARE PRO Nvarchar(50);
-		select T0."U_RecEntry" INTO RFP from "@Q_QCCH" T0 WHERE T0."Code" = :list_of_cols_val_tab_del;
-		IF RFP IS NOT NULL then
-		select distinct T1."BaseRef" INTO RFPPRO from OIGN T0 INNER JOIN IGN1 T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = RFP;
-		select distinct T0."Status" INTO PRO from OWOR T0 WHERE T0."DocNum" = RFPPRO and T0."PostDate">='20260401';
-			IF  PRO <> 'L' THEN
-				error :=-1075;
-				error_message := N'Not allowed. as Production team not closed production order yet...!';
-			END IF;
-		END IF;
+    -- =====================================
+    -- 1. Check & Get U_RecEntry
+    -- =====================================
+    IF EXISTS (SELECT 1 FROM "@Q_QCCH" T0 WHERE T0."Code" = :list_of_cols_val_tab_del) THEN
+
+        SELECT TOP 1 T0."U_RecEntry" INTO RFP FROM "@Q_QCCH" T0 WHERE T0."Code" = :list_of_cols_val_tab_del;
+
+    END IF;
+    -- =====================================
+    -- 2. Check & Get BaseRef
+    -- =====================================
+    IF :RFP IS NOT NULL AND EXISTS (SELECT 1 FROM OIGN T0 INNER JOIN IGN1 T1 ON T0."DocEntry" = T1."DocEntry"  WHERE T0."DocEntry" = :RFP) THEN
+
+        SELECT TOP 1 T1."BaseRef" INTO RFPPRO FROM OIGN T0
+        INNER JOIN IGN1 T1 ON T0."DocEntry" = T1."DocEntry"
+        WHERE T0."DocEntry" = :RFP;
+
+    END IF;
+    -- =====================================
+    -- 3. Check & Get Production Status
+    -- =====================================
+    IF :RFPPRO IS NOT NULL AND EXISTS (SELECT 1 FROM OWOR T0 WHERE T0."DocNum" = :RFPPRO AND T0."PostDate" >= '20260401') THEN
+
+        SELECT TOP 1 T0."Status" INTO PRO FROM OWOR T0
+        WHERE T0."DocNum" = :RFPPRO AND T0."PostDate" >= '20260401';
+
+    END IF;
+    -- =====================================
+    -- 4. Final Validation
+    -- =====================================
+    IF :PRO IS NOT NULL AND :PRO <> 'L' THEN
+        error := -1075;
+        error_message := N'Not allowed. Production order is not closed yet.';
+    END IF;
 END IF;
-
 --------------------------Same Batch in Invoice as Sales Order Validation------30-01-2025---------
 IF object_type = '13' AND (:transaction_type = 'A') THEN
     DECLARE wrong_batch NVARCHAR(100);
@@ -22559,7 +22566,6 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         error := 1234;
         error_message := 'Payment Term starting with UNUSED is not allowed in Business Partner';
     END IF;
-
 END IF;
 
 ------------------------------------------------------------------------------------------------

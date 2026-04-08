@@ -5162,7 +5162,7 @@ DECLARE ITCapacity Int;
 	END WHILE;
 END IF;
 
-IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinGRN Int;
 DECLARE MaxGRN Int;
 DECLARE GRNCapacity Int;
@@ -5291,7 +5291,7 @@ DECLARE GRNCapacity Int;
 		END IF;
 		MinGRN := MinGRN+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF Object_type = '67' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 

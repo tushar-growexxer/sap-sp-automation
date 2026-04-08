@@ -390,7 +390,7 @@ End If;
 --------
 
 --- Direct Purchase Order Generated : SC,OF  (DJ) ----
-IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
+/*IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OPOR T0
 Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
@@ -466,7 +466,7 @@ If :Temp > 0 then
 		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 		END IF;
 	End If;
-End If;
+End If;*/
 
 
 --------------------------------------------------------------------------------------------------------------------------------
