@@ -824,12 +824,14 @@ End If;
 
 
 --- Direct Purchase Order Generated : PC,SC/DI,OF   (DJ) ----
-/*IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
+IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OPOR T0
 Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
 Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
-where T0."CANCELED"='N' and (T1."ItemCode" like 'PC%' OR T1."ItemCode" like 'DI%' OR T1."ItemCode" like 'OF%') AND T1."BaseType"<>'1470000113'
+where T0."CANCELED"='N' and (T1."ItemCode" like 'PC%' OR T1."ItemCode" like 'DI%' OR T1."ItemCode" like 'OF%')
+and T1."ItemCode" <> 'DIRM0019' and T1."ItemCode" <> 'DIRM0030' and T1."ItemCode" <> 'DIRM0045' and T1."ItemCode" <> 'PCRM0017'
+AND T1."BaseType"<>'1470000113'
 and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 Select DISTINCT (CASE WHEN T1."ItemCode" like 'PC%' then 'ramesh@matangiindustries.com'
@@ -844,6 +846,7 @@ If :Temp > 0 then
 
 		--MailID:= '';
 		Mobile := '';
+		EmailCC := '';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'F';
 		Mobi_TYPE := 'PO Generated PC,DI,OF - MILIVE (DJ)';
@@ -861,7 +864,9 @@ IF (:object_type = '22' AND (:transaction_type IN ('A','U'))) THEN
 select count(*) into Temp from OPOR T0
 Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
 Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
-where T0."CANCELED"='N' and (T1."ItemCode" like 'PC%' OR T1."ItemCode" like 'DI%' OR T1."ItemCode" like 'OF%') AND T1."BaseType"='1470000113'
+where T0."CANCELED"='N' and (T1."ItemCode" like 'PC%' OR T1."ItemCode" like 'DI%' OR T1."ItemCode" like 'OF%')
+and T1."ItemCode" <> 'DIRM0019' and T1."ItemCode" <> 'DIRM0030' and T1."ItemCode" <> 'DIRM0045' and T1."ItemCode" <> 'PCRM0017'
+AND T1."BaseType"='1470000113'
 and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 If :Temp > 0 then
@@ -876,6 +881,7 @@ If :Temp > 0 then
 
 		--MailID:= '';
 		Mobile := '';
+		EmailCC := '';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'G';
 		Mobi_TYPE := 'PR to PO Generated PC,SC/DI,OF - MILIVE (DJ)';
@@ -900,8 +906,8 @@ If :Temp > 0 then
 		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 		MailID:= 'devarsh@matangiindustries.com';
 		Mobile := '';
-		EmailCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
-		EmailBCC := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'E';
 		Mobi_TYPE := 'PO Generate for PR MILIVE U1 (DJ)';
 		Select CURRENT_SCHEMA Into DBName from Dummy;
@@ -909,7 +915,56 @@ If :Temp > 0 then
 		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 		END IF;
 	End If;
-End If;*/
+End If;
+
+
+----------------------------- PR of RM is generated  (DJ) --------------------------------------------
+IF (:object_type = '1470000113' AND (:transaction_type = 'A')) THEN
+
+	select count(T0."DocEntry") INTO Temp from OPRQ T0 JOIN PRQ1 T1 ON T0."DocEntry" = T1."DocEntry"
+	WHERE (T1."ItemCode" LIKE 'OFRM%' or T1."ItemCode" LIKE 'DIRM%') and T1."ItemCode" <> 'DIRM0019' and T1."ItemCode" <> 'DIRM0030' and T1."ItemCode" <> 'DIRM0045' and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPRQ T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID = 'devarsh@matangiindustries.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'K';
+		Mobi_TYPE := 'RM PR Generated - MILIVE (DJ)';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MILIVE') Then
+			CALL "MOBIALERT"."Add_Config_Proc" (334,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+
+----------------------------- GRN of RM is generated  (DJ) --------------------------------------------
+
+IF (:object_type = '20' AND (:transaction_type = 'A')) THEN
+
+	select count(T0."DocEntry") INTO Temp from OPDN T0 JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
+	WHERE (T1."ItemCode" LIKE 'OFRM%' or T1."ItemCode" LIKE 'DIRM%') and T1."ItemCode" <> 'DIRM0019' and T1."ItemCode" <> 'DIRM0030' and T1."ItemCode" <> 'DIRM0045' and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPDN T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID = 'devarsh@matangiindustries.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'K';
+		Mobi_TYPE := 'RM GRN Generated - MILIVE (DJ)';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MILIVE') Then
+			CALL "MOBIALERT"."Add_Config_Proc" (120,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
 
 --SELECT * FROM View_Objdet
 

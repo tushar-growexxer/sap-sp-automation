@@ -390,7 +390,7 @@ End If;
 --------
 
 --- Direct Purchase Order Generated : SC,OF  (DJ) ----
-/*IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
+IF (:object_type = '22' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OPOR T0
 Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
@@ -466,8 +466,56 @@ If :Temp > 0 then
 		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 		END IF;
 	End If;
-End If;*/
+End If;
 
+
+----------------------------- PR of RM is generated  (DJ) --------------------------------------------
+IF (:object_type = '1470000113' AND (:transaction_type = 'A')) THEN
+
+	select count(T0."DocEntry") INTO Temp from OPRQ T0 JOIN PRQ1 T1 ON T0."DocEntry" = T1."DocEntry"
+	WHERE (T1."ItemCode" LIKE 'OFRM%' or T1."ItemCode" LIKE 'SCRM%') and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPRQ T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID = 'devarsh@minalspecialities.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'O';
+		Mobi_TYPE := 'RM PR Generated - MSPL (DJ)';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+			CALL "MOBIALERT"."Add_Config_Proc" (334,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+
+----------------------------- GRN of RM is generated  (DJ) --------------------------------------------
+
+IF (:object_type = '20' AND (:transaction_type = 'A')) THEN
+
+	select count(T0."DocEntry") INTO Temp from OPDN T0 JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
+	WHERE (T1."ItemCode" LIKE 'OFRM%' or T1."ItemCode" LIKE 'SCRM%') and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPDN T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID = 'devarsh@minalspecialities.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'O';
+		Mobi_TYPE := 'RM GRN Generated - MSPL (DJ)';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+			CALL "MOBIALERT"."Add_Config_Proc" (120,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
 
 --------------------------------------------------------------------------------------------------------------------------------
 -- Select the return values

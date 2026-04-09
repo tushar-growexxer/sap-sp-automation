@@ -1665,10 +1665,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error_message := N'PO and Purchase Request must be of the same Branch.';
             END IF;
 
-            IF POQty > (PRQty * 1.1) THEN
+            /*IF POQty > (PRQty * 1.1) THEN
 				error := -40006;
 				error_message := N'PO Quantity exceeds the 10% allowed limit for PR item ' || ItemCode || ' at Line ' || MIN_ROW + 1;
-			END IF;
+			END IF;*/
         END IF;
 
         IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -2028,10 +2028,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 	                error_message := N'PO and Purchase Request must be of the same Branch.';
 	            END IF;
 
-	            IF POQty > (PRQty * 1.1) THEN
+	            /*IF POQty > (PRQty * 1.1) THEN
 					error := -40036;
 					error_message := N'PO Quantity exceeds the 10% allowed limit for PR item ' || ItemCode || ' at Line ' || MIN_ROW + 1;
-				END IF;
+				END IF;*/
 	        END IF;
 
             IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -22568,6 +22568,183 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     END IF;
 END IF;
 
+-- =========================================
+-- STEP 1: Block PCPACTU warehouse in GRN
+-- =========================================
+IF (:object_type = '20' ) AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+        SELECT COUNT(*) INTO cnt FROM PDN1 T1
+        WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."WhsCode" IN ('PCPACTU', '2PCPACTU');
+
+        IF :cnt > 0 THEN
+            error := 1001;
+            error_message := 'PCPACTU / 2PCPACTU warehouse is not allowed in GRN.';
+        END IF;
+END IF;
+-- ================================================
+-- STEP 2: Block PCPACTU warehouse in Goods Receipt
+-- ================================================
+IF (:object_type = '59') AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+        SELECT COUNT(*) INTO cnt FROM IGN1 T1
+        WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."WhsCode" IN ('PCPACTU', '2PCPACTU');
+
+        IF :cnt > 0 THEN
+            error := 1002;
+            error_message := 'PCPACTU / 2PCPACTU warehouse is not allowed in Goods Receipt.';
+        END IF;
+END IF;
+-- =========================================
+-- FINAL VALIDATION : PCPACTU Control
+-- =========================================
+IF :object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+    DECLARE cnt INT;
+    DECLARE isSeries INT;
+    DECLARE isWh INT;
+
+    -- 1. Check To Warehouse
+    SELECT COUNT(*) INTO isWh FROM WTR1
+    WHERE "DocEntry" = :list_of_cols_val_tab_del AND UPPER(TRIM("WhsCode")) IN ('PCPACTU', '2PCPACTU');
+
+    IF :isWh > 0 THEN
+
+        -- 2. Strict Series Check
+        SELECT COUNT(*) INTO isSeries FROM OWTR T0
+        INNER JOIN NNM1 S ON T0."Series" = S."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND S."SeriesName" Like 'IT%';
+
+        IF :isSeries = 0 THEN
+            error := 7001;
+            error_message := 'For PCPACTU warehouse, Series must be IT1 or IT2.';
+
+        ELSE
+
+            -- 3. Item Validation FIRST (High Priority)
+            SELECT COUNT(*) INTO cnt FROM WTR1
+            WHERE "DocEntry" = :list_of_cols_val_tab_del AND UPPER(TRIM("WhsCode")) IN ('PCPACTU', '2PCPACTU') AND UPPER(TRIM("ItemCode")) NOT LIKE 'PCPM%';
+
+            IF :cnt > 0 THEN
+                error := 7006;
+                error_message := 'Only Packing Material items (PCPM%) allowed.';
+
+            ELSE
+
+                -- 4. Reference Mandatory
+                SELECT COUNT(*) INTO cnt FROM WTR21
+                WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+                IF :cnt = 0 THEN
+                    error := 7002;
+                    error_message := 'Reference GRN is mandatory.';
+
+                ELSE
+                    -- 5. Only GRN
+                    SELECT COUNT(*) INTO cnt FROM WTR21
+                    WHERE "DocEntry" = :list_of_cols_val_tab_del AND "RefObjType" <> '20';
+
+                    IF :cnt > 0 THEN
+                        error := 7003;
+                        error_message := 'Only GRN allowed in Reference Document.';
+
+                    ELSE
+                        -- 6. Tanker Check
+                        SELECT COUNT(*) INTO cnt FROM WTR21 R
+                        INNER JOIN OPDN H ON R."RefDocEntr" = H."DocEntry"
+                        INNER JOIN PDN1 L ON H."DocEntry" = L."DocEntry"
+                        WHERE R."DocEntry" = :list_of_cols_val_tab_del AND H."CANCELED" = 'N' AND IFNULL(L."U_Pkg_Type",'') <> 'Tanker';
+
+                        IF :cnt > 0 THEN
+                            error := 7004;
+                            error_message := 'Only Tanker Load GRN allowed.';
+
+                        ELSE
+
+                            -- 7. Duplicate GRN Check
+                            SELECT COUNT(*) INTO cnt FROM WTR21 R1
+                            INNER JOIN WTR21 R2 ON R1."RefDocEntr" = R2."RefDocEntr"
+                            WHERE R1."DocEntry" = :list_of_cols_val_tab_del AND R2."DocEntry" <> :list_of_cols_val_tab_del;
+
+                            IF :cnt > 0 THEN
+                                error := 7005;
+                                error_message := 'GRN already used in another Inventory Transfer.';
+                            END IF;
+                        END IF;
+                    END IF;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+END IF;
+-- =========================================
+-- Block PCPM sale from PCPACTU (DRAFTS)
+-- =========================================
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+    -- DELIVERY DRAFT (ObjType = 15)
+    SELECT COUNT(*) INTO cnt
+    FROM DRF1 T1
+    INNER JOIN ODRF T0 ON T0."DocEntry" = T1."DocEntry"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+      AND T0."ObjType" = '15'
+      AND UPPER(TRIM(T1."WhsCode")) IN ('PCPACTU', '2PCPACTU')
+      AND UPPER(TRIM(T1."ItemCode")) LIKE 'PCPM%';
+
+    IF :cnt > 0 THEN
+        error := 8101;
+        error_message := 'PCPM items cannot be sold from PCPACTU warehouse (Delivery Draft blocked).';
+    ELSE
+        -- A/R INVOICE DRAFT (ObjType = 13)
+        SELECT COUNT(*) INTO cnt
+        FROM DRF1 T1
+        INNER JOIN ODRF T0 ON T0."DocEntry" = T1."DocEntry"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND T0."ObjType" = '13'
+          AND UPPER(TRIM(T1."WhsCode")) IN ('PCPACTU', '2PCPACTU')
+          AND UPPER(TRIM(T1."ItemCode")) LIKE 'PCPM%';
+
+        IF :cnt > 0 THEN
+            error := 8102;
+            error_message := 'PCPM items cannot be sold from PCPACTU warehouse (A/R Invoice Draft blocked).';
+        END IF;
+    END IF;
+END IF;
+-- =========================================
+-- Block PCPM sale from PCPACTU warehouses
+-- =========================================
+-- DELIVERY (15)
+IF :object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+    SELECT COUNT(*) INTO cnt
+    FROM DLN1
+    WHERE "DocEntry" = :list_of_cols_val_tab_del
+      AND UPPER(TRIM("WhsCode")) IN ('PCPACTU', '2PCPACTU')
+      AND UPPER(TRIM("ItemCode")) LIKE 'PCPM%';
+
+    IF :cnt > 0 THEN
+        error := 8001;
+        error_message := 'PCPM items cannot be sold from PCPACTU / 2PCPACTU warehouse (Delivery blocked).';
+    END IF;
+END IF;
+-- A/R INVOICE (13)
+IF :object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE cnt INT;
+
+    SELECT COUNT(*) INTO cnt
+    FROM INV1
+    WHERE "DocEntry" = :list_of_cols_val_tab_del
+      AND UPPER(TRIM("WhsCode")) IN ('PCPACTU', '2PCPACTU')
+      AND UPPER(TRIM("ItemCode")) LIKE 'PCPM%';
+
+    IF :cnt > 0 THEN
+        error := 8002;
+        error_message := 'PCPM items cannot be sold from PCPACTU / 2PCPACTU warehouse (A/R Invoice blocked).';
+    END IF;
+END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
