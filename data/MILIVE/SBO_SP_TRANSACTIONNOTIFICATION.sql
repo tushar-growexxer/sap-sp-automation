@@ -10736,7 +10736,7 @@ IF EntryType = 'S' OR (Spc_Reason IN ('Actual Blending','Special Blending') AND 
 END IF;
 
 ------------------ Due date not allowed to change----------
-IF Object_type = '18' and (:transaction_type ='A' or :transaction_type ='U' ) Then
+/*IF Object_type = '18' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 DECLARE BPCode nvarchar(20);
 Declare DaysBetwn Int;
 Declare ExtraDays Int;
@@ -10753,7 +10753,7 @@ Declare ExtraDays Int;
 				    error_message := N'Yor are not allowed to edit Duedate';
 				End If;
 		End If;
-End If;
+End If;*/
 
 -- FORM Name   : QC In Process
 -- Note        : Remarks column should not be blank and less than 20 words if status is Other.
@@ -22623,12 +22623,13 @@ IF :object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         ELSE
 
             -- 3. Item Validation FIRST (High Priority)
-            SELECT COUNT(*) INTO cnt FROM WTR1
-            WHERE "DocEntry" = :list_of_cols_val_tab_del AND UPPER(TRIM("WhsCode")) IN ('PCPACTU', '2PCPACTU') AND UPPER(TRIM("ItemCode")) NOT LIKE 'PCPM%';
+            SELECT COUNT(T0."DocEntry") INTO cnt FROM WTR1 T0 Inner Join OITM T1 ON T0."ItemCode"=T1."ItemCode"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND UPPER(TRIM(T0."WhsCode")) IN ('PCPACTU', '2PCPACTU')
+            AND (UPPER(TRIM(T0."ItemCode")) NOT LIKE 'PCPM%' OR T1."ItemName" LIKE '%(SP)%');
 
             IF :cnt > 0 THEN
                 error := 7006;
-                error_message := 'Only Packing Material items (PCPM%) allowed.';
+                error_message := 'Only Packing Material items allowed OR Scrap Packing Material is not allow.';
 
             ELSE
 
@@ -22654,7 +22655,8 @@ IF :object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                         SELECT COUNT(*) INTO cnt FROM WTR21 R
                         INNER JOIN OPDN H ON R."RefDocEntr" = H."DocEntry"
                         INNER JOIN PDN1 L ON H."DocEntry" = L."DocEntry"
-                        WHERE R."DocEntry" = :list_of_cols_val_tab_del AND H."CANCELED" = 'N' AND IFNULL(L."U_Pkg_Type",'') <> 'Tanker';
+                        WHERE R."DocEntry" = :list_of_cols_val_tab_del AND H."CANCELED" = 'N' AND
+                        IFNULL(L."U_PTYPE",'') Not Like '%Tanker%' AND IFNULL(L."U_PTYPE",'') Not Like '%ISO%';
 
                         IF :cnt > 0 THEN
                             error := 7004;
