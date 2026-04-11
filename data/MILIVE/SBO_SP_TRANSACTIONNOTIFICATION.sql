@@ -5921,8 +5921,8 @@ DECLARE MaxLineITQ Int;
 		and WTR1."VisOrder"=MinLineITQ;
 
 			IF Frmwhs LIKE '%QCR' THEN
-				IF Towhs LIKE '%BT' AND Usr <> 'engg02' AND Usr <> 'engg07' AND Usr <> 'store01' THEN
-					If (Usr <> 'qc02' AND Usr <> 'qc03' AND Towhs NOT IN ('2PC-QCTR','DI-QC-TR','DI-QC','2DI-QC','JW-QC','PC-QC-TR','PC-QC','2PC-QC','3PC-QC')) then
+				IF Towhs LIKE '%BT' AND Usr not in ('engg02','engg07','store01','store02') THEN
+					If (Usr <> 'qc02' AND Usr <> 'qc03' AND Towhs NOT IN ('2PC-QCTR','DI-QC-TR','DI-QC','2DI-QC','JW-QC','PC-QC-TR','PC-QC','2PC-QC','3PC-QC','2PC-QCR')) then
 					    error :=14502;
 					    error_message := N'You are not allowed to do inventory transfer by using QC Warehouse'||MinLineITQ;
 					END IF;
@@ -15072,8 +15072,8 @@ THEN
 		and DRF1."VisOrder"=MinLineITQ;
 
 			IF Frmwhs LIKE '%QCR' THEN
-				IF Towhs LIKE '%BT' AND Usr <> 'engg02' AND Usr <> 'engg07' THEN
-					If (Usr <> 'qc02' AND Usr <> 'qc03' AND Towhs NOT IN ('2PC-QCTR','DI-QC-TR','DI-QC','2DI-QC','JW-QC','PC-QC-TR','PC-QC','2PC-QC','3PC-QC')) then
+				IF Towhs LIKE '%BT' AND Usr not in ('engg02','engg07','store01','store02') THEN
+					If (Usr <> 'qc02' AND Usr <> 'qc03' AND Towhs NOT IN ('2PC-QCTR','DI-QC-TR','DI-QC','2DI-QC','JW-QC','PC-QC-TR','PC-QC','2PC-QC','3PC-QC','2PC-QCR')) then
 					    error :=14502;
 					    error_message := N'You are not allowed to do inventory transfer by using QC Warehouse'||MinLineITQ;
 					END IF;
