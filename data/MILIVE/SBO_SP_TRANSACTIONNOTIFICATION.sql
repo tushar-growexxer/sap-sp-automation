@@ -10621,7 +10621,7 @@ DECLARE BRPO Int;
 
 	WHILE :MinPO <= :MaxPO DO
 			SELECT PCH1."ItemCode",PCH1."U_TagNo" into ItemCode,Tagnum  FROM PCH1 WHERE PCH1."DocEntry" = :list_of_cols_val_tab_del and PCH1."VisOrder"=MinPO;
-				IF ItemCode NOT IN ('FURN0021','FURN0020') THEN
+				IF ItemCode NOT IN ('FURN0021','FURN0020','FURN0010') THEN
 					IF (ItemCode LIKE 'FA%' OR ItemCode LIKE 'FU%') AND IFNULL(Tagnum,'') = '' THEN
 						error :=395;
 						error_message := N'For Fixed asset items, please enter Tag number';
@@ -19233,21 +19233,16 @@ if DraftObj = 18 THEN
 	SELECT Min(T0."VisOrder") INTO MinPO from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	SELECT Max(T0."VisOrder") INTO MaxPO from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 
-	SELECT ODRF."U_Tag_number" into Tagnum FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=18;
-
-	IF Tagnum IS NULL THEN
-
 	WHILE :MinPO <= :MaxPO DO
-			SELECT DRF1."ItemCode" into ItemCode FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinPO ;
+			SELECT DRF1."ItemCode",DRF1."U_TagNo" into ItemCode,Tagnum  FROM DRF1 JOIN ODRF ON ODRF."DocEntry"=DRF1."DocEntry" WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinPO AND ODRF."ObjType"=18;
 				IF 	ItemCode NOT IN ('FURN0021','FURN0020','FURN0010') THEN
-					IF (ItemCode LIKE 'FA%' OR ItemCode LIKE 'FU%')  THEN
-							error :=395;
-							error_message := N'For Fixed asset items, please enter Tag number';
+					IF (ItemCode LIKE 'FA%' OR ItemCode LIKE 'FU%') AND IFNULL(Tagnum,'') = '' THEN
+						error :=395;
+						error_message := N'For Fixed asset items, please enter Tag number';
 					END IF;
 				END IF;
 			MinPO := MinPO+1;
 		END WHILE;
-	END IF;
 END IF;
 END IF;
 
