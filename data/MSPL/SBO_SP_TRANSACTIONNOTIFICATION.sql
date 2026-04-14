@@ -1768,7 +1768,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := N'Payment term does not match the Business Partner Master record.';
     END IF;
 
-    IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Hazira','CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport') THEN
+    IF IFNULL(DeliveryTerm,'') NOT IN ('CIF ICD Ahmedabad', 'CIF Hazira','CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport') THEN
         error := -40028;
         error_message := N'Please select a valid Delivery Term.';
     END IF;
@@ -2080,7 +2080,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             error_message := N'Payment term does not match the Business Partner Master record.';
         END IF;
 
-        IF IFNULL(DeliveryTerm,'') NOT IN ('CIF Hazira','CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport') THEN
+        IF IFNULL(DeliveryTerm,'') NOT IN ('CIF ICD Ahmedabad', 'CIF Hazira','CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport') THEN
             error := -40058;
             error_message := N'Please select a valid Delivery Term.';
         END IF;

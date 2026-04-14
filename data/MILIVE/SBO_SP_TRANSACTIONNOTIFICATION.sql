@@ -2254,7 +2254,7 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 
 	IF :transaction_type = 'A' THEN
 		SELECT DAYS_BETWEEN(:DocDate, NOW()) INTO TEMP_COUNTER FROM DUMMY;
-		IF :TEMP_COUNTER > 3 THEN
+		IF :TEMP_COUNTER > 7 THEN
 			error := -41001;
 			error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 		END IF;
@@ -4131,7 +4131,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4153,7 +4153,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -5498,16 +5498,11 @@ DECLARE SeriesAR Nvarchar(50);
 		SELECT T1."U_TAmount" into Nopltibc FROM INV1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinAR;
 		IF SeriesAR LIKE 'E%' then
 			IF typpltibc IS NULL  then
-				error :=134;
+				error :=-1347;
 				error_message := N'Please enter Type of pallets/IBC';
 			END IF;
-			IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
-			typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS'  and typpltibc <> 'BOX' then
-				error :=134;
-				error_message := N'Please enter proper Type of pallets/IBC';
-			END IF;
 			IF Nopltibc IS NULL  then
-				error :=134;
+				error :=-1348;
 				error_message := N'Please enter No of Pallates/IBC';
 			END IF;
 		END IF;
@@ -17659,7 +17654,7 @@ if DraftObj = 60 THEN
 END IF;
 END IF;
 
-IF object_type='112' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
+/*IF object_type='112' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
 DECLARE Pterm Nvarchar(150);
 DECLARE Rate Int;
 DECLARE Bsdoc Int;
@@ -17700,8 +17695,7 @@ if DraftObj = 13 THEN
 		END WHILE;
 	END IF;
 END IF;
-END IF;
-
+END IF;*/
 
 IF Object_type = '112' and (:transaction_type ='A') Then
 Declare Code1 nvarchar(50);
@@ -20057,8 +20051,7 @@ BEGIN
             AND T3."ItemCode" = T4."ItemCode"
             AND T3."LineNum" = T4."BaseLinNum"
         LEFT JOIN
-        (
-        SELECT T4."DistNumber"
+        (SELECT T4."DistNumber"
             FROM ORDR T0
             JOIN RDR1 T1 ON T1."DocEntry" = T0."DocEntry"
             JOIN DLN1 T3 ON T3."BaseEntry" = T0."DocEntry"
@@ -20068,8 +20061,7 @@ BEGIN
             JOIN OBTN T4 ON T4."U_Q_SONo" = T1."DocEntry"
                 AND T1."LineNum" = T4."U_Q_SOLine"
                 AND T1."ItemCode" = T4."ItemCode"
-            WHERE T2."DocEntry" = :list_of_cols_val_tab_del
-        ) as B0 ON B0."DistNumber" = T4."BatchNum"
+            WHERE T2."DocEntry" = :list_of_cols_val_tab_del) as B0 ON B0."DistNumber" = T4."BatchNum"
         WHERE T2."DocEntry" = :list_of_cols_val_tab_del AND T3."ItemCode" NOT LIKE '%RM%' AND T3."ItemCode" NOT LIKE '%PM%'
         AND B0."DistNumber" is null AND (T3."U_Pcode" is not null)
         LIMIT 1;
