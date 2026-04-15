@@ -6072,10 +6072,10 @@ IF object_type = '18' and (:transaction_type = 'A' or :transaction_type = 'U') T
 					Select T0."U_UNE_ITCD" into BSITEMCODE from PCH1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MINN;
 					Select T0."ItemCode" into ITEMCODE from PCH1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MINN;
 					Select Count(T0."ItemCode") into Countt from PCH1 T0 INNER JOIN OPCH T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."U_BASEDOCNO" = BASEDOCNO
-					and T0."ItemCode" = ITEMCODE and T1."CardCode" = APCC and T0."U_BASETYPE" =BASETYPE and T1."CANCELED" = 'N' and T1."DocDate">='20250401';
+					and T0."ItemCode" = ITEMCODE and T1."CardCode" = APCC and T0."U_BASETYPE" =BASETYPE and T1."CANCELED" = 'N' and T1."DocDate">='20260401';
 					IF BASEDOCNO IS NOT NULL THEN
 						IF (Countt > 1) THEN
-							 error:=138;
+							 error:=1301;
 							 error_message :='Not Allowed to select same base doc no of same item. ' || ITEMCODE;
 						END IF;
 					END IF;
