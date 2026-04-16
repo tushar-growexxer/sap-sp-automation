@@ -433,7 +433,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE Freetext NVARCHAR(100);
     DECLARE SOName NVARCHAR(100);
     DECLARE SOPckCode NVARCHAR(50);
-    DECLARE SOPackType NVARCHAR(50);
+    DECLARE SOPackType NVARCHAR(500);
     DECLARE SOOtherPackng NVARCHAR(100);
     DECLARE HASCOM NVARCHAR(50);
     DECLARE Commission INT;
@@ -904,11 +904,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 END IF;
             END IF;
 
-            -- Validation 32037: Type of Pallets/IBC Check
+            /*-- Validation 32037: Type of Pallets/IBC Check
 	        IF typpltibc = 0 THEN
 	            error := 32037;
 	            error_message := N'Please enter Type of pallets/IBC.';
-	        END IF;
+	        END IF;*/
 
             -- Validation 31028: Item Category/Sub-Category Check
             IF (SOItemCode LIKE '%FG%') AND (SOItemCategory = '' OR SOItemSubCategory = '') THEN
@@ -1371,11 +1371,11 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             error_message := N'Number of Batches is required for item ' || SOItemCode || ' at line ' || MinSO + 1;
         END IF;
 
-        -- Validation 32037: Type of Pallets/IBC Check
+        /*-- Validation 32037: Type of Pallets/IBC Check
         IF typpltibc = 0 THEN
             error := 32037;
             error_message := N'Please enter Type of pallets/IBC.';
-        END IF;
+        END IF;*/
 
         -- Validation 32038: Alias Name Check
         /*IF Series NOT LIKE 'CL%' AND (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode NOT LIKE 'WS%' AND SOItemCode <> 'PCFG0424') THEN
@@ -11722,10 +11722,7 @@ Declare ItmCode nvarchar(50);
          MinAP := MinAP+1;
 		END WHILE;
 End If;
-
 ----------Reactor number in Production
-
-
 IF Object_type = '202' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 Declare ReactorNo nvarchar(20);
 Declare EntryType nvarchar(50);
@@ -22273,6 +22270,22 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     END IF;
 
 END IF;
+-------------------Due Date lock for Sales Invoice---------------
+IF Object_type = '13' and (:transaction_type ='A') Then
+DECLARE BPCode nvarchar(20);
+Declare DaysBetwn Int;
+Declare ExtraDays Int;
+Declare PymntGroup  nvarchar(100);
+
+		SELECT "CardCode" INTO BPCode FROM OINV where OINV."DocEntry"=list_of_cols_val_tab_del;
+		SELECT DAYS_BETWEEN(OINV."DocDate",OINV."DocDueDate") INTO DaysBetwn FROM OINV where OINV."DocEntry"=list_of_cols_val_tab_del;
+		SELECT OCTG."ExtraDays" INTO ExtraDays FROM OCTG LEFT JOIN OINV ON OCTG."GroupNum" = OINV."GroupNum" where OINV."DocEntry"=list_of_cols_val_tab_del;
+
+			IF DaysBetwn <> ExtraDays THEN
+				error :=455;
+				error_message := N'Yor are not allowed to edit Duedate in A/R Invoice';
+			End If;
+End If;
 -----------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
