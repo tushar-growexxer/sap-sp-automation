@@ -4547,7 +4547,7 @@ DECLARE Series Nvarchar(50);
 
 			IF ItemGR LIKE 'PCFG%' and WhsGR NOT LIKE '%QC' and ItemGR <> 'PCFG0263'
 				and ItemGR <> 'PCFG0316' and ItemGR <> 'PCFG0309' and ItemGR <> 'PCFG0308' and ItemGR <> 'PCFG0307' and ItemGR <> 'PCFG0306' and ItemGR <> 'PCFG0515'
-				and ItemGR <> 'PCFG0305' and ItemGR <> 'DIFG0017' THEN
+				and ItemGR <> 'PCFG0305' and ItemGR <> 'DIFG0017' and ItemGR <> 'PCFG0250' THEN
 				error :=-9001;
 				error_message := N'Please Enter Proper Warehouse..';
 			END IF;
@@ -22430,12 +22430,12 @@ END IF;
 
 --System Date Backdate Restriction --
 
-/*IF EXISTS (SELECT 1 FROM ODRF t0
+IF EXISTS (SELECT 1 FROM ODRF t0
     JOIN NNM1 S1 ON T0."Series" = S1."Series"
     WHERE t0."DocEntry" = :list_of_cols_val_tab_del AND "ObjType" = '18' AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
     error := -1268;
     error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-END IF;*/
+END IF;
 
 END IF;
 ---------------------------------AP Invoice Posting Delay Reason and Current Date------------------------
@@ -22470,10 +22470,10 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 		END IF;
 
 --System Date Backdate Restriction --
-		/*IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
+		IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
 			error := -1270;
 			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-		END IF;*/
+		END IF;
 END IF;
 --------------------------AP Invoice License BL entry Compulsory-----------------------
 IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
