@@ -1968,18 +1968,20 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             END IF;
 
             IF BaseDocEntry IS NOT NULL THEN
-                SELECT DAYS_BETWEEN(T1."DocDate", DocDate) INTO DaysDifference FROM OPRQ T1
-                INNER JOIN PRQ1 T2 ON T1."DocEntry" = T2."DocEntry"
-                INNER JOIN DRF1 T3 ON T2."DocEntry" = T3."BaseEntry" AND T2."LineNum" = T3."BaseLine"
-                WHERE T3."DocEntry" = :list_of_cols_val_tab_del AND T3."VisOrder" = MIN_ROW;
+            	IF DocDate IS NOT NULL THEN
+                	SELECT DAYS_BETWEEN(T1."DocDate", DocDate) INTO DaysDifference FROM OPRQ T1
+	                INNER JOIN PRQ1 T2 ON T1."DocEntry" = T2."DocEntry"
+    	            INNER JOIN DRF1 T3 ON T2."DocEntry" = T3."BaseEntry" AND T2."LineNum" = T3."BaseLine"
+        	        WHERE T3."DocEntry" = :list_of_cols_val_tab_del AND T3."VisOrder" = MIN_ROW;
 
-                IF DaysDifference > 7 AND IFNULL(FooterText, '') = '' THEN
-                    error := -40045;
-                    error_message := N'Please enter reason of delay PO (Closing remark).';
-                END IF;
-                IF DaysDifference < 0 THEN
-                    error := -40046;
-                    error_message := N'PO not allowed to enter less than PR date.';
+            	    IF DaysDifference > 7 AND IFNULL(FooterText, '') = '' THEN
+                	    error := -40045;
+                    	error_message := N'Please enter reason of delay PO (Closing remark).';
+	                END IF;
+    	            IF DaysDifference < 0 THEN
+        	            error := -40046;
+            	        error_message := N'PO not allowed to enter less than PR date.';
+                	END IF;
                 END IF;
             END IF;
 
