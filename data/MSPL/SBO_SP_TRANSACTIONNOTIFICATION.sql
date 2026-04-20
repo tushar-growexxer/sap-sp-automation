@@ -1532,6 +1532,9 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE HsnEntry INT;
     DECLARE SacEntry INT;
     DECLARE ItemType NVARCHAR(5);
+    DECLARE PO_CapexOpex NVARCHAR(10);
+	DECLARE PR_CapexOpex NVARCHAR(10);
+	DECLARE PO_BaseLine NVARCHAR(10);
 
 
     -- ========== Data Retrieval (Header) ==========
@@ -1561,10 +1564,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
         SELECT T0."ItemCode", T0."Dscription", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
                T0."Project", T0."BaseEntry", T0."BaseType", T0."U_BASETYPE", T0."U_BASEDOCNO", T1."ItemClass",
-               T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType"
+               T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType",T0."U_CapxOpex",T0."BaseLine"
         INTO ItemCode, ItemDescription, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
              Project, BaseDocEntry, BaseDocType, BaseTypeUDF, BaseDocNumUDF, ItemClass,
-             PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType
+             PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType,PO_CapexOpex,PO_BaseLine
         FROM POR1 T0
         INNER JOIN OITM T1 ON T0."ItemCode" = T1."ItemCode"
         WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = MIN_ROW;
@@ -1600,10 +1603,17 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
         IF BaseDocType = 1470000113 THEN
             SELECT T1."BPLId" INTO BaseDocBranch FROM OPRQ T1 WHERE T1."DocEntry" = BaseDocEntry;
-            IF HeaderBranch <> BaseDocBranch THEN
-                error := -40006;
-                error_message := N'PO and Purchase Request must be of the same Branch.';
-            END IF;
+	        SELECT T1."U_CapxOpex" INTO PR_CapexOpex FROM PRQ1 T1 WHERE T1."DocEntry" = BaseDocEntry AND T1."LineNum" = PO_BaseLine;
+
+	        IF HeaderBranch <> BaseDocBranch THEN
+	        	error := -40036;
+	            error_message := N'PO and Purchase Request must be of the same Branch.';
+			END IF;
+
+			IF PR_CapexOpex <> PO_CapexOpex THEN
+				error := -40072;
+				error_message := N'Not allwed to change Capex/Opex at line - '|| MIN_ROW + 1;
+			END IF;
         END IF;
 
         IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -1678,7 +1688,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             END IF;
         END IF;
 
-        IF BaseDocEntry IS NOT NULL THEN
+        /*IF BaseDocEntry IS NOT NULL THEN
             SELECT DAYS_BETWEEN(T1."DocDate", DocDate) INTO DaysDifference FROM OPRQ T1
             INNER JOIN PRQ1 T2 ON T1."DocEntry" = T2."DocEntry"
             INNER JOIN POR1 T3 ON T2."DocEntry" = T3."BaseEntry" AND T2."LineNum" = T3."BaseLine"
@@ -1692,7 +1702,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error := -40020;
                 error_message := N'PO not allowed to enter less than PR date.';
             END IF;
-        END IF;
+        END IF;*/
 
         IF PlaceOfSupply <> ShipToState AND TaxCode NOT LIKE 'IGST%' THEN
             error := -40061;
@@ -1737,12 +1747,12 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         END IF;
     END IF;
 
-    IF :transaction_type = 'A' THEN
+    /*IF :transaction_type = 'A' THEN
         IF DAYS_BETWEEN(DocDate, NOW()) >= 3 THEN
             error := -40023;
             error_message := N'POs older than 3 days are not allowed.';
         END IF;
-    END IF;
+    END IF;*/
 
     IF :transaction_type = 'A' AND DeliveryDate < DocDate THEN
         error := -40024;
@@ -1849,6 +1859,9 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         DECLARE SacEntry INT;
         DECLARE ItemBranch INT;
         DECLARE ItemType NVARCHAR(5);
+        DECLARE PO_CapexOpex NVARCHAR(10);
+		DECLARE PR_CapexOpex NVARCHAR(10);
+		DECLARE PO_BaseLine NVARCHAR(10);
 
         -- ========== Data Retrieval (Header) ==========
         SELECT T0."BPLId", T0."DocCur", T0."CardCode", T0."Footer", T0."U_Tag_number", T0."U_Del_Terms",
@@ -1877,10 +1890,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
             SELECT T0."ItemCode", T0."Dscription", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
                    T0."Project", T0."BaseEntry", T0."BaseType", T0."U_BASETYPE", T0."U_BASEDOCNO", T1."ItemClass",
-                   T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType"
+                   T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType",T0."U_CapxOpex",T0."BaseLine"
             INTO ItemCode, ItemDescription, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
                  Project, BaseDocEntry, BaseDocType, BaseTypeUDF, BaseDocNumUDF, ItemClass,
-                 PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType
+                 PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType,PO_CapexOpex,PO_BaseLine
             FROM DRF1 T0
             INNER JOIN OITM T1 ON T0."ItemCode" = T1."ItemCode"
             WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = MIN_ROW;
@@ -1918,12 +1931,19 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             END IF;
 
             IF BaseDocType = 1470000113 THEN
-                SELECT T1."BPLId" INTO BaseDocBranch FROM OPRQ T1 WHERE T1."DocEntry" = BaseDocEntry;
-                IF HeaderBranch <> BaseDocBranch THEN
-                    error := -40036;
-                    error_message := N'PO and Purchase Request must be of the same Branch.';
-                END IF;
-            END IF;
+	            SELECT T1."BPLId" INTO BaseDocBranch FROM OPRQ T1 WHERE T1."DocEntry" = BaseDocEntry;
+		        SELECT T1."U_CapxOpex" INTO PR_CapexOpex FROM PRQ1 T1 WHERE T1."DocEntry" = BaseDocEntry AND T1."LineNum" = PO_BaseLine;
+
+		        IF HeaderBranch <> BaseDocBranch THEN
+		        	error := -40036;
+		            error_message := N'PO and Purchase Request must be of the same Branch.';
+				END IF;
+
+				IF PR_CapexOpex <> PO_CapexOpex THEN
+					error := -40072;
+					error_message := N'Not allwed to change Capex/Opex at line - '|| MIN_ROW + 1;
+				END IF;
+	        END IF;
 
             IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
                 error := -40037;

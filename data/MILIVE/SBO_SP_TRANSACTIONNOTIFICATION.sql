@@ -19598,7 +19598,7 @@ if Item like '%FG%' then
         end if;
 	end if;
 	if Item like '%RM%' then
-		if FromWhs = 'PC-RAW' and ToWhs not in ('1BT') and Item <> 'PCRM0018' then
+		if FromWhs = 'PC-RAW' and ToWhs not in ('1BT','PC-TRD') and Item <> 'PCRM0018' then
             error := -1045;
             error_message := 'The PCRM from PC-RAW cannot be moved to any warehouse other than 1BT';
         end if;
@@ -19622,10 +19622,10 @@ if Item like '%FG%' then
             error := -1118;
             error_message := 'The OFRM from OF-QC cannot be moved to any warehouse other than OF-QCR,OF-RAW';
         end if;
-		/*if FromWhs = 'OF-RAW' and ToWhs not in ('1BT') then
+		if FromWhs = 'OF-RAW' and ToWhs not in ('1BT') then
             error := -1045;
             error_message := 'The OFRM from OF-RAW cannot be moved to any warehouse other than 1BT';
-        end if;*/
+        end if;
 	end if;
 	if Item like '%PM%' then
 		if FromWhs = 'PC-PAC' and ToWhs not in ('1BT') then
