@@ -2273,19 +2273,11 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 	IF :transaction_type = 'U' THEN
 		SELECT DAYS_BETWEEN(T0."DocDate", T0."UpdateDate") INTO TEMP_COUNTER
 		FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		IF :TEMP_COUNTER > 3 THEN
+		IF :TEMP_COUNTER > 7 THEN
 			error := -41004;
 			error_message := N'You are allowed to enter the Posting Date only up to 3 days before today.';
 		END IF;
 	END IF;
-
-	/*IF :transaction_type = 'U' THEN
-		SELECT COUNT(*) INTO TEMP_COUNTER FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-		IF :TEMP_COUNTER > 0 THEN
-			error := -41005;
-			error_message := N'You are not allowed to update the Purchase Request as it is already approved.';
-		END IF;
-	END IF;*/
 
 	SELECT T0."U_Priority" INTO Priority FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 	IF IFNULL(:Priority, '') = '' THEN
@@ -19463,9 +19455,9 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The PCRM from 2PC-QC cannot be moved to any warehouse other than 2PC-QCR,2PC-RAW,2PC-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR','2PC-QC') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR','2PC-QC','2PC-QCR') then
             error := -1033;
-            error_message := 'The PCRM from 2BT cannot be moved to any warehouse other than 1BT,2PC-RAW,2PC-FLOR';
+            error_message := 'The PCRM from 2BT cannot be moved to any warehouse other than 1BT,2PC-RAW,2PC-FLOR,2PC-QC,2PC-QCR';
         end if;
 	end if;
 	if Item like 'PCPM%' then
@@ -22733,6 +22725,140 @@ IF :object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error := 8002;
         error_message := 'PCPM items cannot be sold from PCPACTU / 2PCPACTU warehouse (A/R Invoice blocked).';
     END IF;
+END IF;
+------------------------------Multiple Payment Terms for BP Master-----------------------------------
+IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+    -- Declare Variables
+    DECLARE v_GroupNum INT;
+    DECLARE v_MainGN NVARCHAR(10);
+    DECLARE v_PT1 NVARCHAR(100);
+    DECLARE v_PT2 NVARCHAR(100);
+    DECLARE v_PT3 NVARCHAR(100);
+    DECLARE v_PT4 NVARCHAR(100);
+    DECLARE v_GN1 NVARCHAR(10);
+    DECLARE v_GN2 NVARCHAR(10);
+    DECLARE v_GN3 NVARCHAR(10);
+    DECLARE v_GN4 NVARCHAR(10);
+
+    -- Fetch current data being saved
+    SELECT "GroupNum",
+           IFNULL("U_PaymentTerm01",''),
+           IFNULL("U_PaymentTerm02",''),
+           IFNULL("U_PaymentTerm03",''),
+           IFNULL("U_PaymentTerm04",'')
+    INTO v_GroupNum, v_PT1, v_PT2, v_PT3, v_PT4
+    FROM OCRD
+    WHERE "CardCode" = :list_of_cols_val_tab_del;
+
+    -- Standardize variables for comparison
+    v_MainGN := CAST(:v_GroupNum AS NVARCHAR(10));
+    v_GN1 := SUBSTR_BEFORE(:v_PT1, ' - ');
+    v_GN2 := SUBSTR_BEFORE(:v_PT2, ' - ');
+    v_GN3 := SUBSTR_BEFORE(:v_PT3, ' - ');
+    v_GN4 := SUBSTR_BEFORE(:v_PT4, ' - ');
+
+    -- RULE 1: Sequence Maintenance
+    IF (:v_PT4 <> '' AND :v_PT3 = '') OR
+       (:v_PT3 <> '' AND :v_PT2 = '') OR
+       (:v_PT2 <> '' AND :v_PT1 = '') THEN
+        error := -8003;
+        error_message := 'Sequence Error: You must maintain the sequence. Do not skip previous Payment Term fields.';
+    END IF;
+
+    -- RULE 2: Exact Match to OCTG or Blank
+    IF :error = 0 THEN
+        IF (:v_PT1 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT1)) OR
+           (:v_PT2 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT2)) OR
+           (:v_PT3 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT3)) OR
+           (:v_PT4 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT4)) THEN
+            error := -8004;
+            error_message := 'Data Integrity Error: Manually entered Payment Term is invalid. It must exactly match the Payment Terms Master or be left blank.';
+        END IF;
+    END IF;
+
+    -- RULE 3: Duplicate Checking
+    IF :error = 0 THEN
+        IF (:v_PT1 <> '' AND :v_GN1 = :v_MainGN) OR
+           (:v_PT2 <> '' AND :v_GN2 = :v_MainGN) OR
+           (:v_PT3 <> '' AND :v_GN3 = :v_MainGN) OR
+           (:v_PT4 <> '' AND :v_GN4 = :v_MainGN) THEN
+            error := -8005;
+            error_message := 'Duplicate Error: The Payment Terms matches the Standard Payment Term assigned to this BP.';
+        END IF;
+
+        IF (:v_PT1 <> '' AND (:v_PT1 = :v_PT2 OR :v_PT1 = :v_PT3 OR :v_PT1 = :v_PT4)) OR
+           (:v_PT2 <> '' AND (:v_PT2 = :v_PT3 OR :v_PT2 = :v_PT4)) OR
+           (:v_PT3 <> '' AND (:v_PT3 = :v_PT4)) THEN
+            error := -8006;
+            error_message := 'Duplicate Error: You cannot select the same Payment Term in multiple payment terms.';
+        END IF;
+    END IF;
+
+    -- RULE 4: Max 90 Days Validation (New)
+    -- Checks the standard GroupNum AND all UDFs against the OCTG table for duration > 90 days
+    IF :error = 0 THEN
+        IF EXISTS (
+            SELECT 1 FROM OCTG
+            WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 90
+              AND (
+                  "GroupNum" = :v_GroupNum OR
+                  (:v_GN1 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN1) OR
+                  (:v_GN2 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN2) OR
+                  (:v_GN3 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN3) OR
+                  (:v_GN4 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN4)
+              )
+        ) THEN
+            error := -8007;
+            error_message := 'Policy Error: You cannot select a Payment Term that exceeds 90 days. Please select a shorter term.';
+        END IF;
+    END IF;
+
+END IF;
+
+-----------------------------------------------------------------------
+-- 1. PURCHASE ORDER DRAFT VALIDATION (OBJECT 112 -> 22)
+-----------------------------------------------------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+    IF EXISTS (
+        SELECT 1
+        FROM ODRF T0
+        INNER JOIN OCRD T1 ON T0."CardCode" = T1."CardCode"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+        AND T0."ObjType" = '22'
+        AND T0."GroupNum" <> T1."GroupNum"
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm01", ' - '), '')
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm02", ' - '), '')
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm03", ' - '), '')
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm04", ' - '), '')
+    ) THEN
+        error := -11222;
+        error_message := 'PO Draft Error: Selected Payment Term is not authorized for this Vendor.';
+    END IF;
+
+END IF;
+
+-----------------------------------------------------------------------
+-- 2. PURCHASE ORDER VALIDATION (OBJECT 22)
+-----------------------------------------------------------------------
+IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+    IF EXISTS (
+        SELECT 1
+        FROM OPOR T0
+        INNER JOIN OCRD T1 ON T0."CardCode" = T1."CardCode"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+        AND T0."GroupNum" <> T1."GroupNum"
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm01", ' - '), '')
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm02", ' - '), '')
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm03", ' - '), '')
+        AND CAST(T0."GroupNum" AS NVARCHAR(10)) <> IFNULL(SUBSTR_BEFORE(T1."U_PaymentTerm04", ' - '), '')
+    ) THEN
+        error := -2201;
+        error_message := 'PO Error: Selected Payment Term is not authorized in BP Master UDFs or Standard field.';
+    END IF;
+
 END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
