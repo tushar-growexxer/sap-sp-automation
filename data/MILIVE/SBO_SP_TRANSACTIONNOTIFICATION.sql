@@ -4539,7 +4539,7 @@ DECLARE Series Nvarchar(50);
 
 			IF ItemGR LIKE 'PCFG%' and WhsGR NOT LIKE '%QC' and ItemGR <> 'PCFG0263'
 				and ItemGR <> 'PCFG0316' and ItemGR <> 'PCFG0309' and ItemGR <> 'PCFG0308' and ItemGR <> 'PCFG0307' and ItemGR <> 'PCFG0306' and ItemGR <> 'PCFG0515'
-				and ItemGR <> 'PCFG0305' and ItemGR <> 'DIFG0017' and ItemGR <> 'PCFG0250' THEN
+				and ItemGR <> 'PCFG0305' and ItemGR <> 'DIFG0017' and ItemGR <> 'PCFG0250' AND ItemGR <> 'PCFG0606' THEN
 				error :=-9001;
 				error_message := N'Please Enter Proper Warehouse..';
 			END IF;
@@ -7239,7 +7239,7 @@ DECLARE PMQTY decimal;
 	WHILE :MinGRN <= :MaxGRN DO
 		SELECT PDN1."ItemCode" into PMGRN FROM PDN1 WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del and PDN1."VisOrder"=MinGRN;
 		SELECT SUBSTR_AFTER(PDN1."Quantity",'.') into PMQTY FROM PDN1 WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del and PDN1."VisOrder"=MinGRN;
-		IF PMGRN LIKE '%PM%' then
+		IF PMGRN LIKE '%PM%' AND PMGRN <>'PCPM0046' then
 			IF 	PMQTY > 0 then
 				error :=204;
 				error_message := N'Decimal not allowed for Packing';

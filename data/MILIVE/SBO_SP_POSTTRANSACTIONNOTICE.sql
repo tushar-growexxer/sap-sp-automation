@@ -940,10 +940,7 @@ IF (:object_type = '1470000113' AND (:transaction_type = 'A')) THEN
 		END IF;
 	End If;
 End If;
-
-
 ----------------------------- GRN of RM is generated  (DJ) --------------------------------------------
-
 IF (:object_type = '20' AND (:transaction_type = 'A')) THEN
 
 	select count(T0."DocEntry") INTO Temp from OPDN T0 JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
@@ -965,9 +962,37 @@ IF (:object_type = '20' AND (:transaction_type = 'A')) THEN
 		END IF;
 	End If;
 End If;
+----------------------------- Engg & Service Purchase Request updated  --------------------------------------------
+IF (:object_type = '1470000113' AND (:transaction_type = 'U')) THEN
+
+	select count(T0."DocEntry") INTO Temp from OPRQ T0
+INNER JOIN PRQ1 T1 ON T0."DocEntry" = T1."DocEntry"
+INNER JOIN OBPL T2 ON T0."BPLId" = T2."BPLId"
+LEFT JOIN (SELECT OW."DocEntry",MAX(WD."UpdateDate") AS "FinalApprovalDate",COUNT(DISTINCT OW."WddCode") AS "ApprovalCycleCount" FROM OWDD OW
+    		INNER JOIN WDD1 WD ON OW."WddCode" = WD."WddCode"
+		    WHERE OW."ObjType" = '1470000113' AND WD."Status" = 'Y'
+		    GROUP BY OW."DocEntry") T3 ON T0."DocEntry" = T3."DocEntry"
+WHERE T0."DocStatus" = 'O' AND T0."CANCELED" = 'N' AND (T1."ItemCode" LIKE 'E%' OR T1."ItemCode" LIKE 'SER%')
+    AND T1."OpenQty" > 0 AND (T3."ApprovalCycleCount" > 1 OR T0."UpdateDate" > T0."DocDate") AND T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPRQ T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+		MailID = 'sap@matangiindustries.com';
+		Mobile := '';
+		EmailCC := '';
+		EmailBCC := 'sap@matangiindustries.com';
+		ObjectType := 'P';
+		Mobi_TYPE := 'Engg_Service PR Updated';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MILIVE') Then
+			CALL "MOBIALERT"."Add_Config_Proc" (334,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
 
 --SELECT * FROM View_Objdet
-
 -- Select the return values
 select :error, :error_message FROM dummy;
 
