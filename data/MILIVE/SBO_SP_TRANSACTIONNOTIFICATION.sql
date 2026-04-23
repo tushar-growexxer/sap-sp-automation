@@ -16852,6 +16852,7 @@ THEN
 
 END IF;
 END IF;
+
 IF Object_type = '112' and (:transaction_type ='A' OR :transaction_type ='U') Then
 
 Declare dayss int;
