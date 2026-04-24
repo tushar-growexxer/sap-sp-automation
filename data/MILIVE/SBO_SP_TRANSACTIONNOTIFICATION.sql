@@ -19456,7 +19456,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The PCRM from 2PC-QC cannot be moved to any warehouse other than 2PC-QCR,2PC-RAW,2PC-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR','2PC-QC','2PC-QCR') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2PC-RAW','2PC-FLOR','2PC-QC','2PC-QCR','2PC-TRD') then
             error := -1033;
             error_message := 'The PCRM from 2BT cannot be moved to any warehouse other than 1BT,2PC-RAW,2PC-FLOR,2PC-QC,2PC-QCR';
         end if;

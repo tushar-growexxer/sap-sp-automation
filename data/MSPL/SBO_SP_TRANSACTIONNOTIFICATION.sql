@@ -22169,13 +22169,13 @@ END IF;
 
 --System Date Backdate Restriction---
 
-IF EXISTS (SELECT 1 FROM ODRF
+/*IF EXISTS (SELECT 1 FROM ODRF
     WHERE "DocEntry" = :list_of_cols_val_tab_del
     AND "ObjType" = '18'
     AND "DocDate" < CURRENT_DATE) THEN
     error := -1228;
     error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-END IF;
+END IF;*/
 
 END IF;
 ------------------AP Invoice Posting Delay Reason and Current Date---------------------------
@@ -22208,10 +22208,10 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 		END IF;
 
 --System Date Backdate Restriction--
-		IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND "DocDate" < CURRENT_DATE) THEN
+		/*IF EXISTS (SELECT 1 FROM OPCH WHERE "DocEntry" = :list_of_cols_val_tab_del AND "DocDate" < CURRENT_DATE) THEN
 			error := -1228;
 			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-		END IF;
+		END IF;*/
 END IF;
 --------------------------AP Invoice License BL entry Compulsory-----------------------
 IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
