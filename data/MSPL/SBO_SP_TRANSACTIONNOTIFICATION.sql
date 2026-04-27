@@ -10264,7 +10264,8 @@ IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type='U') THEN
             END IF;
 
             IF APBaseType = 22 THEN
-                SELECT T1."DocDate" INTO PODate FROM OPOR T1 WHERE T1."DocEntry" =:list_of_cols_val_tab_del;
+                SELECT T1."DocDate" INTO PODate FROM OPOR T1 Inner Join PCH1 T2 on T1."ObjType"=T2."BaseType" and T1."DocEntry"=T2."BaseEntry"
+                WHERE T2."VisOrder"=0 and T2."DocEntry" =:list_of_cols_val_tab_del;
 
                 IF APDate < PODate THEN
                     error := 307;

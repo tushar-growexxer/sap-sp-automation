@@ -564,7 +564,7 @@ IF (:object_type = '1470000113' AND (:transaction_type = 'A')) THEN
 
 		SELECT T0."DocEntry" INTO DocEntry FROM OPRQ T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 
-		MailID = 'purchasemgr1@matangiindustries.com,purchase@matangiindustries.com,sanjay@matangiindustries.com,deepak@matangiindustries.com';
+		MailID = 'purchasemgr1@matangiindustries.com,purchase@matangiindustries.com,sanjay@matangiindustries.com,deepak@matangiindustries.com,purchase4@matangiindustries.com';
 		Mobile := '';
 		EmailCC := 'mgrppc@matangiindustries.com,ea1@matangiindustries.com,exppc@matangiindustries.com';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
