@@ -6374,7 +6374,7 @@ If object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 	END IF;
 END IF;
 
-IF object_type = '20' AND (:transaction_type = 'A' ) THEN
+/*IF object_type = '20' AND (:transaction_type = 'A' ) THEN
 DECLARE DateGRN1 date;
 Declare Seris varchar(100);
 Declare ItemC varchar(100);
@@ -6398,7 +6398,7 @@ DECLARE MAXXIT int;
 			END IF;
 		MINNIT = MINNIT + 1;
 		END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
@@ -21192,6 +21192,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_U_UNE_DEPT NVARCHAR(50);
     DECLARE v_U_UNE_Buyer NVARCHAR(100);
     DECLARE v_DocDate Date;
+
     -- New mandatory field validations for QUT1 (Sales Quotation Line)
     DECLARE v_U_UNE_ITCD NVARCHAR(50);
     DECLARE v_U_FRTXT NVARCHAR(100);
@@ -21205,6 +21206,12 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_ApprCOA NVARCHAR(5);
     DECLARE v_PSS NVARCHAR(5);
     DECLARE v_Batch NVARCHAR(25);
+
+    -- NEW: Declarations for RTO Validation fields
+    DECLARE v_RTO NVARCHAR(5);
+    DECLARE v_ResDate DATE;
+    DECLARE v_OrderRec NVARCHAR(50);
+    DECLARE v_OrderDate DATE;
 
     -- Get values from OQUT table
     SELECT T0."U_Consignee_Name",T0."U_Consignee_Add",T0."U_Notify_Party",T0."U_Notify_add",T0."U_Incoterms",T0."U_OConName",T0."U_DConName",
@@ -21258,7 +21265,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     ELSEIF v_U_UNE_Buyer IS NULL OR LENGTH(TRIM(v_U_UNE_Buyer)) = 0 THEN
         error := -1214;
         error_message := 'Kindly enter the actual Buyer Name.';
-	ELSEIF (days_between(v_DocDate, NOW()) > 1 AND :transaction_type = 'A') THEN
+    ELSEIF (days_between(v_DocDate, NOW()) > 1 AND :transaction_type = 'A') THEN
         error := -1214;
         error_message := 'Entry not allowed in back date.';
     END IF;
@@ -21266,11 +21273,16 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     -- Get the minimum and maximum VisOrder values for row iteration
     SELECT MIN(T1."VisOrder") INTO v_MINN FROM QUT1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
     SELECT MAX(T1."VisOrder") INTO v_MAXX FROM QUT1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
+
     -- Start the loop to validate each row in QUT1
     WHILE v_MINN <= v_MAXX DO
-        -- Retrieve values from QUT1 for mandatory fields for the current row
-        SELECT T1."U_UNE_ITCD",T1."U_FRTXT",T1."U_PR_Type",T1."TaxCode",T1."U_Department", T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS", T1."U_NoOfBatchRequired"
-        INTO v_U_UNE_ITCD,v_U_FRTXT,v_U_PR_TYPE,v_TaxCode,v_Department,v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS, v_Batch
+        -- Retrieve values from QUT1 for mandatory fields for the current row (UPDATED WITH NEW FIELDS)
+        SELECT T1."U_UNE_ITCD", T1."U_FRTXT", T1."U_PR_Type", T1."TaxCode", T1."U_Department",
+               T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS",
+               T1."U_NoOfBatchRequired", T1."U_RTO", T1."U_ResDate", T1."U_OrderRec", T1."U_OrderDate"
+        INTO v_U_UNE_ITCD, v_U_FRTXT, v_U_PR_TYPE, v_TaxCode, v_Department,
+             v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS,
+             v_Batch, v_RTO, v_ResDate, v_OrderRec, v_OrderDate
         FROM QUT1 T1
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del
         AND T1."VisOrder" = v_MINN;
@@ -21288,36 +21300,55 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
         ELSEIF v_TaxCode IS NULL OR LENGTH(TRIM(v_TaxCode)) = 0 THEN
             error := -1218;
             error_message := 'Tax Code cannot be empty in Sales Quotation line.';
-	    ELSEIF v_Department IS NULL OR LENGTH(TRIM(v_Department)) = 0 THEN
-    	    error := -1219;
-        	error_message := 'Department cannot be empty.';
+        ELSEIF v_Department IS NULL OR LENGTH(TRIM(v_Department)) = 0 THEN
+            error := -1219;
+            error_message := 'Department cannot be empty.';
         ELSEIF v_Department = 'QC' AND v_U_PR_TYPE <> 'Existing Product' THEN
-        	error := -1220;
-        	error_message := 'For QC Dept, only Existing Product is allowed.';
+            error := -1220;
+            error_message := 'For QC Dept, only Existing Product is allowed.';
         ELSEIF v_Department = 'RND' AND v_U_PR_TYPE NOT IN ('Slight Customization', 'New Product Development', 'Trading') THEN
-        	error := -1221;
-        	error_message := 'Type of Sample not allowed for RND.';
+            error := -1221;
+            error_message := 'Type of Sample not allowed for RND.';
+
+        -- NEW: Individual validations for restricted fields when RTO is 'Y'
+        ELSEIF v_RTO = 'Y' AND v_ResDate IS NOT NULL THEN
+            error := -1227;
+            error_message := 'Response Date must be empty when Returned To Origin is Yes.';
+        ELSEIF v_RTO = 'Y' AND v_ResFrCust IS NOT NULL AND LENGTH(TRIM(v_ResFrCust)) > 0 THEN
+            error := -1228;
+            error_message := 'Response from Customer must be empty when Returned To Origin is Yes.';
+        ELSEIF v_RTO = 'Y' AND v_OrderRec IS NOT NULL AND LENGTH(TRIM(v_OrderRec)) > 0 THEN
+            error := -1229;
+            error_message := 'Order Received must be empty when Returned To Origin is Yes.';
+        ELSEIF v_RTO = 'Y' AND v_OrderDate IS NOT NULL THEN
+            error := -1230;
+            error_message := 'Order Received Date must be empty when Returned To Origin is Yes.';
+        ELSEIF v_RTO = 'Y' AND v_ReasonFail IS NOT NULL AND LENGTH(TRIM(v_ReasonFail)) > 0 THEN
+            error := -1231;
+            error_message := 'Reason for Fail must be empty when Returned To Origin is Yes.';
+
+        -- EXISTING VALIDATION CONTINUES:
         ELSEIF v_ResFrCust = 'Fail' AND (v_ReasonFail IS NULL OR LENGTH(TRIM(v_ReasonFail)) = 0) THEN
-        	error := -1222;
-        	error_message := 'Reason for Fail cannot be empty.';
+            error := -1222;
+            error_message := 'Reason for Fail cannot be empty.';
         ELSEIF ((v_DealNo IS NULL OR LENGTH(TRIM(v_DealNo)) = 0) AND :transaction_type = 'A') THEN
-        	error := -1223;
-        	error_message := 'Deal No cannot be empty at row level.';
+            error := -1223;
+            error_message := 'Deal No cannot be empty at row level.';
         ELSEIF v_Department = 'QC' AND (v_ApprCOA IS NULL OR LENGTH(TRIM(v_ApprCOA)) = 0) THEN
-        	error := -1224;
-        	error_message := 'Please enter Approval on COA as department is QC.';
-		ELSEIF v_Department = 'QC' AND (v_PSS IS NULL OR LENGTH(TRIM(v_PSS)) = 0) THEN
-        	error := -1225;
-        	error_message := 'Please enter PSS Yes/No as department is QC.';
+            error := -1224;
+            error_message := 'Please enter Approval on COA as department is QC.';
+        ELSEIF v_Department = 'QC' AND (v_PSS IS NULL OR LENGTH(TRIM(v_PSS)) = 0) THEN
+            error := -1225;
+            error_message := 'Please enter PSS Yes/No as department is QC.';
         ELSEIF v_Batch IS NULL OR LENGTH(TRIM(v_Batch)) = 0 THEN
-        	error := -1226;
-        	error_message := 'Please enter No. of Batches Required.';
+            error := -1226;
+            error_message := 'Please enter No. of Batches Required.';
         END IF;
+
         -- Increment the line index to move to the next row
-         v_MINN = v_MINN + 1;
+        v_MINN = v_MINN + 1;
     END WHILE;
 END IF;
-
 --------------------Equipment---------------------------
 IF :object_type = '176' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
   DECLARE eq_bp NVARCHAR(20);
@@ -22859,7 +22890,30 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error := -2201;
         error_message := 'PO Error: Selected Payment Term is not authorized in BP Master UDFs or Standard field.';
     END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- UDO VALIDATION: LICENSE MANAGER (@IMPORTCHILD ItemCode must start with 'LIC')
+-----------------------------------------------------------------------------------------
+IF :object_type = 'LICENSEMANAGER' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
 
+        -- Check if any row in @IMPORTCHILD has a U_ItemCode that does NOT start with 'LIC'
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "@IMPORTCHILD"
+        WHERE "Code" = :list_of_cols_val_tab_del AND IFNULL("U_ItemCode", '') NOT LIKE 'LIC%';
+
+        IF :ErrorCount > 0 THEN
+            -- Grab the first failing line and item code to show in the error message
+            SELECT TOP 1 CAST("LineId" AS NVARCHAR(10)), IFNULL("U_ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "@IMPORTCHILD"
+            WHERE "Code" = :list_of_cols_val_tab_del AND IFNULL("U_ItemCode", '') NOT LIKE 'LIC%'
+            ORDER BY "LineId";
+
+            error := 50007;
+            error_message := 'Invalid Item Code selected! The Item Code must start with "LIC". [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
 END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
