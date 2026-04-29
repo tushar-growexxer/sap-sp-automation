@@ -22772,14 +22772,16 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     DECLARE v_GN2 NVARCHAR(10);
     DECLARE v_GN3 NVARCHAR(10);
     DECLARE v_GN4 NVARCHAR(10);
+    DECLARE v_CardCode NVARCHAR(10);
 
     -- Fetch current data being saved
     SELECT "GroupNum",
            IFNULL("U_PaymentTerm01",''),
            IFNULL("U_PaymentTerm02",''),
            IFNULL("U_PaymentTerm03",''),
-           IFNULL("U_PaymentTerm04",'')
-    INTO v_GroupNum, v_PT1, v_PT2, v_PT3, v_PT4
+           IFNULL("U_PaymentTerm04",''),
+           IFNULL("CardCode",'')
+    INTO v_GroupNum, v_PT1, v_PT2, v_PT3, v_PT4, v_CardCode
     FROM OCRD
     WHERE "CardCode" = :list_of_cols_val_tab_del;
 
@@ -22840,7 +22842,7 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
                   (:v_GN3 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN3) OR
                   (:v_GN4 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN4)
               )
-        ) THEN
+        ) AND v_CardCode like 'C%' THEN
             error := -8007;
             error_message := 'Policy Error: You cannot select a Payment Term that exceeds 90 days. Please select a shorter term.';
         END IF;
