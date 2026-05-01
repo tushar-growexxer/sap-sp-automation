@@ -232,7 +232,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
             error := -20001;
             error_message := N'Please ADD Business partner in INACTIVE Mode';
         ELSE
-            IF UsrCod NOT IN ('manager', 'prof01', 'sap01') THEN
+            IF UsrCod NOT IN ('manager', 'prof01', 'sap01', 'sap02') THEN
                 error := -20002;
                 error_message := N'Please UPDATE Business partner in INACTIVE Mode';
             END IF;
@@ -1628,10 +1628,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 	            error_message := N'PO and Purchase Request must be of the same Branch.';
 			END IF;
 
-			IF PR_CapexOpex <> PO_CapexOpex THEN
+			/*IF PR_CapexOpex <> PO_CapexOpex THEN
 				error := -40072;
-				error_message := N'Not allwed to change Capex/Opex at line - '|| MIN_ROW + 1;
-			END IF;
+				error_message := N'Not allowed to change Capex/Opex at line - '|| MIN_ROW + 1;
+			END IF;*/
         END IF;
 
         IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -1957,10 +1957,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 		            error_message := N'PO and Purchase Request must be of the same Branch.';
 				END IF;
 
-				IF PR_CapexOpex <> PO_CapexOpex THEN
+				/*IF PR_CapexOpex <> PO_CapexOpex THEN
 					error := -40072;
-					error_message := N'Not allwed to change Capex/Opex at line - '|| MIN_ROW + 1;
-				END IF;
+					error_message := N'Not allowed to change Capex/Opex at line - '|| MIN_ROW + 1;
+				END IF;*/
 	        END IF;
 
             IF HeaderBranch = 3 AND IFNULL(Project, '') = '' THEN
@@ -4333,7 +4333,7 @@ IF CurrAP <> 'INR' THEN
 END IF;
 
 
-IF object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
@@ -4369,7 +4369,7 @@ DECLARE Countt Int;
 		END IF;
 		MinAP := MinAP+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 -----------------
 
@@ -13943,7 +13943,7 @@ IF CurrAP <> 'INR' THEN
 END IF;
 END IF;
 
-IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
 DECLARE MinAP Int;
 DECLARE MaxAP Int;
@@ -13983,7 +13983,7 @@ THEN
 		MinAP := MinAP+1;
 	END WHILE;
 END IF;
-END IF;
+END IF;*/
 
 --------------------A/P Credit Memo----------------
 IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
@@ -22514,7 +22514,1082 @@ IF :object_type = 'LICENSEMANAGER' AND (:transaction_type = 'A' OR :transaction_
             error_message := 'Invalid Item Code selected! The Item Code must start with "LIC". [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
         END IF;
 END IF;
+-----------------------------------------------------------------------------------------
+-- PURCHASE ORDER DRAFT VALIDATION (ObjType 112 -> Base ObjType 22)
+-----------------------------------------------------------------------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE DraftObjType NVARCHAR(10);
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
 
+        -- Identify if the Draft is for a Purchase Order
+        SELECT "ObjType" INTO DraftObjType FROM ODRF WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+        IF :DraftObjType = '22' THEN
+
+            -- Validation 50001: License Type 1 is mandatory. If it is NOT 'No Required', then Type 2 and 3 are also mandatory.
+            SELECT COUNT(*) INTO ErrorCount
+            FROM DRF1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                   IFNULL(T1."U_LicenseType", '') = ''
+                   OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseType2", '') = '' OR IFNULL(T1."U_LicenseType3", '') = ''))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (IFNULL(T1."U_LicenseType", '') = '' OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseType2", '') = '' OR IFNULL(T1."U_LicenseType3", '') = '')))
+                ORDER BY T1."LineNum";
+
+                error := 50001;
+                error_message := 'License Type 1 is mandatory. If it is required, Type 2 and 3 must also be selected. [Draft Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+
+            -- Validation 50002: If 'ADVANCE', License Num and Qty are mandatory
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                     (T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0))
+                  OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0))
+                  OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0))
+                  );
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND ((T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0)))
+                    ORDER BY T1."LineNum";
+
+                    error := 50002;
+                    error_message := 'License Number and Quantity are mandatory for "ADVANCE". [Draft Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+            -- Validation 50003: If 'No Required', License Num must be blank and Qty must be 0
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                     (T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0))
+                  OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0))
+                  OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0))
+                  );
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND ((T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0)))
+                    ORDER BY T1."LineNum";
+
+                    error := 50003;
+                    error_message := 'License Number and Qty must be blank or 0 if Type is "No Required". [Draft Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+            -- Validation 50004: License Num must exist in @LICENSEMANAGER and not be expired
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                      (IFNULL(T1."U_LicenseNum", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum" AND T0."U_LicType" = T1."U_LicenseType" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE))
+                   OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum2" AND T0."U_LicType" = T1."U_LicenseType2" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE))
+                   OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum3" AND T0."U_LicType" = T1."U_LicenseType3" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE))
+                  );
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND ((IFNULL(T1."U_LicenseNum", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum" AND T0."U_LicType" = T1."U_LicenseType" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum2" AND T0."U_LicType" = T1."U_LicenseType2" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum3" AND T0."U_LicType" = T1."U_LicenseType3" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE)))
+                    ORDER BY T1."LineNum";
+
+                    error := 50004;
+                    error_message := 'Invalid or Expired License Number selected. Must exist in License Manager. [Draft Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+            -- Validation 50005: Total License Quantity must match PO Row Quantity (Skipped if License 1 is 'No Required')
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required')
+                  AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0) <> T1."Quantity");
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required')
+                      AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0) <> T1."Quantity")
+                    ORDER BY T1."LineNum";
+
+                    error := 50005;
+                    error_message := 'Sum of License Quantities must match the Row Quantity. [Draft Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+            -- Validation 50006: Same row duplicate license numbers are not allowed (Skipped if License 1 is 'No Required')
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required')
+                  AND (
+                     (T1."U_LicenseNum" = T1."U_LicenseNum2" AND IFNULL(T1."U_LicenseNum", '') != '')
+                  OR (T1."U_LicenseNum" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum", '') != '')
+                  OR (T1."U_LicenseNum2" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum2", '') != '')
+                  );
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required')
+                      AND ((T1."U_LicenseNum" = T1."U_LicenseNum2" AND IFNULL(T1."U_LicenseNum", '') != '') OR (T1."U_LicenseNum" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum", '') != '') OR (T1."U_LicenseNum2" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum2", '') != ''))
+                    ORDER BY T1."LineNum";
+
+                    error := 50006;
+                    error_message := 'You cannot select the same License Number multiple times in the same row. [Draft Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- PURCHASE ORDER POSTING VALIDATION (ObjType 22)
+-----------------------------------------------------------------------------------------
+IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+        DECLARE ErrorCount INT := 0;
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+        -- Validation 50001: License Type 1 is mandatory. If it is NOT 'No Required', then Type 2 and 3 are also mandatory.
+        SELECT COUNT(*) INTO ErrorCount FROM POR1 T1
+        WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+          AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+          AND (
+               IFNULL(T1."U_LicenseType", '') = ''
+               OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseType2", '') = '' OR IFNULL(T1."U_LicenseType3", '') = ''))
+          );
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM POR1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (IFNULL(T1."U_LicenseType", '') = '' OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseType2", '') = '' OR IFNULL(T1."U_LicenseType3", '') = '')))
+            ORDER BY T1."LineNum";
+            error := 50001;
+            error_message := 'License Type 1 is mandatory. If it is required, Type 2 and 3 must also be selected. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+
+        -- Validation 50002: If 'ADVANCE', License Num and Qty are mandatory
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount FROM POR1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                 (T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0))
+              OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0))
+              OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM POR1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND ((T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0)))
+                ORDER BY T1."LineNum";
+                error := 50002;
+                error_message := 'License Number and Quantity are mandatory for "ADVANCE". [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+
+        -- Validation 50003: If 'No Required', License Num must be blank and Qty must be 0
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount FROM POR1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                 (T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0))
+              OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0))
+              OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM POR1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND ((T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0)))
+                ORDER BY T1."LineNum";
+                error := 50003;
+                error_message := 'License Number and Qty must be blank or 0 if Type is "No Required". [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+
+        -- Validation 50004: License Num must exist in @LICENSEMANAGER and not be expired
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount FROM POR1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                  (IFNULL(T1."U_LicenseNum", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum" AND T0."U_LicType" = T1."U_LicenseType" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE))
+               OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum2" AND T0."U_LicType" = T1."U_LicenseType2" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE))
+               OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum3" AND T0."U_LicType" = T1."U_LicenseType3" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM POR1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND ((IFNULL(T1."U_LicenseNum", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum" AND T0."U_LicType" = T1."U_LicenseType" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum2" AND T0."U_LicType" = T1."U_LicenseType2" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE)) OR (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" T0 WHERE T0."U_LCNumber" = T1."U_LicenseNum3" AND T0."U_LicType" = T1."U_LicenseType3" AND T0."U_Q_License_Expiry_Date_Imp" >= CURRENT_DATE)))
+                ORDER BY T1."LineNum";
+                error := 50004;
+                error_message := 'Invalid or Expired License Number selected. Must exist in License Manager. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+
+        -- Validation 50005: Total License Quantity must match PO Row Quantity (Skipped if License 1 is 'No Required')
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount FROM POR1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required')
+              AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0) <> T1."Quantity");
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM POR1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%') AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0) <> T1."Quantity") ORDER BY T1."LineNum";
+                error := 50005;
+                error_message := 'Sum of License Quantities must match the Row Quantity. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+
+        -- Validation 50006: Same row duplicate license numbers are not allowed (Skipped if License 1 is 'No Required')
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount FROM POR1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required')
+              AND (
+                 (T1."U_LicenseNum" = T1."U_LicenseNum2" AND IFNULL(T1."U_LicenseNum", '') != '')
+              OR (T1."U_LicenseNum" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum", '') != '')
+              OR (T1."U_LicenseNum2" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum2", '') != '')
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM POR1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%') AND T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND ((T1."U_LicenseNum" = T1."U_LicenseNum2" AND IFNULL(T1."U_LicenseNum", '') != '') OR (T1."U_LicenseNum" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum", '') != '') OR (T1."U_LicenseNum2" = T1."U_LicenseNum3" AND IFNULL(T1."U_LicenseNum2", '') != '')) ORDER BY T1."LineNum";
+                error := 50006;
+                error_message := 'You cannot select the same License Number multiple times in the same row. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- PURCHASE ORDER DRAFT VALIDATION: Check OITM."U_Sname" & License Linkage
+-----------------------------------------------------------------------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE DraftObjType NVARCHAR(10);
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+        -- Ensure we are only looking at Purchase Order Drafts (Base ObjType 22)
+        SELECT "ObjType" INTO DraftObjType FROM ODRF WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+        IF :DraftObjType = '22' THEN
+
+            -- Check if U_Sname is blank OR if the selected License Number is NOT linked to U_Sname in the License Manager
+            SELECT COUNT(*) INTO ErrorCount
+            FROM DRF1 T1
+            INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (
+                  (IFNULL(T1."U_LicenseNum", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum" AND IC."U_ItemCode" = T2."U_Sname")))
+               OR (IFNULL(T1."U_LicenseNum2", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum2" AND IC."U_ItemCode" = T2."U_Sname")))
+               OR (IFNULL(T1."U_LicenseNum3", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum3" AND IC."U_ItemCode" = T2."U_Sname")))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM DRF1 T1
+                INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (
+                      (IFNULL(T1."U_LicenseNum", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum" AND IC."U_ItemCode" = T2."U_Sname")))
+                   OR (IFNULL(T1."U_LicenseNum2", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum2" AND IC."U_ItemCode" = T2."U_Sname")))
+                   OR (IFNULL(T1."U_LicenseNum3", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum3" AND IC."U_ItemCode" = T2."U_Sname")))
+                  )
+                ORDER BY T1."LineNum";
+
+                error := 50020;
+                error_message := 'Invalid License Linkage! The selected License Number is not linked to this item, or Item Master ""ShortName(LicenseItem)"" is blank. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- PURCHASE ORDER POSTING VALIDATION: Check OITM."U_Sname" & License Linkage
+-----------------------------------------------------------------------------------------
+IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+        -- Check if U_Sname is blank OR if the selected License Number is NOT linked to U_Sname in the License Manager
+        SELECT COUNT(*) INTO ErrorCount
+        FROM POR1 T1
+        INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+        WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+          AND (
+              (IFNULL(T1."U_LicenseNum", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum" AND IC."U_ItemCode" = T2."U_Sname")))
+           OR (IFNULL(T1."U_LicenseNum2", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum2" AND IC."U_ItemCode" = T2."U_Sname")))
+           OR (IFNULL(T1."U_LicenseNum3", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum3" AND IC."U_ItemCode" = T2."U_Sname")))
+          );
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM POR1 T1
+            INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (
+                  (IFNULL(T1."U_LicenseNum", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum" AND IC."U_ItemCode" = T2."U_Sname")))
+               OR (IFNULL(T1."U_LicenseNum2", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum2" AND IC."U_ItemCode" = T2."U_Sname")))
+               OR (IFNULL(T1."U_LicenseNum3", '') != '' AND (IFNULL(T2."U_Sname", '') = '' OR NOT EXISTS (SELECT 1 FROM "@LICENSEMANAGER" LM INNER JOIN "@IMPORTCHILD" IC ON LM."Code" = IC."Code" WHERE LM."U_LCNumber" = T1."U_LicenseNum3" AND IC."U_ItemCode" = T2."U_Sname")))
+              )
+            ORDER BY T1."LineNum";
+
+            error := 50020;
+            error_message := 'Invalid License Linkage! The selected License Number is not linked to this item, or Item Master "ShortName(LicenseItem)" is blank. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- PURCHASE ORDER DRAFT VALIDATION: License Balance Check
+-----------------------------------------------------------------------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE DraftObjType NVARCHAR(10);
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+        -- Ensure we are only looking at Purchase Order Drafts (Base ObjType 22)
+        SELECT "ObjType" INTO DraftObjType FROM ODRF WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+        IF :DraftObjType = '22' THEN
+            -- Check if the final balance drops below 0 when adding the current Draft's requested quantity
+            SELECT COUNT(*) INTO ErrorCount
+            FROM (
+                SELECT A."ItemCode", A."LineNum", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum",'') <> ''
+                UNION ALL
+                SELECT A."ItemCode", A."LineNum", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum2",'') <> ''
+                UNION ALL
+                SELECT A."ItemCode", A."LineNum", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum3",'') <> ''
+            ) CURR
+            INNER JOIN OITM I ON CURR."ItemCode" = I."ItemCode"
+            LEFT JOIN (
+                -- Total requested by this specific draft for a given license
+                SELECT L."LicNo", O."U_Sname", SUM(L."DraftQty") AS "TotalDraftReq"
+                FROM (
+                    SELECT A."ItemCode", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum",'') <> ''
+                    UNION ALL
+                    SELECT A."ItemCode", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum2",'') <> ''
+                    UNION ALL
+                    SELECT A."ItemCode", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum3",'') <> ''
+                ) L INNER JOIN OITM O ON L."ItemCode" = O."ItemCode"
+                GROUP BY L."LicNo", O."U_Sname"
+            ) DREQ ON CURR."LicNo" = DREQ."LicNo" AND I."U_Sname" = DREQ."U_Sname"
+            LEFT JOIN (
+                -- Total Allowed Quantity
+                SELECT T0."U_LCNumber", T1."U_ItemCode", SUM(IFNULL(T1."U_LicQty",0)) AS "TotalAllowed"
+                FROM "@LICENSEMANAGER" T0 INNER JOIN "@IMPORTCHILD" T1 ON T0."Code" = T1."Code"
+                GROUP BY T0."U_LCNumber", T1."U_ItemCode"
+            ) AL ON CURR."LicNo" = AL."U_LCNumber" AND I."U_Sname" = AL."U_ItemCode"
+            LEFT JOIN (
+                -- Allocated Quantity (All Active POs in POR1)
+                SELECT "LicNo", "U_Sname", SUM(CASE WHEN ("BaseQty" - "InvQty") < 0 THEN 0 ELSE ("BaseQty" - "InvQty") END) AS "AllocQty"
+                FROM (
+                    SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "BaseQty",
+                           (IFNULL((SELECT SUM(C1."U_LicenseQty") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum" = A."U_LicenseNum" AND H1."CANCELED" = 'N'), 0) +
+                            IFNULL((SELECT SUM(C2."U_LicenseQty") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum" = A."U_LicenseNum" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                    FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum", '') <> '' AND HA."CANCELED" = 'N'
+                    UNION ALL
+                    SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "BaseQty",
+                           (IFNULL((SELECT SUM(C1."U_LicenseQty2") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum2" = A."U_LicenseNum2" AND H1."CANCELED" = 'N'), 0) +
+                            IFNULL((SELECT SUM(C2."U_LicenseQty2") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum2" = A."U_LicenseNum2" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                    FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum2", '') <> '' AND HA."CANCELED" = 'N'
+                    UNION ALL
+                    SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "BaseQty",
+                           (IFNULL((SELECT SUM(C1."U_LicenseQty3") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum3" = A."U_LicenseNum3" AND H1."CANCELED" = 'N'), 0) +
+                            IFNULL((SELECT SUM(C2."U_LicenseQty3") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum3" = A."U_LicenseNum3" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                    FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum3", '') <> '' AND HA."CANCELED" = 'N'
+                )
+                GROUP BY "LicNo", "U_Sname"
+            ) ALLOC ON CURR."LicNo" = ALLOC."LicNo" AND I."U_Sname" = ALLOC."U_Sname"
+            LEFT JOIN (
+                -- Utilized Quantity (All Active AP Invoices in PCH1)
+                SELECT L."LicNo", I."U_Sname", SUM(L."Qty") AS "UtilizeQty"
+                FROM (
+                    SELECT P."ItemCode", P."U_LicenseNum" AS "LicNo", P."U_LicenseQty" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum", '') <> '' AND O."CANCELED" = 'N'
+                    UNION ALL
+                    SELECT P."ItemCode", P."U_LicenseNum2" AS "LicNo", P."U_LicenseQty2" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum2", '') <> '' AND O."CANCELED" = 'N'
+                    UNION ALL
+                    SELECT P."ItemCode", P."U_LicenseNum3" AS "LicNo", P."U_LicenseQty3" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum3", '') <> '' AND O."CANCELED" = 'N'
+                ) L
+                INNER JOIN OITM I ON L."ItemCode" = I."ItemCode"
+                GROUP BY L."LicNo", I."U_Sname"
+            ) UTIL ON CURR."LicNo" = UTIL."LicNo" AND I."U_Sname" = UTIL."U_Sname"
+            WHERE (IFNULL(AL."TotalAllowed", 0) - (IFNULL(ALLOC."AllocQty", 0) + IFNULL(UTIL."UtilizeQty", 0) + IFNULL(DREQ."TotalDraftReq", 0))) < 0;
+
+            IF :ErrorCount > 0 THEN
+               -- Fetch the exact Row Number and Item Code
+               SELECT TOP 1 CAST(CURR."LineNum" + 1 AS NVARCHAR(10)), IFNULL(CURR."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+               FROM (
+                   SELECT A."ItemCode", A."LineNum", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum",'') <> ''
+                   UNION ALL
+                   SELECT A."ItemCode", A."LineNum", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum2",'') <> ''
+                   UNION ALL
+                   SELECT A."ItemCode", A."LineNum", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum3",'') <> ''
+               ) CURR
+               INNER JOIN OITM I ON CURR."ItemCode" = I."ItemCode"
+               LEFT JOIN (
+                   SELECT L."LicNo", O."U_Sname", SUM(L."DraftQty") AS "TotalDraftReq"
+                   FROM (
+                       SELECT A."ItemCode", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum",'') <> ''
+                       UNION ALL
+                       SELECT A."ItemCode", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum2",'') <> ''
+                       UNION ALL
+                       SELECT A."ItemCode", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "DraftQty" FROM DRF1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum3",'') <> ''
+                   ) L INNER JOIN OITM O ON L."ItemCode" = O."ItemCode"
+                   GROUP BY L."LicNo", O."U_Sname"
+               ) DREQ ON CURR."LicNo" = DREQ."LicNo" AND I."U_Sname" = DREQ."U_Sname"
+               LEFT JOIN (
+                   SELECT T0."U_LCNumber", T1."U_ItemCode", SUM(IFNULL(T1."U_LicQty",0)) AS "TotalAllowed"
+                   FROM "@LICENSEMANAGER" T0 INNER JOIN "@IMPORTCHILD" T1 ON T0."Code" = T1."Code"
+                   GROUP BY T0."U_LCNumber", T1."U_ItemCode"
+               ) AL ON CURR."LicNo" = AL."U_LCNumber" AND I."U_Sname" = AL."U_ItemCode"
+               LEFT JOIN (
+                   SELECT "LicNo", "U_Sname", SUM(CASE WHEN ("BaseQty" - "InvQty") < 0 THEN 0 ELSE ("BaseQty" - "InvQty") END) AS "AllocQty"
+                   FROM (
+                       SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "BaseQty",
+                              (IFNULL((SELECT SUM(C1."U_LicenseQty") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum" = A."U_LicenseNum" AND H1."CANCELED" = 'N'), 0) +
+                               IFNULL((SELECT SUM(C2."U_LicenseQty") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum" = A."U_LicenseNum" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                       FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum", '') <> '' AND HA."CANCELED" = 'N'
+                       UNION ALL
+                       SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "BaseQty",
+                              (IFNULL((SELECT SUM(C1."U_LicenseQty2") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum2" = A."U_LicenseNum2" AND H1."CANCELED" = 'N'), 0) +
+                               IFNULL((SELECT SUM(C2."U_LicenseQty2") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum2" = A."U_LicenseNum2" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                       FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum2", '') <> '' AND HA."CANCELED" = 'N'
+                       UNION ALL
+                       SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "BaseQty",
+                              (IFNULL((SELECT SUM(C1."U_LicenseQty3") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum3" = A."U_LicenseNum3" AND H1."CANCELED" = 'N'), 0) +
+                               IFNULL((SELECT SUM(C2."U_LicenseQty3") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum3" = A."U_LicenseNum3" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                       FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum3", '') <> '' AND HA."CANCELED" = 'N'
+                   )
+                   GROUP BY "LicNo", "U_Sname"
+               ) ALLOC ON CURR."LicNo" = ALLOC."LicNo" AND I."U_Sname" = ALLOC."U_Sname"
+               LEFT JOIN (
+                   SELECT L."LicNo", I."U_Sname", SUM(L."Qty") AS "UtilizeQty"
+                   FROM (
+                       SELECT P."ItemCode", P."U_LicenseNum" AS "LicNo", P."U_LicenseQty" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum", '') <> '' AND O."CANCELED" = 'N'
+                       UNION ALL
+                       SELECT P."ItemCode", P."U_LicenseNum2" AS "LicNo", P."U_LicenseQty2" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum2", '') <> '' AND O."CANCELED" = 'N'
+                       UNION ALL
+                       SELECT P."ItemCode", P."U_LicenseNum3" AS "LicNo", P."U_LicenseQty3" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum3", '') <> '' AND O."CANCELED" = 'N'
+                   ) L
+                   INNER JOIN OITM I ON L."ItemCode" = I."ItemCode"
+                   GROUP BY L."LicNo", I."U_Sname"
+               ) UTIL ON CURR."LicNo" = UTIL."LicNo" AND I."U_Sname" = UTIL."U_Sname"
+               WHERE (IFNULL(AL."TotalAllowed", 0) - (IFNULL(ALLOC."AllocQty", 0) + IFNULL(UTIL."UtilizeQty", 0) + IFNULL(DREQ."TotalDraftReq", 0))) < 0
+               ORDER BY CURR."LineNum";
+
+               error := 50010;
+               error_message := 'Total License Balance Quantity exceeded! You cannot allocate more quantity than the available balance for the selected license. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- PURCHASE ORDER POSTING VALIDATION: License Balance Check
+-----------------------------------------------------------------------------------------
+IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+        -- Check if the final balance of any selected license drops below 0
+        SELECT COUNT(*) INTO ErrorCount
+        FROM (
+            SELECT A."ItemCode", A."LineNum", A."U_LicenseNum" AS "LicNo" FROM POR1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum",'') <> ''
+            UNION
+            SELECT A."ItemCode", A."LineNum", A."U_LicenseNum2" AS "LicNo" FROM POR1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum2",'') <> ''
+            UNION
+            SELECT A."ItemCode", A."LineNum", A."U_LicenseNum3" AS "LicNo" FROM POR1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum3",'') <> ''
+        ) CURR
+        INNER JOIN OITM I ON CURR."ItemCode" = I."ItemCode"
+        LEFT JOIN (
+            -- Total Allowed Quantity
+            SELECT T0."U_LCNumber", T1."U_ItemCode", SUM(IFNULL(T1."U_LicQty",0)) AS "TotalAllowed"
+            FROM "@LICENSEMANAGER" T0 INNER JOIN "@IMPORTCHILD" T1 ON T0."Code" = T1."Code"
+            GROUP BY T0."U_LCNumber", T1."U_ItemCode"
+        ) AL ON CURR."LicNo" = AL."U_LCNumber" AND I."U_Sname" = AL."U_ItemCode"
+        LEFT JOIN (
+            -- Allocated Quantity (All Active POs)
+            SELECT "LicNo", "U_Sname", SUM(CASE WHEN ("BaseQty" - "InvQty") < 0 THEN 0 ELSE ("BaseQty" - "InvQty") END) AS "AllocQty"
+            FROM (
+                SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "BaseQty",
+                       (IFNULL((SELECT SUM(C1."U_LicenseQty") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum" = A."U_LicenseNum" AND H1."CANCELED" = 'N'), 0) +
+                        IFNULL((SELECT SUM(C2."U_LicenseQty") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum" = A."U_LicenseNum" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum", '') <> '' AND HA."CANCELED" = 'N'
+                UNION ALL
+                SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "BaseQty",
+                       (IFNULL((SELECT SUM(C1."U_LicenseQty2") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum2" = A."U_LicenseNum2" AND H1."CANCELED" = 'N'), 0) +
+                        IFNULL((SELECT SUM(C2."U_LicenseQty2") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum2" = A."U_LicenseNum2" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum2", '') <> '' AND HA."CANCELED" = 'N'
+                UNION ALL
+                SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "BaseQty",
+                       (IFNULL((SELECT SUM(C1."U_LicenseQty3") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum3" = A."U_LicenseNum3" AND H1."CANCELED" = 'N'), 0) +
+                        IFNULL((SELECT SUM(C2."U_LicenseQty3") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum3" = A."U_LicenseNum3" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum3", '') <> '' AND HA."CANCELED" = 'N'
+            )
+            GROUP BY "LicNo", "U_Sname"
+        ) ALLOC ON CURR."LicNo" = ALLOC."LicNo" AND I."U_Sname" = ALLOC."U_Sname"
+        LEFT JOIN (
+            -- Utilized Quantity (All Active AP Invoices)
+            SELECT L."LicNo", I."U_Sname", SUM(L."Qty") AS "UtilizeQty"
+            FROM (
+                SELECT P."ItemCode", P."U_LicenseNum" AS "LicNo", P."U_LicenseQty" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum", '') <> '' AND O."CANCELED" = 'N'
+                UNION ALL
+                SELECT P."ItemCode", P."U_LicenseNum2" AS "LicNo", P."U_LicenseQty2" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum2", '') <> '' AND O."CANCELED" = 'N'
+                UNION ALL
+                SELECT P."ItemCode", P."U_LicenseNum3" AS "LicNo", P."U_LicenseQty3" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum3", '') <> '' AND O."CANCELED" = 'N'
+            ) L
+            INNER JOIN OITM I ON L."ItemCode" = I."ItemCode"
+            GROUP BY L."LicNo", I."U_Sname"
+        ) UTIL ON CURR."LicNo" = UTIL."LicNo" AND I."U_Sname" = UTIL."U_Sname"
+        WHERE (IFNULL(AL."TotalAllowed", 0) - (IFNULL(ALLOC."AllocQty", 0) + IFNULL(UTIL."UtilizeQty", 0))) < 0;
+
+        IF :ErrorCount > 0 THEN
+           -- Fetch the exact Row Number and Item Code that exceeded the balance
+           SELECT TOP 1 CAST(CURR."LineNum" + 1 AS NVARCHAR(10)), IFNULL(CURR."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+           FROM (
+               SELECT A."ItemCode", A."LineNum", A."U_LicenseNum" AS "LicNo" FROM POR1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum",'') <> ''
+               UNION
+               SELECT A."ItemCode", A."LineNum", A."U_LicenseNum2" AS "LicNo" FROM POR1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum2",'') <> ''
+               UNION
+               SELECT A."ItemCode", A."LineNum", A."U_LicenseNum3" AS "LicNo" FROM POR1 A WHERE A."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(A."U_LicenseNum3",'') <> ''
+           ) CURR
+           INNER JOIN OITM I ON CURR."ItemCode" = I."ItemCode"
+           LEFT JOIN (
+               SELECT T0."U_LCNumber", T1."U_ItemCode", SUM(IFNULL(T1."U_LicQty",0)) AS "TotalAllowed"
+               FROM "@LICENSEMANAGER" T0 INNER JOIN "@IMPORTCHILD" T1 ON T0."Code" = T1."Code"
+               GROUP BY T0."U_LCNumber", T1."U_ItemCode"
+           ) AL ON CURR."LicNo" = AL."U_LCNumber" AND I."U_Sname" = AL."U_ItemCode"
+           LEFT JOIN (
+               SELECT "LicNo", "U_Sname", SUM(CASE WHEN ("BaseQty" - "InvQty") < 0 THEN 0 ELSE ("BaseQty" - "InvQty") END) AS "AllocQty"
+               FROM (
+                   SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum" AS "LicNo", A."U_LicenseQty" AS "BaseQty",
+                          (IFNULL((SELECT SUM(C1."U_LicenseQty") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum" = A."U_LicenseNum" AND H1."CANCELED" = 'N'), 0) +
+                           IFNULL((SELECT SUM(C2."U_LicenseQty") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum" = A."U_LicenseNum" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                   FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum", '') <> '' AND HA."CANCELED" = 'N'
+                   UNION ALL
+                   SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum2" AS "LicNo", A."U_LicenseQty2" AS "BaseQty",
+                          (IFNULL((SELECT SUM(C1."U_LicenseQty2") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum2" = A."U_LicenseNum2" AND H1."CANCELED" = 'N'), 0) +
+                           IFNULL((SELECT SUM(C2."U_LicenseQty2") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum2" = A."U_LicenseNum2" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                   FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum2", '') <> '' AND HA."CANCELED" = 'N'
+                   UNION ALL
+                   SELECT A."ItemCode", I."U_Sname", A."U_LicenseNum3" AS "LicNo", A."U_LicenseQty3" AS "BaseQty",
+                          (IFNULL((SELECT SUM(C1."U_LicenseQty3") FROM PCH1 C1 INNER JOIN OPCH H1 ON C1."DocEntry" = H1."DocEntry" WHERE C1."BaseType" = 22 AND C1."BaseEntry" = A."DocEntry" AND C1."BaseLine" = A."LineNum" AND C1."U_LicenseNum3" = A."U_LicenseNum3" AND H1."CANCELED" = 'N'), 0) +
+                           IFNULL((SELECT SUM(C2."U_LicenseQty3") FROM PDN1 B INNER JOIN PCH1 C2 ON C2."BaseType" = 20 AND C2."BaseEntry" = B."DocEntry" AND C2."BaseLine" = B."LineNum" INNER JOIN OPCH H2 ON C2."DocEntry" = H2."DocEntry" WHERE B."BaseType" = 22 AND B."BaseEntry" = A."DocEntry" AND B."BaseLine" = A."LineNum" AND C2."U_LicenseNum3" = A."U_LicenseNum3" AND H2."CANCELED" = 'N'), 0)) AS "InvQty"
+                   FROM POR1 A INNER JOIN OPOR HA ON A."DocEntry" = HA."DocEntry" INNER JOIN OITM I ON A."ItemCode" = I."ItemCode" WHERE IFNULL(A."U_LicenseNum3", '') <> '' AND HA."CANCELED" = 'N'
+               )
+               GROUP BY "LicNo", "U_Sname"
+           ) ALLOC ON CURR."LicNo" = ALLOC."LicNo" AND I."U_Sname" = ALLOC."U_Sname"
+           LEFT JOIN (
+               SELECT L."LicNo", I."U_Sname", SUM(L."Qty") AS "UtilizeQty"
+               FROM (
+                   SELECT P."ItemCode", P."U_LicenseNum" AS "LicNo", P."U_LicenseQty" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum", '') <> '' AND O."CANCELED" = 'N'
+                   UNION ALL
+                   SELECT P."ItemCode", P."U_LicenseNum2" AS "LicNo", P."U_LicenseQty2" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum2", '') <> '' AND O."CANCELED" = 'N'
+                   UNION ALL
+                   SELECT P."ItemCode", P."U_LicenseNum3" AS "LicNo", P."U_LicenseQty3" AS "Qty" FROM PCH1 P INNER JOIN OPCH O ON O."DocEntry" = P."DocEntry" WHERE IFNULL(P."U_LicenseNum3", '') <> '' AND O."CANCELED" = 'N'
+               ) L
+               INNER JOIN OITM I ON L."ItemCode" = I."ItemCode"
+               GROUP BY L."LicNo", I."U_Sname"
+           ) UTIL ON CURR."LicNo" = UTIL."LicNo" AND I."U_Sname" = UTIL."U_Sname"
+           WHERE (IFNULL(AL."TotalAllowed", 0) - (IFNULL(ALLOC."AllocQty", 0) + IFNULL(UTIL."UtilizeQty", 0))) < 0
+           ORDER BY CURR."LineNum";
+
+           error := 50010;
+           error_message := 'Total License Balance Quantity exceeded! You cannot allocate more quantity than the available balance for the selected license. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- GRPO POSTING VALIDATION (ObjType 20) for ADVANCE License
+-----------------------------------------------------------------------------------------
+IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+
+        -- Checks if any row has 'ADVANCE' and the standard BoE fields in PDN12 are missing
+        SELECT COUNT(*) INTO ErrorCount
+        FROM OPDN T0
+        INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
+        LEFT JOIN PDN12 T12 ON T0."DocEntry" = T12."DocEntry"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND (T1."U_LicenseType" = 'ADVANCE' OR T1."U_LicenseType2" = 'ADVANCE' OR T1."U_LicenseType3" = 'ADVANCE')
+          AND (
+               IFNULL(T12."PortCode", '') = ''
+            OR IFNULL(T12."ImpExpNo", '') = ''
+            OR T12."ImpExpDate" IS NULL
+            OR IFNULL(T12."BoEValue", 0) <= 0
+          );
+
+        IF :ErrorCount > 0 THEN
+            error := 50008;
+            error_message := 'Port Code, Bill of Entry No, BOE Date, and BOE Value (in the Import logistics tab) are compulsory when License Type "ADVANCE" is selected.';
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- A/P INVOICE DRAFT VALIDATION: Master License & Customs Check
+-----------------------------------------------------------------------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE DraftObjType NVARCHAR(10);
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+        SELECT "ObjType" INTO DraftObjType FROM ODRF WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+        IF :DraftObjType = '18' THEN
+
+            -- GATE 1: Blank Check
+            SELECT COUNT(*) INTO ErrorCount
+            FROM DRF1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND IFNULL(T1."U_LicenseType", '') = '';
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND IFNULL(T1."U_LicenseType", '') = ''
+                ORDER BY T1."LineNum";
+
+                error := 50013;
+                error_message := 'Missing License Type! You cannot leave the License Type blank. Please select "ADVANCE" or "Not Required". [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+
+            -- GATE 2: Block Manual Typing
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                       IFNULL(T1."U_LicenseType", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')
+                    OR IFNULL(T1."U_LicenseType2", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')
+                    OR IFNULL(T1."U_LicenseType3", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')
+                  );
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND (
+                           IFNULL(T1."U_LicenseType", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')
+                        OR IFNULL(T1."U_LicenseType2", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')
+                        OR IFNULL(T1."U_LicenseType3", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')
+                      )
+                    ORDER BY T1."LineNum";
+
+                    error := 50014;
+                    error_message := 'Invalid License Type Entry! Please use the dropdown. Manual typing is not allowed. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+            -- GATE 3: If ADVANCE is selected, License Number & Qty are Mandatory
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                       (T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0))
+                    OR (T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0))
+                    OR (T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0))
+                  );
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND (
+                           (T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0))
+                        OR (T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0))
+                        OR (T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0))
+                      )
+                    ORDER BY T1."LineNum";
+
+                    error := 50018;
+                    error_message := 'Missing License Details! If License Type is "ADVANCE", you must select a License Number and enter a Quantity greater than 0. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+            -- GATE 4: BOE Mandatory
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM ODRF T0
+                INNER JOIN DRF1 T1 ON T0."DocEntry" = T1."DocEntry"
+                LEFT JOIN DRF12 T12 ON T0."DocEntry" = T12."DocEntry"
+                WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (T1."U_LicenseType" = 'ADVANCE' OR T1."U_LicenseType2" = 'ADVANCE' OR T1."U_LicenseType3" = 'ADVANCE')
+                  AND (IFNULL(T12."PortCode", '') = '' OR IFNULL(T12."ImpExpNo", '') = '' OR T12."ImpExpDate" IS NULL OR IFNULL(T12."BoEValue", 0) <= 0);
+
+                IF :ErrorCount > 0 THEN
+                    error := 50015;
+                    error_message := 'Customs Data Missing! Port Code, Bill of Entry No, Date, and Value (Import logistics tab) are compulsory when an ADVANCE License is selected. [Draft]';
+                END IF;
+            END IF;
+
+            -- GATE 5: License Number Base PO match
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+                INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                                   OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                       (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum", '') != '' AND T1."U_LicenseNum" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+                    OR (T1."U_LicenseType2" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND T1."U_LicenseNum2" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+                    OR (T1."U_LicenseType3" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND T1."U_LicenseNum3" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+                  );
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+                    INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                                       OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND (
+                           (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum", '') != '' AND T1."U_LicenseNum" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+                        OR (T1."U_LicenseType2" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND T1."U_LicenseNum2" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+                        OR (T1."U_LicenseType3" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND T1."U_LicenseNum3" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+                      )
+                    ORDER BY T1."LineNum";
+
+                    error := 50016;
+                    error_message := 'Invalid License! The License Number selected must exactly match one of the licenses originally approved in the base Purchase Order. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+            -- GATE 6: Qty Match
+            IF :error = 0 THEN
+                SELECT COUNT(*) INTO ErrorCount
+                FROM DRF1 T1
+                LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+                INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                                   OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (IFNULL(T3."U_LicenseNum", '') != '' OR IFNULL(T3."U_LicenseNum2", '') != '' OR IFNULL(T3."U_LicenseNum3", '') != '')
+                  AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0)) != T1."Quantity";
+
+                IF :ErrorCount > 0 THEN
+                    SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                    FROM DRF1 T1
+                    LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+                    INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                                       OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+                    WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                      AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                      AND (IFNULL(T3."U_LicenseNum", '') != '' OR IFNULL(T3."U_LicenseNum2", '') != '' OR IFNULL(T3."U_LicenseNum3", '') != '')
+                      AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0)) != T1."Quantity"
+                    ORDER BY T1."LineNum";
+
+                    error := 50017;
+                    error_message := 'Missing License Allocation! The sum of your License Quantities does not match the Row Quantity. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+                END IF;
+            END IF;
+
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- A/P INVOICE POSTING VALIDATION: Master License & Customs Check
+-----------------------------------------------------------------------------------------
+IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+        DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+        -- ==============================================================================
+        -- GATE 1: The primary License Type cannot be left blank (Rule 4)
+        -- ==============================================================================
+        SELECT COUNT(*) INTO ErrorCount
+        FROM PCH1 T1
+        WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+          AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+          AND IFNULL(T1."U_LicenseType", '') = '';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM PCH1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND IFNULL(T1."U_LicenseType", '') = ''
+            ORDER BY T1."LineNum";
+
+            error := 50013;
+            error_message := 'Missing License Type! You cannot leave the License Type blank. Please select "ADVANCE" or "Not Required". [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+
+        -- ==============================================================================
+        -- GATE 2: Block manual typing/invalid data in License Type (Rule 5)
+        -- ==============================================================================
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount
+            FROM PCH1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                  (IFNULL(T1."U_LicenseType", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')) OR
+                  (IFNULL(T1."U_LicenseType2", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')) OR
+                  (IFNULL(T1."U_LicenseType3", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required'))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM PCH1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                      (IFNULL(T1."U_LicenseType", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')) OR
+                      (IFNULL(T1."U_LicenseType2", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required')) OR
+                      (IFNULL(T1."U_LicenseType3", '') NOT IN ('', 'ADVANCE', 'Not Required', 'No Required'))
+                  )
+                ORDER BY T1."LineNum";
+
+                error := 50014;
+                error_message := 'Invalid License Type Entry! Please use the dropdown. Manual typing is not allowed. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+
+        -- ==============================================================================
+        -- GATE 3: If ADVANCE is selected, License Number & Qty are Mandatory
+        -- ==============================================================================
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount
+            FROM PCH1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                  (T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0)) OR
+                  (T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0)) OR
+                  (T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM PCH1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                      (T1."U_LicenseType" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum", '') = '' OR IFNULL(T1."U_LicenseQty", 0) <= 0)) OR
+                      (T1."U_LicenseType2" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum2", '') = '' OR IFNULL(T1."U_LicenseQty2", 0) <= 0)) OR
+                      (T1."U_LicenseType3" = 'ADVANCE' AND (IFNULL(T1."U_LicenseNum3", '') = '' OR IFNULL(T1."U_LicenseQty3", 0) <= 0))
+                  )
+                ORDER BY T1."LineNum";
+
+                error := 50018;
+                error_message := 'Missing License Details! If License Type is "ADVANCE", you must select a License Number and enter a Quantity greater than 0. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+
+        -- ==============================================================================
+        -- GATE 4: Enforce BOE Details if ADVANCE is selected (Rule 6)
+        -- ==============================================================================
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount
+            FROM OPCH T0
+            INNER JOIN PCH1 T1 ON T0."DocEntry" = T1."DocEntry"
+            LEFT JOIN PCH12 T12 ON T0."DocEntry" = T12."DocEntry"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (T1."U_LicenseType" = 'ADVANCE' OR T1."U_LicenseType2" = 'ADVANCE' OR T1."U_LicenseType3" = 'ADVANCE')
+              AND (IFNULL(T12."PortCode", '') = '' OR IFNULL(T12."ImpExpNo", '') = '' OR T12."ImpExpDate" IS NULL OR IFNULL(T12."BoEValue", 0) <= 0);
+
+            IF :ErrorCount > 0 THEN
+                error := 50015;
+                error_message := 'Customs Data Missing! Port Code, Bill of Entry No, Date, and Value (Import logistics tab) are compulsory when an ADVANCE License is selected.';
+            END IF;
+        END IF;
+
+        -- ==============================================================================
+        -- GATE 5: License Number must match base PO (Rule 1 & 2)
+        -- ==============================================================================
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount
+            FROM PCH1 T1
+            LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+            INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                               OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                 (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum", '') != '' AND T1."U_LicenseNum" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",''))) OR
+                 (T1."U_LicenseType2" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND T1."U_LicenseNum2" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",''))) OR
+                 (T1."U_LicenseType3" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND T1."U_LicenseNum3" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM PCH1 T1
+                LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+                INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                                   OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                      (T1."U_LicenseType" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum", '') != '' AND T1."U_LicenseNum" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",''))) OR
+                      (T1."U_LicenseType2" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum2", '') != '' AND T1."U_LicenseNum2" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",''))) OR
+                      (T1."U_LicenseType3" NOT IN ('Not Required', 'No Required') AND IFNULL(T1."U_LicenseNum3", '') != '' AND T1."U_LicenseNum3" NOT IN (IFNULL(T3."U_LicenseNum",''), IFNULL(T3."U_LicenseNum2",''), IFNULL(T3."U_LicenseNum3",'')))
+                  )
+                ORDER BY T1."LineNum";
+
+                error := 50016;
+                error_message := 'Invalid License! The License Number selected must exactly match one of the licenses originally approved in the base Purchase Order. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+
+        -- ==============================================================================
+        -- GATE 6: Sum of License Qty must perfectly match Invoice Row Qty (Rule 3 & 5)
+        -- ==============================================================================
+        IF :error = 0 THEN
+            SELECT COUNT(*) INTO ErrorCount
+            FROM PCH1 T1
+            LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+            INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                               OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (IFNULL(T3."U_LicenseNum", '') != '' OR IFNULL(T3."U_LicenseNum2", '') != '' OR IFNULL(T3."U_LicenseNum3", '') != '')
+              AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0)) != T1."Quantity";
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T1."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+                FROM PCH1 T1
+                LEFT JOIN PDN1 T2 ON T1."BaseType" = 20 AND T1."BaseEntry" = T2."DocEntry" AND T1."BaseLine" = T2."LineNum"
+                INNER JOIN POR1 T3 ON (T1."BaseType" = 22 AND T1."BaseEntry" = T3."DocEntry" AND T1."BaseLine" = T3."LineNum")
+                                   OR (T2."BaseType" = 22 AND T2."BaseEntry" = T3."DocEntry" AND T2."BaseLine" = T3."LineNum")
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (IFNULL(T3."U_LicenseNum", '') != '' OR IFNULL(T3."U_LicenseNum2", '') != '' OR IFNULL(T3."U_LicenseNum3", '') != '')
+                  AND (IFNULL(T1."U_LicenseQty", 0) + IFNULL(T1."U_LicenseQty2", 0) + IFNULL(T1."U_LicenseQty3", 0)) != T1."Quantity"
+                ORDER BY T1."LineNum";
+
+                error := 50017;
+                error_message := 'Missing License Allocation! The sum of your License Quantities does not match the Row Quantity. (You can use "Not Required" for remaining slots if the active qty matches). [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            END IF;
+        END IF;
+END IF;
+-- ==============================================================================
+-- A/P Invoice DRAFTS: "No Required" Strict Cleanup Rule (Separated by Base Object Type)
+-- ==============================================================================
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE DraftObjType NVARCHAR(10);
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+
+        -- Fetch the Object Type of the Draft (to ensure it's an A/P Invoice)
+        SELECT "ObjType" INTO DraftObjType FROM ODRF WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+        IF :DraftObjType = '18' THEN
+            SELECT COUNT(*) INTO ErrorCount
+            FROM DRF1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                   (T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0))
+                OR (T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0))
+                OR (T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0))
+              );
+
+            IF :ErrorCount > 0 THEN
+                SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)) INTO ErrorLineStr
+                FROM DRF1 T1
+                WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+                  AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+                  AND (
+                       (T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0))
+                    OR (T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0))
+                    OR (T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0))
+                  )
+                ORDER BY T1."LineNum";
+
+                error := 50019;
+                error_message := 'Invalid Data! If License Type is "Not Required", you MUST leave the License Number blank and set the Quantity to 0. [A/P Invoice Draft Row: ' || :ErrorLineStr || ']';
+            END IF;
+        END IF;
+END IF;
+-----------------------------------------------------------------------------------------
+-- A/P INVOICE: "Not Required" Strict Cleanup Rule
+-----------------------------------------------------------------------------------------
+IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+        DECLARE ErrorCount INT := 0;
+        DECLARE ErrorLineStr NVARCHAR(10) := '';
+
+        SELECT COUNT(*) INTO ErrorCount
+        FROM PCH1 T1
+        WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+          AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+          AND (
+               (T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0))
+            OR (T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0))
+            OR (T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0))
+          );
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T1."LineNum" + 1 AS NVARCHAR(10)) INTO ErrorLineStr
+            FROM PCH1 T1
+            WHERE T1."DocEntry" = :list_of_cols_val_tab_del
+              AND (T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%TR%')
+              AND (
+                   (T1."U_LicenseType" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum", '') != '' OR IFNULL(T1."U_LicenseQty", 0) != 0))
+                OR (T1."U_LicenseType2" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum2", '') != '' OR IFNULL(T1."U_LicenseQty2", 0) != 0))
+                OR (T1."U_LicenseType3" IN ('Not Required', 'No Required') AND (IFNULL(T1."U_LicenseNum3", '') != '' OR IFNULL(T1."U_LicenseQty3", 0) != 0))
+              )
+            ORDER BY T1."LineNum";
+
+            error := 50019;
+            error_message := 'Invalid Data! If License Type is "Not Required", you MUST leave the License Number blank and set the Quantity to 0. [A/P Invoice Row: ' || :ErrorLineStr || ']';
+        END IF;
+END IF;
 -- Select the return values-
 select :error, :error_message FROM dummy;
 
