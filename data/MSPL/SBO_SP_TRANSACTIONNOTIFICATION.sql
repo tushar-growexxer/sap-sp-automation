@@ -1699,15 +1699,16 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error_message := N'Extended warehouse is not allowed for item ' || ItemCode || ' at row ' || MIN_ROW + 1;
             END IF;
         END IF;
+		IF :transaction_type = 'A' THEN
+        	IF Suffix LIKE 'SPO%' AND ItemClass = '2' THEN
+            	error := -40015;
+	            error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
+    	    END IF;
 
-        IF Suffix LIKE 'SPO%' AND ItemClass = '2' THEN
-            error := -40015;
-            error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
-        END IF;
-
-        IF Suffix LIKE 'PO%' AND ItemClass = '1' AND SeriesName like 'DM%' THEN
-            error := -40016;
-            error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
+        	IF Suffix LIKE 'PO%' AND ItemClass = '1' AND SeriesName like 'DM%' THEN
+            	error := -40016;
+	            error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
+    	    END IF;
         END IF;
 
         SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
@@ -1999,15 +2000,16 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 error := -40040;
                 error_message := N'select NA as base type at row ' || MIN_ROW + 1;
             END IF;
+			IF :transaction_type = 'A' THEN
+	            IF Suffix LIKE 'SPO%' AND ItemClass = '2' THEN
+    	            error := -40041;
+        	        error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
+            	END IF;
 
-            IF Suffix LIKE 'SPO%' AND ItemClass = '2' THEN
-                error := -40041;
-                error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
-            END IF;
-
-            IF Suffix LIKE 'PO%' AND ItemClass = '1' and SeriesName like 'DM%' THEN
-                error := -40042;
-                error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
+	            IF Suffix LIKE 'PO%' AND ItemClass = '1' and SeriesName like 'DM%' THEN
+    	            error := -40042;
+        	        error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
+            	END IF;
             END IF;
 
             SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
@@ -5778,7 +5780,7 @@ DECLARE MaxARD Int;
 DECLARE PerUntQty Nvarchar(50);
 DECLARE Ttlunt Nvarchar(50);
 DECLARE Wghtpckng Nvarchar(50);
-DECLARE pckngtype Nvarchar(50);
+DECLARE Packitm Nvarchar(50);
 DECLARE typpltibc Nvarchar(50);
 DECLARE lictype Nvarchar(50);
 DECLARE licno Nvarchar(50);
@@ -5791,7 +5793,7 @@ DECLARE Nopltibc Nvarchar(50);
 		SELECT T1."Factor1" into PerUntQty FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
 		SELECT T1."Factor3" into Ttlunt FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
 		SELECT T1."U_WOPT" into Wghtpckng FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
-		SELECT T1."U_PTYPE" into pckngtype FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
+		SELECT T1."U_PTYPE" into Packitm FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
 		SELECT T1."U_TOPLT" into typpltibc FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
 		SELECT T1."U_LicenseType" into lictype FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
 		SELECT T1."U_LicenseNum" into licno FROM DPI1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinARD;
@@ -5810,24 +5812,14 @@ DECLARE Nopltibc Nvarchar(50);
 			error :=137;
 			error_message := N'Please enter weight of packing type';
 		END IF;
-		IF pckngtype IS NULL  then
+		IF Packitm IS NULL  then
 			error :=138;
-			error_message := N'Please enter packing type';
-		END IF;
-		IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
-		 pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
-			error :=139;
-			error_message := N'Please select proper packing type';
+			error_message := N'Please enter Packing Item details';
 		END IF;
 		IF typpltibc IS NULL
 		  then
 			error :=140;
-			error_message := N'Please enter Type of pallets/IBC';
-		END IF;
-		IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and
-		typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' and typpltibc <> 'Loose' then
-			error :=141;
-			error_message := N'Please enter proper word Type of pallets/IBC';
+			error_message := N'Please enter Pallets/IBC in Other Packing';
 		END IF;
 		IF lictype IS NULL  then
 			error :=142;
@@ -5837,7 +5829,7 @@ DECLARE Nopltibc Nvarchar(50);
 			error :=143;
 			error_message := N'Please enter Pallates/IBC';
 		END IF;
-		IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND pltibc <> 'BOX' AND pltibc <> 'Loose' then
+		IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND pltibc <> 'BOX' AND pltibc <> 'Loose' AND pltibc <> 'Vessel' then
 			error :=144;
 			error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
 		END IF;
@@ -20246,12 +20238,12 @@ IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) T
 			   FROM ODRF T0 JOIN OUSR T1 ON T1."USERID" = T0."UserSign"
 			   WHERE T0."DocEntry" = list_of_cols_val_tab_del and T0."ObjType" = 67;
 
-		IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('engg02','engg05') THEN
+		IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('engg03') THEN
 			error :=-1135;
 			error_message := N'You are not allowed to add RGP.';
 		END IF;
 
-		IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('engg07','store01','project3') THEN
+		IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('engg03') THEN
 			error :=-1136;
 			error_message := N'You are not allowed to add RGP.';
 		END IF;
@@ -20366,12 +20358,12 @@ IF Object_type = '67' and (:transaction_type ='A' or :transaction_type ='U' ) Th
 		   FROM OWTR T0 JOIN OUSR T1 ON T1."USERID" = T0."UserSign"
 		   WHERE T0."DocEntry" = list_of_cols_val_tab_del and T0."ObjType" = 67;
 
-	IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('engg02','engg05') THEN
+	IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('engg03') THEN
 		error :=-1153;
 		error_message := N'You are not allowed to add RGP.';
 	END IF;
 
-	IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('engg07','store01','project3') THEN
+	IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('engg03') THEN
 		error :=-1154;
 		error_message := N'You are not allowed to add RGP.';
 	END IF;
