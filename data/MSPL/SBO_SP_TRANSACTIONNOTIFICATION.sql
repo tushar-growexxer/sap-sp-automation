@@ -1665,10 +1665,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error_message := N'For unit 3 do not select project at row ' || MIN_ROW + 1;
         END IF;
 
-        IF UserCode LIKE '%dispatch%' AND IFNULL(BaseTypeUDF, '') <> 'NA' THEN
+        /*IF UserCode LIKE '%dispatch%' AND IFNULL(BaseTypeUDF, '') <> 'NA' THEN
             error := -40010;
             error_message := N'select NA as base type at row ' || MIN_ROW + 1;
-        END IF;
+        END IF;*/
 
         IF (ItemCode LIKE 'FA%' AND ItemType = 'F') THEN
             SELECT T1."BPLId" INTO ItemBranch FROM OITM T0
@@ -1996,20 +1996,20 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 error_message := N'For unit 3 do not select project at row ' || MIN_ROW + 1;
             END IF;
 
-            IF UserCode LIKE '%dispatch%' AND IFNULL(BaseTypeUDF, '') <> 'NA' THEN
+            /*IF UserCode LIKE '%dispatch%' AND IFNULL(BaseTypeUDF, '') <> 'NA' THEN
                 error := -40040;
                 error_message := N'select NA as base type at row ' || MIN_ROW + 1;
-            END IF;
+            END IF;*/
 			IF :transaction_type = 'A' THEN
 	            IF Suffix LIKE 'SPO%' AND ItemClass = '2' THEN
     	            error := -40041;
         	        error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
             	END IF;
 
-	            /*IF Suffix LIKE 'PO%' AND ItemClass = '1' and SeriesName like 'DM%' THEN
+	            IF Suffix LIKE 'PO%' AND ItemClass = '1' and SeriesName like 'DM%' THEN
     	            error := -40042;
         	        error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-            	END IF;*/
+            	END IF;
             END IF;
 
             SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
@@ -20238,12 +20238,12 @@ IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) T
 			   FROM ODRF T0 JOIN OUSR T1 ON T1."USERID" = T0."UserSign"
 			   WHERE T0."DocEntry" = list_of_cols_val_tab_del and T0."ObjType" = 67;
 
-		IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('engg03') THEN
+		IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('store') THEN
 			error :=-1135;
 			error_message := N'You are not allowed to add RGP.';
 		END IF;
 
-		IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('engg03') THEN
+		IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('store') THEN
 			error :=-1136;
 			error_message := N'You are not allowed to add RGP.';
 		END IF;
@@ -20358,12 +20358,12 @@ IF Object_type = '67' and (:transaction_type ='A' or :transaction_type ='U' ) Th
 		   FROM OWTR T0 JOIN OUSR T1 ON T1."USERID" = T0."UserSign"
 		   WHERE T0."DocEntry" = list_of_cols_val_tab_del and T0."ObjType" = 67;
 
-	IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('engg03') THEN
+	IF (FromWhs = '1RGP' or ToWhs = '1RGP') and UsrCod not in ('store') THEN
 		error :=-1153;
 		error_message := N'You are not allowed to add RGP.';
 	END IF;
 
-	IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('engg03') THEN
+	IF (FromWhs = '2RGP' or ToWhs = '2RGP') and UsrCod not in ('store') THEN
 		error :=-1154;
 		error_message := N'You are not allowed to add RGP.';
 	END IF;
@@ -20749,35 +20749,40 @@ DECLARE ReceiptWhsCode nvarchar(50);
 DECLARE MinIn int;
 DECLARE MaxIn int;
 DECLARE ProdType nvarchar(5);
+DECLARE BaseTypee int;
 
 	 SELECT Min(T0."VisOrder"),Max(T0."VisOrder") INTO MinIn,MaxIn from IGN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	 WHILE :MinIn <= :MaxIn DO
-	 (SELECT T1."Type" into ProdType from IGN1 T0 join OWOR T1 on T0."BaseEntry" = T1."DocEntry" where T0."DocEntry" =:list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
-	 (SELECT T0."ItemCode" into ReceiptItemCode FROM IGN1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
-	 (SELECT T0."WhsCode" into ReceiptWhsCode FROM IGN1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
+	 SELECT count(T0."BaseEntry") into BaseTypee from IGN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 
-	IF ProdType = 'S' then
-	  	IF (ReceiptItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and ReceiptWhsCode not in ('JW-QC', 'OF-PORT')) then
-				error := -1197;
-				error_message := N'Please select proper Warehouse.';
-		END IF;
-		IF (ReceiptWhsCode in ('JW-QC', 'OF-PORT') and ReceiptItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013')) then
-				error := -1198;
-				error_message := N'Please select proper Item.';
-		END IF;
-	END IF;
-	IF ProdType = 'P' then
-	  	IF (ReceiptItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and ReceiptWhsCode not in ('JW-QC','OF-PT-DI')) then
-				error := -1199;
-				error_message := N'Please select proper Warehouse.';
-		END IF;
-		IF (ReceiptWhsCode in ('JW-QC','OF-PT-DI') and ReceiptItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013')) then
-				error := -1200;
-				error_message := N'Please select proper Item.';
-		END IF;
-	END IF;
-		MinIn := MinIn + 1;
-	END WHILE;
+	 if BaseTypee > 0 then
+		 WHILE :MinIn <= :MaxIn DO
+		 (SELECT T1."Type" into ProdType from IGN1 T0 join OWOR T1 on T0."BaseEntry" = T1."DocEntry" where T0."DocEntry" =:list_of_cols_val_tab_del and T0."VisOrder" = MinIn and T0."BaseType" = '202');
+		 (SELECT T0."ItemCode" into ReceiptItemCode FROM IGN1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
+		 (SELECT T0."WhsCode" into ReceiptWhsCode FROM IGN1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
+
+			IF ProdType = 'S' then
+			  	IF (ReceiptItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and ReceiptWhsCode not in ('JW-QC', 'OF-PORT')) then
+						error := -1197;
+						error_message := N'Please select proper Warehouse.';
+				END IF;
+				IF (ReceiptWhsCode in ('JW-QC', 'OF-PORT') and ReceiptItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013')) then
+						error := -1198;
+						error_message := N'Please select proper Item.';
+				END IF;
+			END IF;
+			IF ProdType = 'P' then
+			  	IF (ReceiptItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and ReceiptWhsCode not in ('JW-QC','OF-PT-DI')) then
+						error := -1199;
+						error_message := N'Please select proper Warehouse.';
+				END IF;
+				IF (ReceiptWhsCode in ('JW-QC','OF-PT-DI') and ReceiptItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013')) then
+						error := -1200;
+						error_message := N'Please select proper Item.';
+				END IF;
+			END IF;
+			MinIn := MinIn + 1;
+		END WHILE;
+	end if;
 END IF;
 
     ----------------------------------------------------------
