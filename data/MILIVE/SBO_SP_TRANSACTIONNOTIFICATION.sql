@@ -458,6 +458,8 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE COA_Appr int;
     DECLARE SOPallet, Pallet1, Pallet2, Pallet3, PackingType NVARCHAR(50);
     DECLARE IMItemName NVARCHAR(200);
+    DECLARE BPLId NVARCHAR(5);
+    DECLARE OcrCodee NVARCHAR(10);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -469,7 +471,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         T0."DocRate", T0."CardName", T3."BPLName",
         T1."SeriesName",
         T2."PymntGroup",
-        T4."SlpCode", T4."CardType", T4."CreditLine", T4."Balance", T2."PymntGroup", T4."U_REX_Clause", T4."U_RexNo", T4."Country",T0."U_EOSellType"
+        T4."SlpCode", T4."CardType", T4."CreditLine", T4."Balance", T2."PymntGroup", T4."U_REX_Clause", T4."U_RexNo", T4."Country",T0."U_EOSellType", T0."BPLId"
     INTO
         CardCode, SOCurrency, SOCmnt, SOSLP, RMRKPRD, RMRKSTR, RMRKQC,
         SODate, DueDate, PLoad, PDischrg, CNPJ, CEP, CUIT,
@@ -477,7 +479,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         SOrate, BPName, Name,
         Series,
         POPayment,
-        BPSLP, CardType, CreditLimit, DueBalance, BPPayment, REXClause, REXNo, Country, EOSellType
+        BPSLP, CardType, CreditLimit, DueBalance, BPPayment, REXClause, REXNo, Country, EOSellType, BPLId
     FROM ORDR T0
     INNER JOIN NNM1 T1 ON T0."Series" = T1."Series"
     INNER JOIN OCTG T2 ON T0."GroupNum" = T2."GroupNum"
@@ -670,14 +672,14 @@ END IF;
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", count(ifnull(T1."U_ApprOnCOA", '')),
-            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName"
+            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName", T1."OcrCode"
         INTO
             SOItemCode, SOWhse, SOEntryType, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,PackingType,
             SOPackType, SOPckCode, Capacity, HASCOM, Commission, CommissionPer,
             ShowREX, typpltibc, SOName, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
             U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining,COA_Appr,
-            SOPallet,Pallet1,Pallet2,Pallet3, IMItemName
+            SOPallet,Pallet1,Pallet2,Pallet3, IMItemName, OcrCodee
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
         INNER JOIN OCRD T3 ON T3."CardCode" = :CardCode
@@ -687,7 +689,7 @@ END IF;
             T1."U_ShowREX", T1."Dscription", T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",
-            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName";
+            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName", T1."OcrCode";
 
         -- Validation 30032: Entry Type Check (Only for Add)
         IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -932,6 +934,48 @@ IF SOPallet = 'NA'
     error := 30094;
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
+
+
+IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
+
+        -- VALIDATION 1: ItemCode prefix must match Distribution Rule suffix
+            IF LEFT(SOItemCode, 2) <> RIGHT(OcrCodee, 2) THEN
+                error         := 30095;
+                error_message := N'Invalid Distribution Rule: Item '          || SOItemCode          ||
+                                  ' must have Distribution Rule ending with '  || LEFT(SOItemCode, 2) ||
+                                  ' but found '                                || OcrCode;
+            END IF;
+
+      -- VALIDATION 2: Branch = 3 (Unit-1) → No prefix 2 or 3 allowed
+            IF BPLId = 3 THEN
+                IF OcrCodee LIKE '2%' OR OcrCodee LIKE '3%' THEN
+                    error         := 30096;
+                    error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 2 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 3: Branch = 4 (Unit-2) → Must use prefix 2
+            IF BPLId = 4 THEN
+                IF OcrCodee NOT LIKE '2%' THEN
+                    error         := 30097;
+                    error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 4: Branch = 5 (Unit-3) → Must use prefix 3
+            IF BPLId = 5 THEN
+                IF OcrCodee NOT LIKE '3%' THEN
+                    error         := 30098;
+                    error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 2';
+                END IF;
+            END IF;
+         END IF;
         MinSO := MinSO + 1;
     END WHILE;
 END IF;
@@ -1022,6 +1066,8 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
         DECLARE SOPallet, Pallet1, Pallet2, Pallet3, PackingType NVARCHAR(50);
         DECLARE SOItemName NVARCHAR(50);
     	DECLARE IMItemName NVARCHAR(200);
+    	DECLARE BPLId NVARCHAR(5);
+    	DECLARE OcrCodee NVARCHAR(10);
     ----------------------------------------------------------------------------------------------------
     -- SECTION 1: UPFRONT DATA RETRIEVAL (EXECUTED ONCE)
     ----------------------------------------------------------------------------------------------------
@@ -1029,11 +1075,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
     SELECT T0."CardCode", T0."DocCur", T1."SeriesName", T0."NumAtCard", T0."SlpCode", T0."U_RMRKPRD",
            T0."U_RMRKSTR", T0."U_RMRKQC", ifnull(T0."Comments", ''), T0."DocRate", T0."DocDate", T0."DocDueDate", T0."U_Export_Remark",
            T0."U_ExportRemarks", T0."SlpCode", T0."U_CNPJ_Num", T0."U_CEP_Num", T0."U_CUIT_Num", T0."U_Tax_ID",
-           T0."U_Notify_CNPJ", T0."U_Notify_CEP", T0."U_FinlDest", T0."U_PLoad", T0."U_PDischrg", T0."BPLName", T2."Country",T0."U_EOSellType"
+           T0."U_Notify_CNPJ", T0."U_Notify_CEP", T0."U_FinlDest", T0."U_PLoad", T0."U_PDischrg", T0."BPLName", T2."Country",T0."U_EOSellType", T0."BPLId"
     INTO
     CardCodeSO, SOCurrency, SOSeries, CustRef, SESO, RMRKPRD,
          RMRKSTR, RMRKQC, SOCmnt, SOrate, SOdate, DLDate, ExpRmk, ExpRmkO,
-         SOSLP, CNPJ, CEP, CUIT, TaxID, NotifyCNPJ, NotifyCEP, City, PLoad, PDischrg, Name, Country, EOSellType
+         SOSLP, CNPJ, CEP, CUIT, TaxID, NotifyCNPJ, NotifyCEP, City, PLoad, PDischrg, Name, Country, EOSellType, BPLId
     FROM ODRF T0
     INNER JOIN NNM1 T1 ON T0."Series" = T1."Series"
     JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
@@ -1257,12 +1303,12 @@ END IF;
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX", count(T1."U_TOPLT"),
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                    T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt", count(ifnull(T1."U_ApprOnCOA", '')),
-                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName"
+                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName", T1."OcrCode"
             INTO SOEntryType, SOWhse, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, PSS, TaxCode,PackingType,
                  SOPackType, SOPackng, Capacity, SOOtherPackng, HASCOM, Commission, CommissionPer,
                  SOItemGrpCode, BatchCount, ShowREX, typpltibc,
                  U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName,Freetext,COA_Appr,
-                 SOPallet,Pallet1,Pallet2,Pallet3, IMItemName
+                 SOPallet,Pallet1,Pallet2,Pallet3, IMItemName, OcrCodee
             FROM DRF1 T1 JOIN ODRF ON ODRF."DocEntry" = T1."DocEntry"
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
             INNER JOIN OCRD T3 ON T3."CardCode" = :CardCodeSO
@@ -1272,7 +1318,7 @@ END IF;
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX",
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                    T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."FreeTxt",
-                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName";
+                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName", T1."OcrCode";
 
             -- Validation 30055: Entry Type Check (Only for Add)
             IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -1530,6 +1576,47 @@ IF SOPallet = 'NA'
     error := 30094;
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
+
+IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
+
+        -- VALIDATION 1: ItemCode prefix must match Distribution Rule suffix
+            IF LEFT(SOItemCode, 2) <> RIGHT(OcrCodee, 2) THEN
+                error         := 30095;
+                error_message := N'Invalid Distribution Rule: Item '          || SOItemCode          ||
+                                  ' must have Distribution Rule ending with '  || LEFT(SOItemCode, 2) ||
+                                  ' but found '                                || OcrCode;
+            END IF;
+
+      -- VALIDATION 2: Branch = 3 (Unit-1) → No prefix 2 or 3 allowed
+            IF BPLId = 3 THEN
+                IF OcrCodee LIKE '2%' OR OcrCodee LIKE '3%' THEN
+                    error         := 30096;
+                    error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 2 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 3: Branch = 4 (Unit-2) → Must use prefix 2
+            IF BPLId = 4 THEN
+                IF OcrCodee NOT LIKE '2%' THEN
+                    error         := 30097;
+                    error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 4: Branch = 5 (Unit-3) → Must use prefix 3
+            IF BPLId = 5 THEN
+                IF OcrCodee NOT LIKE '3%' THEN
+                    error         := 30098;
+                    error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 2';
+                END IF;
+            END IF;
+         END IF;
             -- Increment loop counter
             MinSO := MinSO + 1;
         END WHILE;
@@ -1759,10 +1846,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
         END IF;
 
-        /*IF Suffix LIKE 'PO%' AND ItemClass = '1' THEN
+        IF Suffix LIKE 'PO%' AND ItemClass = '1' THEN
             error := -40016;
             error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-        END IF;*/
+        END IF;
 
         SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
         IF TempCounter > 0 THEN
@@ -2092,10 +2179,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
             END IF;
 
-            /*IF Suffix LIKE 'PO%' AND ItemClass = '1' THEN
+            IF Suffix LIKE 'PO%' AND ItemClass = '1' THEN
                 error := -40042;
                 error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-            END IF;*/
+            END IF;
 
             SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
             IF TempCounter > 0 THEN
@@ -24206,6 +24293,116 @@ IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error_message := 'Invalid Data! If License Type is "Not Required", you MUST leave the License Number blank and set the Quantity to 0. [A/P Invoice Row: ' || :ErrorLineStr || ']';
         END IF;
 END IF;
+
+
+
+------------------------------------------- AR Inv Distr Rule Validation --------------------------------------------------------
+IF :object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE MinIN INT;
+DECLARE MaxIN INT;
+DECLARE ItemCodeIN NVARCHAR(50);
+DECLARE OcrCodeIN NVARCHAR(50);
+DECLARE BranchIN INT;
+    SELECT OINV."BPLId" INTO BranchIN FROM OINV WHERE OINV."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT MIN(T0."VisOrder") INTO MinIN FROM INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT MAX(T0."VisOrder") INTO MaxIN FROM INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+    WHILE :MinIN <= :MaxIN DO
+        SELECT T1."ItemCode", T1."OcrCode" INTO ItemCodeIN, OcrCodeIN
+        FROM OINV T0
+        INNER JOIN INV1 T1 ON T0."DocEntry" = T1."DocEntry"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = :MinIN;
+        IF LEFT(ItemCodeIN, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
+            IF LEFT(ItemCodeIN, 2) <> RIGHT(OcrCodeIN, 2) THEN
+                error := 50020;
+                error_message := N'Invalid Distribution Rule: Item ' || ItemCodeIN ||
+                                  ' must have Distribution Rule ending with ' || LEFT(ItemCodeIN, 2) ||
+                                  ' but found ' || OcrCodeIN;
+            END IF;
+
+            IF BranchIN = 3 THEN
+                IF OcrCodeIN LIKE '2%' OR OcrCodeIN LIKE '3%' THEN
+                    error := 50021;
+                    error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+                                      OcrCodeIN || '. Please select a rule without prefix 2 or 3';
+                END IF;
+            END IF;
+
+            IF BranchIN = 4 THEN
+                IF OcrCodeIN NOT LIKE '2%' THEN
+                    error := 50022;
+                    error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+                                      OcrCodeIN || '. Please Select rule without prefix 1 or 3';
+                END IF;
+            END IF;
+
+            IF BranchIN = 5 THEN
+                IF OcrCodeIN NOT LIKE '3%' THEN
+                    error := 50023;
+                    error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+                                      OcrCodeIN || '. Please Select rule without prefix 1 or 2';
+                END IF;
+            END IF;
+        END IF;
+        MinIN := MinIN + 1;
+    END WHILE;
+END IF;
+
+--Draft
+IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE MinIN INT;
+DECLARE MaxIN INT;
+DECLARE ItemCodeIN NVARCHAR(50);
+DECLARE OcrCodeIN NVARCHAR(50);
+DECLARE BranchIN INT;
+    (SELECT ODRF."ObjType" INTO DraftObj FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del);
+    IF DraftObj = 13 THEN
+        (SELECT ODRF."BPLId" INTO BranchIN FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del AND ODRF."ObjType" = 13);
+        (SELECT MIN(T0."VisOrder") INTO MinIN FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."ObjType" = 13);
+        (SELECT MAX(T0."VisOrder") INTO MaxIN FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."ObjType" = 13);
+        WHILE :MinIN <= :MaxIN DO
+            (SELECT T1."ItemCode", T1."OcrCode" INTO ItemCodeIN, OcrCodeIN
+            FROM ODRF T0
+            INNER JOIN DRF1 T1 ON T0."DocEntry" = T1."DocEntry"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = :MinIN
+            AND T0."ObjType" = 13);
+            IF LEFT(ItemCodeIN, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
+
+                IF LEFT(ItemCodeIN, 2) <> RIGHT(OcrCodeIN, 2) THEN
+                    error := 50020;
+                    error_message := N'Invalid Distribution Rule: Item ' || ItemCodeIN ||
+                                      ' must have Distribution Rule ending with ' || LEFT(ItemCodeIN, 2) ||
+                                      ' but found ' || OcrCodeIN;
+                END IF;
+
+                IF BranchIN = 3 THEN
+                    IF OcrCodeIN LIKE '2%' OR OcrCodeIN LIKE '3%' THEN
+                        error := 50021;
+                        error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+                                          OcrCodeIN || '. Please select a rule without prefix 2 or 3';
+                    END IF;
+                END IF;
+
+                IF BranchIN = 4 THEN
+                    IF OcrCodeIN NOT LIKE '2%' THEN
+                        error := 50022;
+                        error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+                                          OcrCodeIN || '. Please Select rule without prefix 1 or 3';
+                    END IF;
+                END IF;
+
+                IF BranchIN = 5 THEN
+                    IF OcrCodeIN NOT LIKE '3%' THEN
+                        error := 50023;
+                        error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+                                          OcrCodeIN || '. Please Select rule without prefix 1 or 2';
+                    END IF;
+                END IF;
+            END IF;
+            MinIN := MinIN + 1;
+        END WHILE;
+    END IF;
+END IF;
+
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;

@@ -766,7 +766,7 @@ End If;
 ----------------------------------------------------------Sales Order SC---------------------------------------------------------------------
 IF (:object_type = '17' AND (:transaction_type IN ('A','U'))) THEN
 
-	select count(*) into Temp from ordr where "DocEntry"=:list_of_cols_val_tab_del;
+	select count(*) into Temp from ordr where "CardCode" LIKE 'C_E%' and "DocEntry"=:list_of_cols_val_tab_del;
 
 	If :Temp > 0 then
 
@@ -786,9 +786,31 @@ IF (:object_type = '17' AND (:transaction_type IN ('A','U'))) THEN
 			END IF;
 	End If;
 End If;
-
-
 --------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------Sales Order SC (Domestic)---------------------------------------------------------------------------------
+IF (:object_type = '17' AND (:transaction_type IN ('A','U'))) THEN
+
+	select count(*) into Temp from ordr where "CardCode" LIKE 'C_D%' and "DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+	SELECT T0."DocEntry" INTO DocEntry FROM ordr T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	SELECT T2."Email", T2."Memo" INTO MailID, EmailCC
+	FROM ORDR T0 INNER JOIN OCRD T1 ON T0."CardCode" = T1."CardCode" INNER JOIN OSLP T2 ON T1."SlpCode" = T2."SlpCode"
+	WHERE T0."DocEntry" = :DocEntry;
+
+			Mobile := 'sap1@matangiindustries.com,sap2@matangiindustries.com,sap@matangiindustries.com';
+			EmailBCC := '';
+			ObjectType :='F';
+			Mobi_TYPE := 'Sales Order SC';
+			Select CURRENT_SCHEMA Into DBName from Dummy;
+			If(:DBName = 'MILIVE') Then
+				CALL "MOBIALERT"."Add_Config_Proc" (117,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+			END IF;
+	End If;
+End If;
+-----------------------------------------------------------------------------------------------------------------------------------------------
 -----------------------------------AR Invoice Generated---------------------------------------------------------------------------------
 ---Sales Invoice Generate alert to Business Head(SC,DI,OF)----
 IF (:object_type = '13' AND (:transaction_type = 'A')) THEN
