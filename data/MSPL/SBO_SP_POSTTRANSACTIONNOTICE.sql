@@ -310,7 +310,7 @@ IF (:object_type = '17' AND (:transaction_type IN ('A','U'))) THEN
 			ObjectType :='G';
 			Mobi_TYPE := 'Sales Order SC';
 			Select CURRENT_SCHEMA Into DBName from Dummy;
-			If(:DBName = 'MILIVE') Then
+			If(:DBName = 'MSPL') Then
 				CALL "MOBIALERT"."Add_Config_Proc" (117,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 			END IF;
 	End If;

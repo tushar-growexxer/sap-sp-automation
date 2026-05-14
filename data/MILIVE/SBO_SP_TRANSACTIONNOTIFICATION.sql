@@ -4243,7 +4243,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4265,7 +4265,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -10173,7 +10173,7 @@ DECLARE ItemCode Nvarchar(50);
 	END WHILE;
 END IF;
 -------------------------- Remarks with minimun 20 words---------------
-IF object_type IN ('59') AND (:transaction_type = 'A' or :transaction_type='U') THEN
+/*IF object_type IN ('59') AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE Comments Int;
 DECLARE JrnalMemo Nvarchar(50);
 
@@ -10233,6 +10233,7 @@ DECLARE Comments Int;
 				error_message := N'Please mention remark with minimum 20 words';
 		END IF;
 END IF;
+*/
 ---------------------------------------------------------------------------------------------------------------------------
 IF object_type IN ('24') AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE Comments Int;
@@ -10258,7 +10259,7 @@ DECLARE TransType Int;
 			END IF;
 END IF;
 --------------------------------Delay Remarks------------------------------
-IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
+/*IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE DelayRemark Nvarchar(50);
 
 		SELECT T1."U_RMKSTR" into DelayRemark FROM OINV T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
@@ -10278,7 +10279,7 @@ DECLARE BLdelayRemark Nvarchar(50);
 			error_message := N'Please select proper BL delay remark';
 		END IF;
 END IF;
-
+*/
 IF object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE DocType Nvarchar(50);
 DECLARE TransfAcc Int;
@@ -24402,7 +24403,6 @@ DECLARE BranchIN INT;
         END WHILE;
     END IF;
 END IF;
-
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;
