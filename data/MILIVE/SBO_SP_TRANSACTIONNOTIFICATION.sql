@@ -10173,7 +10173,7 @@ DECLARE ItemCode Nvarchar(50);
 	END WHILE;
 END IF;
 -------------------------- Remarks with minimun 20 words---------------
-/*IF object_type IN ('59') AND (:transaction_type = 'A' or :transaction_type='U') THEN
+IF object_type IN ('59') AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE Comments Int;
 DECLARE JrnalMemo Nvarchar(50);
 
@@ -10233,7 +10233,6 @@ DECLARE Comments Int;
 				error_message := N'Please mention remark with minimum 20 words';
 		END IF;
 END IF;
-*/
 ---------------------------------------------------------------------------------------------------------------------------
 IF object_type IN ('24') AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE Comments Int;
@@ -10259,7 +10258,7 @@ DECLARE TransType Int;
 			END IF;
 END IF;
 --------------------------------Delay Remarks------------------------------
-/*IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
+IF object_type = '13' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE DelayRemark Nvarchar(50);
 
 		SELECT T1."U_RMKSTR" into DelayRemark FROM OINV T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del;
@@ -10279,7 +10278,7 @@ DECLARE BLdelayRemark Nvarchar(50);
 			error_message := N'Please select proper BL delay remark';
 		END IF;
 END IF;
-*/
+
 IF object_type = '46' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE DocType Nvarchar(50);
 DECLARE TransfAcc Int;
