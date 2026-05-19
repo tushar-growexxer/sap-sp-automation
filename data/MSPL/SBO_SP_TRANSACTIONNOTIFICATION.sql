@@ -6287,7 +6287,7 @@ If object_type = '18' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 	END WHILE;
 END IF;
 
-IF object_type = '18' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+/*IF object_type = '18' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 
 DECLARE APQTD Int;
 DECLARE MinLineAPQ Int;
@@ -6322,7 +6322,7 @@ DECLARE DocTyp varchar(50);
 			MinLineAPQ := MinLineAPQ+1;
 		END WHILE;
 	END IF;
-END IF;
+END IF;*/
 ------------------------------------------------------
 ---------Only QC dept can transfer material from QC warehouse------------
 IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
@@ -15614,7 +15614,7 @@ if DraftObj = 18 THEN
 END IF;
 END IF;
 
-IF object_type='112' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+/*IF object_type='112' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 DECLARE APQTD Int;
 DECLARE MinLineAPQ Int;
 DECLARE MaxLineAPQ Int;
@@ -15648,7 +15648,7 @@ if DraftObj = 18 THEN
 		END WHILE;
 	END IF;
 END IF;
-END IF;
+END IF;*/
 
 IF Object_type = '112' and (:transaction_type ='A' OR :transaction_type ='U') Then
 

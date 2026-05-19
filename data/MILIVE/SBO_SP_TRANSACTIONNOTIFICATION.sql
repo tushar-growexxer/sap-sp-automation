@@ -357,6 +357,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         END IF;
     END IF;
 END IF;
+
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
 
 ------------------------- SALES ORDER START -------------------------------
