@@ -23777,6 +23777,326 @@ IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error_message := 'Invalid Data! If License Type is "Not Required", you MUST leave the License Number blank and set the Quantity to 0. [A/P Invoice Row: ' || :ErrorLineStr || ']';
         END IF;
 END IF;
+-- =========================================================================================
+-- PACKING TYPE VALIDATION FOR VESSEL SHIPMENTS
+-- Documents: A/R Down Payment (203), Delivery (15), A/R Invoice (13), Delivery Drafts (112)
+-- =========================================================================================
+
+-- ==========================================
+-- 1. A/R DOWN PAYMENT REQUEST (Object 203)
+-- ==========================================
+IF :object_type = '203' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE ErrorCount INT := 0;
+    DECLARE ErrorLineStr NVARCHAR(10) := '';
+    DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+    -- Rule 1: Prevent changing Packing Type if Base is Vessel
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DPI1" T0
+        INNER JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND T1."U_Pkg_Type" = 'Vessel'
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DPI1" T0
+            INNER JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."U_Pkg_Type" = 'Vessel' AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+            ORDER BY T0."LineNum";
+
+            error := 101;
+            error_message := 'Packing Type cannot be changed from Vessel. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+
+    -- Rule 2A: Vessel shipments must use BE1 or BE2 series
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DPI1" T0
+        INNER JOIN "ODPI" T1 ON T0."DocEntry" = T1."DocEntry"
+        INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND T0."U_Pkg_Type" = 'Vessel'
+          AND T2."SeriesName" NOT LIKE 'BE1%' AND T2."SeriesName" NOT LIKE 'BE2%';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DPI1" T0
+            INNER JOIN "ODPI" T1 ON T0."DocEntry" = T1."DocEntry"
+            INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."U_Pkg_Type" = 'Vessel' AND T2."SeriesName" NOT LIKE 'BE1%' AND T2."SeriesName" NOT LIKE 'BE2%'
+            ORDER BY T0."LineNum";
+
+            error := 102;
+            error_message := 'Series must be BE1 or BE2 for Vessel shipments. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+
+    -- Rule 2B: Non-Vessel shipments cannot use BE1 or BE2 series
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DPI1" T0
+        INNER JOIN "ODPI" T1 ON T0."DocEntry" = T1."DocEntry"
+        INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+          AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%');
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DPI1" T0
+            INNER JOIN "ODPI" T1 ON T0."DocEntry" = T1."DocEntry"
+            INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel' AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%')
+            ORDER BY T0."LineNum";
+
+            error := 103;
+            error_message := 'BE1/BE2 series is only for Vessel shipments. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+END IF;
+-- ==========================================
+-- 2. DELIVERY DRAFTS ONLY (Object 112, ObjType 15)
+-- ==========================================
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE ErrorCount INT := 0;
+    DECLARE ErrorLineStr NVARCHAR(10) := '';
+    DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+    -- Rule 1: Prevent changing Packing Type if Sales Order Base is Vessel
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DRF1" T0
+        INNER JOIN "ODRF" D ON T0."DocEntry" = D."DocEntry"
+        INNER JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND D."ObjType" = '15'
+          AND T1."U_Pkg_Type" = 'Vessel'
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DRF1" T0
+            INNER JOIN "ODRF" D ON T0."DocEntry" = D."DocEntry"
+            INNER JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+              AND D."ObjType" = '15'
+              AND T1."U_Pkg_Type" = 'Vessel'
+              AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+            ORDER BY T0."LineNum";
+
+            error := 110;
+            error_message := 'Packing Type cannot be changed from Vessel in Delivery Draft. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+
+    -- Rule 2A: Delivery Drafts for Vessel shipments must use BE1 or BE2 series
+    /*IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DRF1" T0
+        INNER JOIN "ODRF" D ON T0."DocEntry" = D."DocEntry"
+        INNER JOIN "NNM1" T2 ON D."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND D."ObjType" = '15'
+          AND T0."U_Pkg_Type" = 'Vessel'
+          AND T2."SeriesName" NOT LIKE 'BE1%'
+          AND T2."SeriesName" NOT LIKE 'BE2%';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DRF1" T0
+            INNER JOIN "ODRF" D ON T0."DocEntry" = D."DocEntry"
+            INNER JOIN "NNM1" T2 ON D."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+              AND D."ObjType" = '15'
+              AND T0."U_Pkg_Type" = 'Vessel'
+              AND T2."SeriesName" NOT LIKE 'BE1%'
+              AND T2."SeriesName" NOT LIKE 'BE2%'
+            ORDER BY T0."LineNum";
+
+            error := 111;
+            error_message := 'Series must be BE1 or BE2 for Vessel Delivery Draft. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;*/
+
+    -- Rule 2B: Non-Vessel Delivery Drafts cannot use BE1 or BE2 series
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DRF1" T0
+        INNER JOIN "ODRF" D ON T0."DocEntry" = D."DocEntry"
+        INNER JOIN "NNM1" T2 ON D."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND D."ObjType" = '15'
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+          AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%');
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DRF1" T0
+            INNER JOIN "ODRF" D ON T0."DocEntry" = D."DocEntry"
+            INNER JOIN "NNM1" T2 ON D."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+              AND D."ObjType" = '15'
+              AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+              AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%')
+            ORDER BY T0."LineNum";
+
+            error := 112;
+            error_message := 'BE1/BE2 series is only for Vessel shipments. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+END IF;
+-- ==========================================
+-- 2. DELIVERY (Object 15)
+-- ==========================================
+IF :object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE ErrorCount INT := 0;
+    DECLARE ErrorLineStr NVARCHAR(10) := '';
+    DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DLN1" T0
+        INNER JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND T1."U_Pkg_Type" = 'Vessel'
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DLN1" T0
+            INNER JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."U_Pkg_Type" = 'Vessel' AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+            ORDER BY T0."LineNum";
+
+            error := 104;
+            error_message := 'Packing Type cannot be changed from Vessel. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DLN1" T0
+        INNER JOIN "ODLN" T1 ON T0."DocEntry" = T1."DocEntry"
+        INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND T0."U_Pkg_Type" = 'Vessel'
+          AND T2."SeriesName" NOT LIKE 'BE1%' AND T2."SeriesName" NOT LIKE 'BE2%';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DLN1" T0
+            INNER JOIN "ODLN" T1 ON T0."DocEntry" = T1."DocEntry"
+            INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."U_Pkg_Type" = 'Vessel' AND T2."SeriesName" NOT LIKE 'BE1%' AND T2."SeriesName" NOT LIKE 'BE2%'
+            ORDER BY T0."LineNum";
+
+            error := 105;
+            error_message := 'Series must be BE1 or BE2 for Vessel shipments. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "DLN1" T0
+        INNER JOIN "ODLN" T1 ON T0."DocEntry" = T1."DocEntry"
+        INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+          AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%');
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "DLN1" T0
+            INNER JOIN "ODLN" T1 ON T0."DocEntry" = T1."DocEntry"
+            INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel' AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%')
+            ORDER BY T0."LineNum";
+
+            error := 106;
+            error_message := 'BE1/BE2 series is only for Vessel shipments. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+END IF;
+
+-- ==========================================
+-- 3. A/R INVOICE (Object 13)
+-- ==========================================
+IF :object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE ErrorCount INT := 0;
+    DECLARE ErrorLineStr NVARCHAR(10) := '';
+    DECLARE ErrorItemStr NVARCHAR(50) := '';
+
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "INV1" T0
+        LEFT JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+        LEFT JOIN "DLN1" T2 ON T0."BaseEntry" = T2."DocEntry" AND T0."BaseLine" = T2."LineNum" AND T0."BaseType" = 15
+        LEFT JOIN "DPI1" T3 ON T0."BaseEntry" = T3."DocEntry" AND T0."BaseLine" = T3."LineNum" AND T0."BaseType" = 203
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND ( (T0."BaseType" = 17 AND T1."U_Pkg_Type" = 'Vessel') OR (T0."BaseType" = 15 AND T2."U_Pkg_Type" = 'Vessel') OR (T0."BaseType" = 203 AND T3."U_Pkg_Type" = 'Vessel') )
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "INV1" T0
+            LEFT JOIN "RDR1" T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 17
+            LEFT JOIN "DLN1" T2 ON T0."BaseEntry" = T2."DocEntry" AND T0."BaseLine" = T2."LineNum" AND T0."BaseType" = 15
+            LEFT JOIN "DPI1" T3 ON T0."BaseEntry" = T3."DocEntry" AND T0."BaseLine" = T3."LineNum" AND T0."BaseType" = 203
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND ( (T0."BaseType" = 17 AND T1."U_Pkg_Type" = 'Vessel') OR (T0."BaseType" = 15 AND T2."U_Pkg_Type" = 'Vessel') OR (T0."BaseType" = 203 AND T3."U_Pkg_Type" = 'Vessel') ) AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+            ORDER BY T0."LineNum";
+
+            error := 107;
+            error_message := 'Packing Type cannot be changed from Vessel. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "INV1" T0
+        INNER JOIN "OINV" T1 ON T0."DocEntry" = T1."DocEntry"
+        INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND T0."U_Pkg_Type" = 'Vessel'
+          AND T2."SeriesName" NOT LIKE 'BE1%' AND T2."SeriesName" NOT LIKE 'BE2%';
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "INV1" T0
+            INNER JOIN "OINV" T1 ON T0."DocEntry" = T1."DocEntry"
+            INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."U_Pkg_Type" = 'Vessel' AND T2."SeriesName" NOT LIKE 'BE1%' AND T2."SeriesName" NOT LIKE 'BE2%'
+            ORDER BY T0."LineNum";
+
+            error := 108;
+            error_message := 'Series must be BE1 or BE2 for Vessel shipments. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO ErrorCount
+        FROM "INV1" T0
+        INNER JOIN "OINV" T1 ON T0."DocEntry" = T1."DocEntry"
+        INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel'
+          AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%');
+
+        IF :ErrorCount > 0 THEN
+            SELECT TOP 1 CAST(T0."LineNum" + 1 AS NVARCHAR(10)), IFNULL(T0."ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            FROM "INV1" T0
+            INNER JOIN "OINV" T1 ON T0."DocEntry" = T1."DocEntry"
+            INNER JOIN "NNM1" T2 ON T1."Series" = T2."Series"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T0."U_Pkg_Type", '') <> 'Vessel' AND (T2."SeriesName" LIKE 'BE1%' OR T2."SeriesName" LIKE 'BE2%')
+            ORDER BY T0."LineNum";
+
+            error := 109;
+            error_message := 'BE1/BE2 series is only for Vessel shipments. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+        END IF;
+    END IF;
+END IF;
 -- Select the return values-
 select :error, :error_message FROM dummy;
 
