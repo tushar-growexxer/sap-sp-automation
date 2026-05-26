@@ -103,7 +103,7 @@ END IF;
 -- Object_type = '2' (Business Partner)
 
 ------------------------------ BUSINESS PARTNER --------------------------------------------
-IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE CardType nvarchar(50);
     DECLARE Organisation nvarchar(50);
     DECLARE Industry nvarchar(50);
@@ -394,7 +394,7 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     		END IF;
         END IF;
     END IF;
-END IF;
+END IF;*/
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
 
 --------------------------------- SALES ORDER START ----------------------------------
