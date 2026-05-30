@@ -1379,12 +1379,12 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 
         -- Validation 32033: Customer and Item Type Matching
         SELECT CASE WHEN SOItemCode LIKE 'PC%' THEN 'PC' WHEN SOItemCode LIKE 'DI%' THEN 'SC' WHEN SOItemCode LIKE 'OF%' THEN 'OF' END INTO ItemCodeType FROM dummy;
-        /*IF SOItemGrpCode NOT IN (104, 101) THEN
+        IF SOItemGrpCode NOT IN (104, 101) THEN
             IF (SOItemCode LIKE 'PC%' AND CardCode NOT LIKE 'CP%') OR (SOItemCode LIKE 'SC%' AND CardCode NOT LIKE 'CS%') OR (SOItemCode LIKE 'OF%' AND CardCode NOT LIKE 'CO%') THEN
                 error := 32033;
                 error_message := 'Customer type ('||CCodeType||') and Item type ('||ItemCodeType||') mismatch at row '|| MinSO+1;
             END IF;
-        END IF;*/
+        END IF;
 
         -- Validation 32034: Item Category/Sub-Category Check
         IF (SOItemCode LIKE '%FG%') AND (SOItemCategory = '' OR SOItemSubCategory = '') THEN
@@ -4408,7 +4408,7 @@ End If;
 -- FORM Name   : Delivery
 -- Added Date  :
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4430,7 +4430,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;

@@ -4246,7 +4246,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4268,7 +4268,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -5248,7 +5248,6 @@ END IF;
 
 
 IF object_type = '202' AND (:transaction_type = 'A' or :transaction_type='U') THEN
-
 DECLARE MinPRO Int;
 DECLARE MaxPRO Int;
 DECLARE PlanQtyPROH Int;
@@ -6497,7 +6496,7 @@ If object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 	END IF;
 END IF;
 
-IF object_type = '20' AND (:transaction_type = 'A' ) THEN
+/*IF object_type = '20' AND (:transaction_type = 'A' ) THEN
 DECLARE DateGRN1 date;
 Declare Seris varchar(100);
 Declare ItemC varchar(100);
@@ -6521,7 +6520,7 @@ DECLARE MAXXIT int;
 			END IF;
 		MINNIT = MINNIT + 1;
 		END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
@@ -20605,8 +20604,7 @@ IF Object_type = '112' and (:transaction_type ='A' OR :transaction_type ='U' ) T
 	end if;
 End If;
 
-
-IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 	DECLARE MinGRN INT;
     DECLARE MaxGRN INT;
     DECLARE CurrentItemCode NVARCHAR(50);
@@ -20676,7 +20674,7 @@ IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 			END WHILE;
 		end if;
 	END IF;
-END IF;
+END IF;*/
 
 IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 	DECLARE FromWhs NVARCHAR(15);
