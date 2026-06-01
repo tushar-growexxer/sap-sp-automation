@@ -449,7 +449,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE Qty DOUBLE; -- Changed to DOUBLE for precision
     DECLARE LicenseNoSO NVARCHAR(50);
     DECLARE Freetext NVARCHAR(100);
-    DECLARE SOName NVARCHAR(100);
+    DECLARE SOName NVARCHAR(200);
     DECLARE SOPckCode NVARCHAR(50);
     DECLARE SOPackType NVARCHAR(500);
     DECLARE SOOtherPackng NVARCHAR(100);
@@ -473,8 +473,8 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE U_Oil_Gas NVARCHAR(50);
     DECLARE U_Textile NVARCHAR(50);
     DECLARE U_CAS_No NVARCHAR(50);
-    DECLARE U_Other1 NVARCHAR(50);
-    DECLARE U_Other2 NVARCHAR(50);
+    DECLARE U_Other1 NVARCHAR(100);
+    DECLARE U_Other2 NVARCHAR(100);
     DECLARE U_Pharma NVARCHAR(50);
     DECLARE U_Mining NVARCHAR(50);
     DECLARE typpltibc int;
@@ -490,7 +490,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13,
             U_Pack14, U_Pack15 NVARCHAR(50);
     DECLARE COA_Appr NVARCHAR(5);
-    DECLARE IMItemName NVARCHAR(50);
+    DECLARE IMItemName NVARCHAR(200);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -1044,14 +1044,14 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     DECLARE ExpectedDelDate DATE;
     DECLARE U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care,
             U_Lube_Additiv, U_Oil_Gas, U_Textile, U_CAS_No, U_Other1,
-            U_Other2, U_Pharma, U_Mining NVARCHAR(50);
+            U_Other2, U_Pharma, U_Mining NVARCHAR(100);
     DECLARE SOPackng NVARCHAR(100);
-    DECLARE SOName nvarchar(100);
+    DECLARE SOName nvarchar(200);
     DECLARE COA_Appr NVARCHAR(5);
     DECLARE PackingType NVARCHAR(25);
     DECLARE SOPallet NVARCHAR(100);
-    DECLARE SOItemName NVARCHAR(50);
-    DECLARE IMItemName NVARCHAR(50);
+    DECLARE SOItemName NVARCHAR(200);
+    DECLARE IMItemName NVARCHAR(200);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -1315,7 +1315,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         END IF;
 
         -- Validation 32029-32030: Capacity and Packing Code Checks
-        /*IF SOItemCode NOT LIKE 'DIBP%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOPackType NOT LIKE '%Tanker%' THEN
+        IF SOItemCode NOT LIKE 'DIBP%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOPackType NOT LIKE '%Tanker%' THEN
             SELECT T0."U_Pack1C", T0."U_Pack2C", T0."U_Pack3C", T0."U_Pack4C", T0."U_Pack5C", T0."U_Pack6C", T0."U_Pack7C", T0."U_Pack8C", T0."U_Pack9C", T0."U_Pack10C", T0."U_Pack11C", T0."U_Pack12C", T0."U_Pack13C", T0."U_Pack14C", T0."U_Pack15C"
             INTO Pack1C, Pack2C, U_Pack3C, U_Pack4C, U_Pack5C, U_Pack6C, U_Pack7C, U_Pack8C, U_Pack9C, U_Pack10C, U_Pack11C, U_Pack12C, U_Pack13C, U_Pack14C, U_Pack15C
             FROM "@SOPACKING" T0 WHERE T0."Code" = SOItemCode;
@@ -1333,7 +1333,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
                     error_message := N'Invalid packing code. Choose from the list.';
                 END IF;
             END IF;
-        END IF;*/
+        END IF;
 
         IF SOItemCode NOT LIKE 'DIBP%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE 'EECA%' AND UPPER(SOPackType) NOT LIKE '%TANK%' THEN
                  SELECT T0."U_Pack1C", T0."U_Pack2C", T0."U_Pack3C", T0."U_Pack4C", T0."U_Pack5C", T0."U_Pack6C", T0."U_Pack7C", T0."U_Pack8C", T0."U_Pack9C", T0."U_Pack10C", T0."U_Pack11C", T0."U_Pack12C", T0."U_Pack13C", T0."U_Pack14C", T0."U_Pack15C"
@@ -1411,7 +1411,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         END IF;*/
 
         -- Validation 32038: Alias Name Check
-        /*IF Series NOT LIKE 'CL%' AND (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode NOT LIKE 'WS%' AND SOItemCode <> 'PCFG0424') THEN
+        IF Series NOT LIKE 'CL%' AND (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode NOT LIKE 'WS%' AND SOItemCode <> 'PCFG0424') THEN
             SELECT "U_Agro_Chem", "U_Per_HM_CR", "U_Food", "U_Paints_Pigm", "U_Indus_Care", "U_Lube_Additiv", "U_Textile", "U_Oil_Gas", "U_CAS_No", "U_Other1", "U_Other2", "U_Pharma", "U_Mining"
             INTO U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining
             FROM OITM WHERE "ItemCode" = SOItemCode;
@@ -1419,7 +1419,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
                 error:=32038;
                 error_message:=N'Invalid Alias Name. Not found in master.';
             END IF;
-        END IF;*/
+        END IF;
 
         -- Validation 30051: Alias Name Check (Simplified Logic)
 		IF Series NOT LIKE 'CL%' then
@@ -4408,7 +4408,7 @@ End If;
 -- FORM Name   : Delivery
 -- Added Date  :
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4430,7 +4430,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -7458,8 +7458,8 @@ DECLARE U_Oil_Gas nvarchar(50);
 DECLARE U_Textile nvarchar(50);
 DECLARE Series nvarchar(50);
 DECLARE U_CAS_No nvarchar(50);
-DECLARE U_Other2 nvarchar(50);
-DECLARE U_Other1 nvarchar(50);
+DECLARE U_Other2 nvarchar(100);
+DECLARE U_Other1 nvarchar(100);
 DECLARE U_Pharma nvarchar(50);
 DECLARE U_Mining nvarchar(50);
 
@@ -7556,8 +7556,8 @@ DECLARE U_Oil_Gas nvarchar(50);
 DECLARE U_Textile nvarchar(50);
 DECLARE Series nvarchar(50);
 DECLARE U_CAS_No nvarchar(50);
-DECLARE U_Other2 nvarchar(50);
-DECLARE U_Other1 nvarchar(50);
+DECLARE U_Other2 nvarchar(100);
+DECLARE U_Other1 nvarchar(100);
 DECLARE U_Pharma nvarchar(50);
 DECLARE U_Mining nvarchar(50);
 
@@ -16720,8 +16720,8 @@ DECLARE U_Oil_Gas nvarchar(50);
 DECLARE U_Textile nvarchar(50);
 DECLARE Series nvarchar(50);
 DECLARE U_CAS_No nvarchar(50);
-DECLARE U_Other2 nvarchar(50);
-DECLARE U_Other1 nvarchar(50);
+DECLARE U_Other2 nvarchar(100);
+DECLARE U_Other1 nvarchar(100);
 DECLARE U_Pharma nvarchar(50);
 DECLARE U_Mining nvarchar(50);
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
@@ -16823,8 +16823,8 @@ DECLARE U_Oil_Gas nvarchar(50);
 DECLARE U_Textile nvarchar(50);
 DECLARE Series nvarchar(50);
 DECLARE U_CAS_No nvarchar(50);
-DECLARE U_Other2 nvarchar(50);
-DECLARE U_Other1 nvarchar(50);
+DECLARE U_Other2 nvarchar(100);
+DECLARE U_Other1 nvarchar(100);
 DECLARE U_Pharma nvarchar(50);
 DECLARE U_Mining nvarchar(50);
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
