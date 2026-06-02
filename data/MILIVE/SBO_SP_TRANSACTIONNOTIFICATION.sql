@@ -92,6 +92,7 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     END IF;
 END IF;
 ----------------------ITEM MASTER VALIDATION END----------------------------
+
 -- CONSOLIDATED BUSINESS PARTNER VALIDATION
 -- Object_type = '2' (Business Partner)
 ------------------------------ BUSINESS PARTNER --------------------------------------------
@@ -357,10 +358,9 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         END IF;
     END IF;
 END IF;
-
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
-------------------------- SALES ORDER START -------------------------------
 
+------------------------- SALES ORDER START -------------------------------
 IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') THEN
     -- =====================================
     -- VARIABLE DECLARATIONS
@@ -21895,7 +21895,7 @@ IF object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     END WHILE;
 END IF;
 
-/*IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE ItemCode NVARCHAR(50);
     DECLARE MinGI INT;
     DECLARE MaxGI INT;
@@ -21930,7 +21930,7 @@ END IF;
             MinGI = MinGI + 1;
         END WHILE;
     END IF;
-END IF;*/
+END IF;
 
 ------------------------------------------ SAMPLE REQUEST (UDO) VLAIDATIONS ---------------------------------------
 IF (:object_type = 'SPLREQ') AND (:transaction_type = 'U') THEN
@@ -22903,7 +22903,7 @@ IF :object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     END IF;
 END IF;
 ------------------------------Multiple Payment Terms for BP Master-----------------------------------
-/*IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     -- Declare Variables
     DECLARE v_GroupNum INT;
     DECLARE v_MainGN NVARCHAR(10);
@@ -22977,7 +22977,7 @@ END IF;
     IF :error = 0 THEN
         IF EXISTS (
             SELECT 1 FROM OCTG
-            WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 90
+            WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 102
               AND (
                   "GroupNum" = :v_GroupNum OR
                   (:v_GN1 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN1) OR
@@ -22990,7 +22990,7 @@ END IF;
             error_message := 'Policy Error: You cannot select a Payment Term that exceeds 90 days. Please select a shorter term.';
         END IF;
     END IF;
-END IF;*/
+END IF;
 
 -----------------------------------------------------------------------
 -- 1. PURCHASE ORDER DRAFT VALIDATION (OBJECT 112 -> 22)

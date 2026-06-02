@@ -7544,16 +7544,16 @@ IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Th
 DECLARE MinSO int;
 DECLARE MaxSO int;
 DECLARE SOItemCode nvarchar(50);
-DECLARE SOName nvarchar(100);
-DECLARE Freetext nvarchar(50);
-DECLARE U_Agro_Chem nvarchar(50);
-DECLARE U_Per_HM_CR nvarchar(50);
-DECLARE U_Food nvarchar(50);
-DECLARE U_Paints_Pigm nvarchar(50);
-DECLARE U_Indus_Care nvarchar(50);
-DECLARE U_Lube_Additiv nvarchar(50);
-DECLARE U_Oil_Gas nvarchar(50);
-DECLARE U_Textile nvarchar(50);
+DECLARE SOName nvarchar(200);
+DECLARE Freetext nvarchar(100);
+DECLARE U_Agro_Chem nvarchar(100);
+DECLARE U_Per_HM_CR nvarchar(100);
+DECLARE U_Food nvarchar(100);
+DECLARE U_Paints_Pigm nvarchar(100);
+DECLARE U_Indus_Care nvarchar(100);
+DECLARE U_Lube_Additiv nvarchar(100);
+DECLARE U_Oil_Gas nvarchar(100);
+DECLARE U_Textile nvarchar(100);
 DECLARE Series nvarchar(50);
 DECLARE U_CAS_No nvarchar(50);
 DECLARE U_Other2 nvarchar(100);
@@ -7644,8 +7644,8 @@ IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Th
 DECLARE MinSO int;
 DECLARE MaxSO int;
 DECLARE SOItemCode nvarchar(50);
-DECLARE SOName nvarchar(100);
-DECLARE FreetextAR nvarchar(50);
+DECLARE SOName nvarchar(200);
+DECLARE FreetextAR nvarchar(100);
 DECLARE FreetextDL nvarchar(50);
 DECLARE ARSeries nvarchar(50);
 DECLARE ARbstype varchar(50);
@@ -7657,18 +7657,15 @@ DECLARE ARbstype varchar(50);
 		WHERE T1."DocEntry"=:list_of_cols_val_tab_del);
 	WHILE MinSO <= MaxSO
 	DO
-	(SELECT T1."ItemCode" into SOItemCode FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry"
-		WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
-	--(SELECT T1."Dscription" into SOName FROM INV1 T1 WHERE T1."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
-	(SELECT T1."FreeTxt" into FreetextAR FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry"
-		WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
+	(SELECT T1."ItemCode" into SOItemCode FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry" WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
+	(SELECT T1."FreeTxt" into FreetextAR FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry" WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
 	Select INV1."BaseType" into ARbstype from INV1 WHERE INV1."DocEntry" = :list_of_cols_val_tab_del and INV1."VisOrder" =  MinSO;
 		IF ARSeries NOT LIKE 'CL%' and ARbstype = '15' then
 
-	select T1."FreeTxt" into FreetextDL FROM DLN1 T1 LEFT OUTER JOIN ODLN T2 ON T1."DocEntry" = T2."DocEntry"
-		LEFT OUTER JOIN INV1 T3 ON T2."DocEntry" = T3."BaseEntry" AND T1."LineNum" = T3."BaseLine"
-		AND T1."ItemCode" = T3."ItemCode" LEFT OUTER JOIN OINV T4 ON T3."DocEntry" = T4."DocEntry"
-		WHERE T4."DocEntry" = :list_of_cols_val_tab_del and T3."VisOrder" = MinSO;
+			select T1."FreeTxt" into FreetextDL FROM DLN1 T1 LEFT OUTER JOIN ODLN T2 ON T1."DocEntry" = T2."DocEntry"
+			LEFT OUTER JOIN INV1 T3 ON T2."DocEntry" = T3."BaseEntry" AND T1."LineNum" = T3."BaseLine"
+			AND T1."ItemCode" = T3."ItemCode" LEFT OUTER JOIN OINV T4 ON T3."DocEntry" = T4."DocEntry"
+			WHERE T4."DocEntry" = :list_of_cols_val_tab_del and T3."VisOrder" = MinSO;
 
 
 			IF (SOItemCode NOT LIKE 'SC%' AND SOItemCode NOT LIKE 'PCPM%') THEN
@@ -7686,9 +7683,9 @@ IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Th
 DECLARE MinSO int;
 DECLARE MaxSO int;
 DECLARE SOItemCode nvarchar(50);
-DECLARE SOName nvarchar(100);
-DECLARE FreetextAR nvarchar(50);
-DECLARE FreetextDL nvarchar(50);
+DECLARE SOName nvarchar(200);
+DECLARE FreetextAR nvarchar(100);
+DECLARE FreetextDL nvarchar(100);
 DECLARE ARSeries nvarchar(50);
 DECLARE ARbstype varchar(50);
 
@@ -7699,11 +7696,9 @@ DECLARE ARbstype varchar(50);
 		WHERE T1."DocEntry"=:list_of_cols_val_tab_del);
 	WHILE MinSO <= MaxSO
 	DO
-	(SELECT T1."ItemCode" into SOItemCode FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry"
-		WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
-	--(SELECT T1."Dscription" into SOName FROM INV1 T1 WHERE T1."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
-	(SELECT T1."FreeTxt" into FreetextAR FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry"
-		WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
+	(SELECT T1."ItemCode" into SOItemCode FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry" WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
+
+	(SELECT T1."FreeTxt" into FreetextAR FROM INV1 T1 LEFT JOIN OINV T0 ON T0."DocEntry"=T1."DocEntry" WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T1."VisOrder"=MinSO);
 	Select INV1."BaseType" into ARbstype from INV1 WHERE INV1."DocEntry" = :list_of_cols_val_tab_del and INV1."VisOrder" =  MinSO;
 		IF ARSeries NOT LIKE 'CL%' and ARbstype = '17' then
 
