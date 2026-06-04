@@ -409,6 +409,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE SOExrate DECIMAL(18,2);
     DECLARE CCodeType NVARCHAR(5);
     DECLARE ItemCodeType NVARCHAR(5);
+    DECLARE IncoTerm NVARCHAR(30);
 
     -- Line Level Variables
     DECLARE SOItemCode NVARCHAR(50);
@@ -446,6 +447,8 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
     DECLARE LeadTime DOUBLE;
     DECLARE ExpeLT DOUBLE;
 
+    DECLARE ExWorkPriceKG,FOBPriceKG,FreightPriceKG DOUBLE;
+
     DECLARE Pack1, Pack2, U_Pack3, U_Pack4, U_Pack5, U_Pack6, U_Pack7,
             U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13,
             U_Pack14, U_Pack15 NVARCHAR(50);
@@ -471,7 +474,8 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         T0."DocRate", T0."CardName", T3."BPLName",
         T1."SeriesName",
         T2."PymntGroup",
-        T4."SlpCode", T4."CardType", T4."CreditLine", T4."Balance", T2."PymntGroup", T4."U_REX_Clause", T4."U_RexNo", T4."Country",T0."U_EOSellType", T0."BPLId"
+        T4."SlpCode", T4."CardType", T4."CreditLine", T4."Balance", T2."PymntGroup", T4."U_REX_Clause", T4."U_RexNo", T4."Country",T0."U_EOSellType", T0."BPLId",
+        T0."U_Incoterms"
     INTO
         CardCode, SOCurrency, SOCmnt, SOSLP, RMRKPRD, RMRKSTR, RMRKQC,
         SODate, DueDate, PLoad, PDischrg, CNPJ, CEP, CUIT,
@@ -479,7 +483,8 @@ IF Object_type = '17' AND (:transaction_type = 'A' or :transaction_type = 'U') T
         SOrate, BPName, Name,
         Series,
         POPayment,
-        BPSLP, CardType, CreditLimit, DueBalance, BPPayment, REXClause, REXNo, Country, EOSellType, BPLId
+        BPSLP, CardType, CreditLimit, DueBalance, BPPayment, REXClause, REXNo, Country, EOSellType, BPLId,
+        IncoTerm
     FROM ORDR T0
     INNER JOIN NNM1 T1 ON T0."Series" = T1."Series"
     INNER JOIN OCTG T2 ON T0."GroupNum" = T2."GroupNum"
@@ -672,14 +677,16 @@ END IF;
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", count(ifnull(T1."U_ApprOnCOA", '')),
-            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName", T1."OcrCode"
+            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName", T1."OcrCode",
+            T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg"
         INTO
             SOItemCode, SOWhse, SOEntryType, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,PackingType,
             SOPackType, SOPckCode, Capacity, HASCOM, Commission, CommissionPer,
             ShowREX, typpltibc, SOName, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
             U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining,COA_Appr,
-            SOPallet,Pallet1,Pallet2,Pallet3, IMItemName, OcrCodee
+            SOPallet,Pallet1,Pallet2,Pallet3, IMItemName, OcrCodee,
+            ExWorkPriceKG,FOBPriceKG,FreightPriceKG
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
         INNER JOIN OCRD T3 ON T3."CardCode" = :CardCode
@@ -689,7 +696,7 @@ END IF;
             T1."U_ShowREX", T1."Dscription", T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",
-            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName", T1."OcrCode";
+            T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t2."ItemName", T1."OcrCode",T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg";
 
         -- Validation 30032: Entry Type Check (Only for Add)
         IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -977,6 +984,37 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
             END IF;
          END IF;
          END IF;*/
+
+        IF CardCode LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
+			-- 1. EXW (Ex-Works) Validation
+			-- Rule: ONLY Ex-Work is allowed. FOB and Freight MUST be blank.
+			IF (IncoTerm = 'EXW') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+			    error := 30092;
+			    error_message := N'If Incoterm is EXW, ONLY Ex-Work is allowed. FOB and Freight must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 2. FOB Validation
+			-- Rule: FOB is mandatory. Freight MUST be blank. (Ex-Work is optional/allowed).
+			IF (IncoTerm = 'FOB') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+			    error := 30093;
+			    error_message := N'If Incoterm is FOB, the FOB field is mandatory and Freight must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 3. FCA Validation
+			-- Rule: Ex-Work and Freight are BOTH mandatory. FOB MUST be blank.
+			IF (IncoTerm = 'FCA') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000) THEN
+			    error := 30094;
+			    error_message := N'If Incoterm is FCA, both Ex-Work and Freight are mandatory, and FOB must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 4. CFR, CIF, CIP, CPT, DAP, DDP Validation
+			-- Rule: FOB and Freight are BOTH mandatory. (Ex-Work is optional/allowed).
+			IF (IncoTerm IN ('CFR', 'CIF', 'CIP', 'CPT', 'DAP', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000) THEN
+			    error := 30095;
+			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
+			END IF;
+		END IF;
+
         MinSO := MinSO + 1;
     END WHILE;
 END IF;
@@ -1012,6 +1050,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
         DECLARE SOdate DATE;
         DECLARE SOExrateCount INT;
         DECLARE SOPckCode NVARCHAR(50);
+        DECLARE IncoTerm NVARCHAR(30);
 
         -- FIXED: Changed Capacity and Master variables to DECIMAL(18,6)
         DECLARE Capacity DECIMAL(18,6);
@@ -1057,6 +1096,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
         DECLARE Name NVARCHAR(50);
         DECLARE typpltibc INT;
         DECLARE LeadTime, ExpeLT DOUBLE;
+        DECLARE ExWorkPriceKG,FOBPriceKG,FreightPriceKG DOUBLE;
         DECLARE ExpectedDelDate DATE;
         DECLARE SOName, Freetext NVARCHAR(100);
         DECLARE U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care,
@@ -1076,11 +1116,13 @@ IF Object_type = '112' AND (:transaction_type = 'A' or :transaction_type = 'U') 
     SELECT T0."CardCode", T0."DocCur", T1."SeriesName", T0."NumAtCard", T0."SlpCode", T0."U_RMRKPRD",
            T0."U_RMRKSTR", T0."U_RMRKQC", ifnull(T0."Comments", ''), T0."DocRate", T0."DocDate", T0."DocDueDate", T0."U_Export_Remark",
            T0."U_ExportRemarks", T0."SlpCode", T0."U_CNPJ_Num", T0."U_CEP_Num", T0."U_CUIT_Num", T0."U_Tax_ID",
-           T0."U_Notify_CNPJ", T0."U_Notify_CEP", T0."U_FinlDest", T0."U_PLoad", T0."U_PDischrg", T0."BPLName", T2."Country",T0."U_EOSellType", T0."BPLId"
+           T0."U_Notify_CNPJ", T0."U_Notify_CEP", T0."U_FinlDest", T0."U_PLoad", T0."U_PDischrg", T0."BPLName", T2."Country",T0."U_EOSellType", T0."BPLId",
+           T0."U_Incoterms"
     INTO
     CardCodeSO, SOCurrency, SOSeries, CustRef, SESO, RMRKPRD,
          RMRKSTR, RMRKQC, SOCmnt, SOrate, SOdate, DLDate, ExpRmk, ExpRmkO,
-         SOSLP, CNPJ, CEP, CUIT, TaxID, NotifyCNPJ, NotifyCEP, City, PLoad, PDischrg, Name, Country, EOSellType, BPLId
+         SOSLP, CNPJ, CEP, CUIT, TaxID, NotifyCNPJ, NotifyCEP, City, PLoad, PDischrg, Name, Country, EOSellType, BPLId,
+         IncoTerm
     FROM ODRF T0
     INNER JOIN NNM1 T1 ON T0."Series" = T1."Series"
     JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
@@ -1304,12 +1346,14 @@ END IF;
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX", count(T1."U_TOPLT"),
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                    T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt", count(ifnull(T1."U_ApprOnCOA", '')),
-                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName", T1."OcrCode"
+                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName", T1."OcrCode",
+            	   T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg"
             INTO SOEntryType, SOWhse, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, PSS, TaxCode,PackingType,
                  SOPackType, SOPackng, Capacity, SOOtherPackng, HASCOM, Commission, CommissionPer,
                  SOItemGrpCode, BatchCount, ShowREX, typpltibc,
                  U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName,Freetext,COA_Appr,
-                 SOPallet,Pallet1,Pallet2,Pallet3, IMItemName, OcrCodee
+                 SOPallet,Pallet1,Pallet2,Pallet3, IMItemName, OcrCodee,
+            	 ExWorkPriceKG,FOBPriceKG,FreightPriceKG
             FROM DRF1 T1 JOIN ODRF ON ODRF."DocEntry" = T1."DocEntry"
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
             INNER JOIN OCRD T3 ON T3."CardCode" = :CardCodeSO
@@ -1319,7 +1363,7 @@ END IF;
                    T2."ItmsGrpCod", T1."U_NoOfBatchRequired", T1."U_ShowREX",
                    T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
                    T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."FreeTxt",
-                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName", T1."OcrCode";
+                   T1."U_Opack",T3."U_PalletCode01",T3."U_PalletCode02",T3."U_PalletCode03", t2."ItemName", T1."OcrCode",T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg";
 
             -- Validation 30055: Entry Type Check (Only for Add)
             IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -1620,6 +1664,36 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
             END IF;
             END IF;
          END IF;*/
+
+         	IF CardCode LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
+				-- 1. EXW (Ex-Works) Validation
+				-- Rule: ONLY Ex-Work is allowed. FOB and Freight MUST be blank.
+				IF (IncoTerm = 'EXW') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+				    error := 30092;
+				    error_message := N'If Incoterm is EXW, ONLY Ex-Work is allowed. FOB and Freight must be blank at line - ' || MinSO+1;
+				END IF;
+
+				-- 2. FOB Validation
+				-- Rule: FOB is mandatory. Freight MUST be blank. (Ex-Work is optional/allowed).
+				IF (IncoTerm = 'FOB') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+				    error := 30093;
+				    error_message := N'If Incoterm is FOB, the FOB field is mandatory and Freight must be blank at line - ' || MinSO+1;
+				END IF;
+
+				-- 3. FCA Validation
+				-- Rule: Ex-Work and Freight are BOTH mandatory. FOB MUST be blank.
+				IF (IncoTerm = 'FCA') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000) THEN
+				    error := 30094;
+				    error_message := N'If Incoterm is FCA, both Ex-Work and Freight are mandatory, and FOB must be blank at line - ' || MinSO+1;
+				END IF;
+
+				-- 4. CFR, CIF, CIP, CPT, DAP, DDP Validation
+				-- Rule: FOB and Freight are BOTH mandatory. (Ex-Work is optional/allowed).
+				IF (IncoTerm IN ('CFR', 'CIF', 'CIP', 'CPT', 'DAP', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000) THEN
+				    error := 30095;
+				    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
+				END IF;
+			END IF;
             -- Increment loop counter
             MinSO := MinSO + 1;
         END WHILE;
@@ -22430,7 +22504,7 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE WB_Vehicle NVARCHAR(100);
 
     DECLARE GRN_SlipNo_Num DECIMAL(19,6);
-    DECLARE GRN_ActualQty DECIMAL(19,6);
+    DECLARE GRN_TotalActualQty DECIMAL(19,6); -- Renamed to reflect aggregated total
     DECLARE GRN_GateDate DATE;
     DECLARE GRN_Vehicle NVARCHAR(100);
     DECLARE GRN_PType NVARCHAR(100); -- Variable for Packing Type
@@ -22438,22 +22512,24 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE RowCount INT := 0;
     DECLARE WeighOut NVARCHAR(5);
 
-    -- 1. Fetch GRN values including Branch and Packing Type
+    -- 1. Fetch Aggregated GRN values (SUM of Actual Qty)
     SELECT TOP 1
         T1."U_UNE_QTY",
-        T1."U_UNE_ACQT",
+        SUM(T1."U_UNE_ACQT"),     -- Aggregating the actual quantity for all rows
         T0."U_UNE_GEDT",
         T0."U_UNE_VehicleNo",
-        T1."U_PTYPE",        -- Fetching Packing Type from Line
-        T0."BPLId",          -- Fetching Branch ID from Header
-		T0."U_WeighOut"
+        T1."U_PTYPE",
+        T0."BPLId",
+        T0."U_WeighOut"
     INTO
-        GRN_SlipNo_Num, GRN_ActualQty, GRN_GateDate, GRN_Vehicle, GRN_PType, GRN_BPLId, WeighOut
+        GRN_SlipNo_Num, GRN_TotalActualQty, GRN_GateDate, GRN_Vehicle, GRN_PType, GRN_BPLId, WeighOut
     FROM OPDN T0
     INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
-    WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+    GROUP BY
+        T1."U_UNE_QTY", T0."U_UNE_GEDT", T0."U_UNE_VehicleNo", T1."U_PTYPE", T0."BPLId", T0."U_WeighOut";
 
-    -- 2. New Condition: Only validate if Branch is 4 and Type is TANKER%
+    -- 2. New Condition: Only validate if Packing Type is TANKER% and WeighOut is No
     IF UPPER(:GRN_PType) LIKE 'TANKER%' AND :WeighOut = 'No' THEN
 
         -- Existing validation logic starts here
@@ -22480,10 +22556,10 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
 
                 --- VALIDATIONS ---
 
-                -- Check Weight
-                IF :GRN_ActualQty <> :WB_NetWt THEN
+                -- Check Aggregated Weight vs Weighbridge Weight
+                IF :GRN_TotalActualQty <> :WB_NetWt THEN
                     error := -1260;
-                    error_message := 'Weight Mismatch! GRN: ' || :GRN_ActualQty || ' vs WeighBridge: ' || :WB_NetWt;
+                    error_message := 'Weight Mismatch! GRN Total: ' || :GRN_TotalActualQty || ' vs WeighBridge: ' || :WB_NetWt;
                 END IF;
 
                 -- Check Date
