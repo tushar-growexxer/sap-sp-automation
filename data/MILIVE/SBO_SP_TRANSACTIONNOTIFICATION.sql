@@ -1665,7 +1665,7 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
             END IF;
          END IF;*/
 
-         	IF CardCode LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
+         	IF CardCodeSO LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
 				-- 1. EXW (Ex-Works) Validation
 				-- Rule: ONLY Ex-Work is allowed. FOB and Freight MUST be blank.
 				IF (IncoTerm = 'EXW') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
