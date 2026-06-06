@@ -92,124 +92,195 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
     END IF;
 END IF;
 ----------------------ITEM MASTER VALIDATION END----------------------------
-
 -- CONSOLIDATED BUSINESS PARTNER VALIDATION
 -- Object_type = '2' (Business Partner)
------------------------------- BUSINESS PARTNER --------------------------------------------
-IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-    DECLARE CardType nvarchar(50);
-    DECLARE Organisation nvarchar(50);
-    DECLARE Industry nvarchar(50);
-    DECLARE ValidFor nvarchar(50);
-    DECLARE Series nvarchar(50);
-    DECLARE SlpCode int;
-    DECLARE LeadSource nvarchar(50);
-    DECLARE Territory int;
-    DECLARE UsrCod nvarchar(50);
-    DECLARE UsrCod2 nvarchar(50);
-    DECLARE MSMEtype nvarchar(50);
-    DECLARE MSME nvarchar(35);
-    DECLARE PaymentTermsCount int;
-    DECLARE BDPerson nvarchar(100);
-    DECLARE BDPCount int;
-    DECLARE SLPCount int;
-    DECLARE LeadSourceI int;
-    DECLARE LeadSourceO int;
-    DECLARE BDP1Count int;
-    DECLARE MobiAlert nvarchar(10);
-    DECLARE LabelType nvarchar(100);
-    DECLARE DebAcct nvarchar(50);
-    DECLARE GroupTypee nvarchar(10);
+IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
+    -- ─────────────────────────────────────────────────────────────
+    -- DECLARE ALL VARIABLES
+    -- ─────────────────────────────────────────────────────────────
+    DECLARE CardType          NVARCHAR(50);
+    DECLARE Organisation      NVARCHAR(50);
+    DECLARE Industry          NVARCHAR(50);
+    DECLARE ValidFor          NVARCHAR(50);
+    DECLARE Series            NVARCHAR(50);
+    DECLARE SlpCode           INT;
+    DECLARE LeadSource        NVARCHAR(50);
+    DECLARE Territory         INT;
+    DECLARE UsrCod            NVARCHAR(50);
+    DECLARE UsrCod2           NVARCHAR(50);
+    DECLARE MSMEtype          NVARCHAR(50);
+    DECLARE MSME              NVARCHAR(35);
+    DECLARE PaymentTermsCount INT;
+    DECLARE BDPerson          NVARCHAR(100);
+    DECLARE BDPCount          INT;
+    DECLARE SLPCount          INT;
+    DECLARE LeadSourceI       INT;
+    DECLARE LeadSourceO       INT;
+    DECLARE BDP1Count         INT;
+    DECLARE MobiAlert         NVARCHAR(10);
+    DECLARE LabelType         NVARCHAR(100);
+    DECLARE DebAcct           NVARCHAR(50);
+    DECLARE GroupTypee        NVARCHAR(10);
+    -- Bank validation variables
+    DECLARE v_HouseBank       NVARCHAR(9);
+    DECLARE v_HousBnkAct      NVARCHAR(50);
+    DECLARE v_OldHouseBank    NVARCHAR(9);
+    DECLARE v_OldHousBnkAct   NVARCHAR(50);
+    DECLARE v_CtrlKeyCount    INT;
+    DECLARE v_OpenOrders      INT;
+    -- Payment Terms validation variables
+    DECLARE v_GroupNum        INT;
+    DECLARE v_MainGN          NVARCHAR(10);
+    DECLARE v_PT1             NVARCHAR(100);
+    DECLARE v_PT2             NVARCHAR(100);
+    DECLARE v_PT3             NVARCHAR(100);
+    DECLARE v_PT4             NVARCHAR(100);
+    DECLARE v_GN1             NVARCHAR(10);
+    DECLARE v_GN2             NVARCHAR(10);
+    DECLARE v_GN3             NVARCHAR(10);
+    DECLARE v_GN4             NVARCHAR(10);
+    DECLARE v_CardCode        NVARCHAR(10);
+
+    -- ─────────────────────────────────────────────────────────────
+    -- MAIN SELECT — fetch all required fields in one query
+    -- ─────────────────────────────────────────────────────────────
     SELECT
-        OCRD."CardType", OCRD."U_Organisation_Id", OCRD."IndustryC", OCRD."validFor",
-        OCRD."SlpCode", OCRD."U_Lead_Source", OCRD."Territory", OCRD."U_MSME_Type",
-        OCRD."U_Udyam_certi", OCRD."U_BDPerson", OCRD."U_Mobi_Alert", NNM1."SeriesName",
-        OUSR."USER_CODE", OCRD."U_LabelType", cast(OCRD."DebPayAcct" as nvarchar), cast(OCRD."GroupCode" as nvarchar)
+        OCRD."CardType",        OCRD."U_Organisation_Id",  OCRD."IndustryC",    OCRD."validFor",
+        OCRD."SlpCode",         OCRD."U_Lead_Source",      OCRD."Territory",    OCRD."U_MSME_Type",
+        OCRD."U_Udyam_certi",   OCRD."U_BDPerson",         OCRD."U_Mobi_Alert", NNM1."SeriesName",
+        OUSR."USER_CODE",       OCRD."U_LabelType",
+        CAST(OCRD."DebPayAcct" AS NVARCHAR),
+        CAST(OCRD."GroupCode"  AS NVARCHAR),
+        OCRD."HouseBank",       OCRD."HousBnkAct",
+        OCRD."GroupNum",
+        IFNULL(OCRD."U_PaymentTerm01",''),
+        IFNULL(OCRD."U_PaymentTerm02",''),
+        IFNULL(OCRD."U_PaymentTerm03",''),
+        IFNULL(OCRD."U_PaymentTerm04",''),
+        IFNULL(OCRD."CardCode",'')
     INTO
-        CardType, Organisation, Industry, ValidFor,
-        SlpCode, LeadSource, Territory, MSMEtype,
-        MSME, BDPerson, MobiAlert, Series,
-        UsrCod, LabelType, DebAcct, GroupTypee
+        CardType,    Organisation, Industry,    ValidFor,
+        SlpCode,     LeadSource,   Territory,   MSMEtype,
+        MSME,        BDPerson,     MobiAlert,   Series,
+        UsrCod,      LabelType,    DebAcct,     GroupTypee,
+        v_HouseBank, v_HousBnkAct,
+        v_GroupNum,
+        v_PT1, v_PT2, v_PT3, v_PT4,
+        v_CardCode
     FROM OCRD
     INNER JOIN NNM1 ON NNM1."Series" = OCRD."Series"
-    INNER JOIN OUSR ON OUSR."USERID" = (CASE WHEN :transaction_type = 'A' THEN OCRD."UserSign" ELSE OCRD."UserSign2" END)
+    INNER JOIN OUSR ON OUSR."USERID" = (CASE WHEN :transaction_type = 'A'
+                                              THEN OCRD."UserSign"
+                                              ELSE OCRD."UserSign2" END)
     WHERE OCRD."CardCode" = :list_of_cols_val_tab_del;
 
-	IF CardType = 'S' AND :list_of_cols_val_tab_del LIKE 'V%' AND :list_of_cols_val_tab_del NOT LIKE 'V__I%' THEN
-	    IF EXISTS (SELECT 1 FROM CRD1 T0
-	        INNER JOIN CRD1 T1 ON T0."GSTRegnNo" = T1."GSTRegnNo"
-	        INNER JOIN OCRD T2 ON T1."CardCode" = T2."CardCode"
-	        WHERE T0."CardCode" = :list_of_cols_val_tab_del
-	        AND T1."CardCode" <> T0."CardCode"
-	        AND T0."AdresType" = 'B' AND T1."AdresType" = 'B'
-	        AND IFNULL(T0."GSTRegnNo",'') <> ''
-	        AND T2."validFor" = 'Y'
-	        AND T2."CardCode" LIKE 'V%' AND T2."CardCode" NOT LIKE 'V__I%'
-	        AND ( (T0."CardCode" LIKE 'VI%' AND T1."CardCode" LIKE 'VI%') OR
-	            (T0."CardCode" LIKE 'VP%' AND T1."CardCode" LIKE 'VP%') OR
-	            (T0."CardCode" LIKE 'VO%' AND T1."CardCode" LIKE 'VO%') ) ) THEN
-	        error := -20021;
-	        error_message := N'Duplicate GST Number found in an Active Pay-to address of another Vendor.';
-	    END IF;
-	END IF;
+    -- Standardize Payment Term group numbers for comparison
+    v_MainGN := CAST(:v_GroupNum AS NVARCHAR(10));
+    v_GN1    := SUBSTR_BEFORE(:v_PT1, ' - ');
+    v_GN2    := SUBSTR_BEFORE(:v_PT2, ' - ');
+    v_GN3    := SUBSTR_BEFORE(:v_PT3, ' - ');
+    v_GN4    := SUBSTR_BEFORE(:v_PT4, ' - ');
 
-	IF :list_of_cols_val_tab_del LIKE 'EMP%' THEN
-	    IF EXISTS (SELECT 1 FROM OCRD T0
-	        INNER JOIN OCRD T1 ON T0."CardFName" = T1."CardFName"
-	        WHERE T0."CardCode" = :list_of_cols_val_tab_del
-	        AND T1."CardCode" <> T0."CardCode"
-	        AND IFNULL(T0."CardFName",'') <> ''
-	        AND T1."validFor" = 'Y'
-	        AND T1."CardCode" LIKE 'EMP%') THEN
-	        error := -20022;
-	        error_message := N'Duplicate Foreign Name found. This name is already assigned to another Active Employee.';
-	    END IF;
-	END IF;
-
-	IF CardType = 'C' THEN
-	    IF EXISTS (SELECT 1 FROM CRD1 T0
-	        INNER JOIN CRD1 T1 ON T0."GSTRegnNo" = T1."GSTRegnNo"
-	        INNER JOIN OCRD T2 ON T1."CardCode" = T2."CardCode"
-	        WHERE T0."CardCode" = :list_of_cols_val_tab_del
-	        AND T1."CardCode" <> T0."CardCode"
-	        AND T0."AdresType" = 'B' AND T1."AdresType" = 'B'
-	        AND IFNULL(T0."GSTRegnNo",'') <> ''
-	        AND T2."validFor" = 'Y'
-	        AND (
-	            (T0."CardCode" LIKE 'CPD%' AND T1."CardCode" LIKE 'CPD%') OR
-	            (T0."CardCode" LIKE 'CID%' AND T1."CardCode" LIKE 'CID%') OR
-	            (T0."CardCode" LIKE 'COD%' AND T1."CardCode" LIKE 'COD%')
-	        )
-	    ) THEN
-	        error := -20023;
-	        error_message := N'Duplicate GST Number found within the same Active Customer Division (CPD/CID/COD).';
-	    END IF;
-	END IF;
-
-    IF (GroupTypee = '105' AND DebAcct not in ('21000320')) OR (GroupTypee = '103' AND DebAcct not in ('21000315')) OR (GroupTypee = '106' AND DebAcct not in ('21003211'))
-       OR (GroupTypee = '102' AND DebAcct not in ('11200510')) OR (GroupTypee = '104' AND DebAcct not in ('11200520')) THEN
-
-       error := -20000;
-       error_message := N'Please select proper Accounts Payable in Business Partner.';
-
+    -- ─────────────────────────────────────────────────────────────
+    -- DUPLICATE GST CHECK — Vendor
+    -- ─────────────────────────────────────────────────────────────
+    IF CardType = 'S' AND :list_of_cols_val_tab_del LIKE 'V%'
+                      AND :list_of_cols_val_tab_del NOT LIKE 'V__I%' THEN
+        IF EXISTS (
+            SELECT 1 FROM CRD1 T0
+            INNER JOIN CRD1 T1 ON T0."GSTRegnNo" = T1."GSTRegnNo"
+            INNER JOIN OCRD T2 ON T1."CardCode"  = T2."CardCode"
+            WHERE T0."CardCode"  = :list_of_cols_val_tab_del
+              AND T1."CardCode" <> T0."CardCode"
+              AND T0."AdresType" = 'B' AND T1."AdresType" = 'B'
+              AND IFNULL(T0."GSTRegnNo",'') <> ''
+              AND T2."validFor"  = 'Y'
+              AND T2."CardCode" LIKE 'V%' AND T2."CardCode" NOT LIKE 'V__I%'
+              AND ( (T0."CardCode" LIKE 'VI%' AND T1."CardCode" LIKE 'VI%') OR
+                    (T0."CardCode" LIKE 'VP%' AND T1."CardCode" LIKE 'VP%') OR
+                    (T0."CardCode" LIKE 'VO%' AND T1."CardCode" LIKE 'VO%') )
+        ) THEN
+            error := -20021;
+            error_message := N'Duplicate GST Number found in an Active Pay-to address of another Vendor.';
+        END IF;
     END IF;
 
+    -- ─────────────────────────────────────────────────────────────
+    -- DUPLICATE FOREIGN NAME — Employee
+    -- ─────────────────────────────────────────────────────────────
+    IF :list_of_cols_val_tab_del LIKE 'EMP%' THEN
+        IF EXISTS (
+            SELECT 1 FROM OCRD T0
+            INNER JOIN OCRD T1 ON T0."CardFName" = T1."CardFName"
+            WHERE T0."CardCode"  = :list_of_cols_val_tab_del
+              AND T1."CardCode" <> T0."CardCode"
+              AND IFNULL(T0."CardFName",'') <> ''
+              AND T1."validFor"  = 'Y'
+              AND T1."CardCode" LIKE 'EMP%'
+        ) THEN
+            error := -20022;
+            error_message := N'Duplicate Foreign Name found. This name is already assigned to another Active Employee.';
+        END IF;
+    END IF;
+
+    -- ─────────────────────────────────────────────────────────────
+    -- DUPLICATE GST CHECK — Customer
+    -- ─────────────────────────────────────────────────────────────
+    IF CardType = 'C' THEN
+        IF EXISTS (
+            SELECT 1 FROM CRD1 T0
+            INNER JOIN CRD1 T1 ON T0."GSTRegnNo" = T1."GSTRegnNo"
+            INNER JOIN OCRD T2 ON T1."CardCode"  = T2."CardCode"
+            WHERE T0."CardCode"  = :list_of_cols_val_tab_del
+              AND T1."CardCode" <> T0."CardCode"
+              AND T0."AdresType" = 'B' AND T1."AdresType" = 'B'
+              AND IFNULL(T0."GSTRegnNo",'') <> ''
+              AND T2."validFor"  = 'Y'
+              AND (
+                  (T0."CardCode" LIKE 'CPD%' AND T1."CardCode" LIKE 'CPD%') OR
+                  (T0."CardCode" LIKE 'CID%' AND T1."CardCode" LIKE 'CID%') OR
+                  (T0."CardCode" LIKE 'COD%' AND T1."CardCode" LIKE 'COD%')
+              )
+        ) THEN
+            error := -20023;
+            error_message := N'Duplicate GST Number found within the same Active Customer Division (CPD/CID/COD).';
+        END IF;
+    END IF;
+
+    -- ─────────────────────────────────────────────────────────────
+    -- ACCOUNTS PAYABLE ACCOUNT VALIDATION
+    -- ─────────────────────────────────────────────────────────────
+    IF (GroupTypee = '105' AND DebAcct NOT IN ('21000320'))
+    OR (GroupTypee = '103' AND DebAcct NOT IN ('21000315'))
+    OR (GroupTypee = '106' AND DebAcct NOT IN ('21003211'))
+    OR (GroupTypee = '102' AND DebAcct NOT IN ('11200510'))
+    OR (GroupTypee = '104' AND DebAcct NOT IN ('11200520')) THEN
+        error := -20000;
+        error_message := N'Please select proper Accounts Payable in Business Partner.';
+    END IF;
+
+    -- ─────────────────────────────────────────────────────────────
+    -- ACTIVE MODE CHECK
+    -- ─────────────────────────────────────────────────────────────
     IF ValidFor = 'Y' THEN
         IF :transaction_type = 'A' THEN
             error := -20001;
             error_message := N'Please ADD Business partner in INACTIVE Mode';
         ELSE
-            IF UsrCod NOT IN ('manager', 'prof01', 'sap01','sap02') THEN
+            IF UsrCod NOT IN ('manager','prof01','sap01','sap02') THEN
                 error := -20002;
                 error_message := N'Please UPDATE Business partner in INACTIVE Mode';
             END IF;
         END IF;
     END IF;
 
+    -- ─────────────────────────────────────────────────────────────
+    -- CUSTOMER-SPECIFIC VALIDATIONS
+    -- ─────────────────────────────────────────────────────────────
     IF CardType = 'C' THEN
-        IF Series LIKE 'C%' THEN
 
+        IF Series LIKE 'C%' THEN
             IF IFNULL(Organisation,'') = '' THEN
                 error := -20003;
                 error_message := N'Please enter Organisation ID';
@@ -235,23 +306,12 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
                 error_message := N'Please select Mobi Alert Yes/No for Customer Payment reminder mail.';
             END IF;
         END IF;
-        IF UsrCod IN ('crm01', 'crm04') THEN
+
+        IF UsrCod IN ('crm01','crm04') THEN
             IF Series NOT LIKE 'C%' THEN
                 error := -20009;
                 error_message := N'Please select proper Type and proper Series ' || Series;
             END IF;
-        END IF;
-
-        SELECT COUNT(OCRD."DocEntry") INTO PaymentTermsCount
-        FROM OCRD
-        INNER JOIN OCTG ON OCRD."GroupNum" = OCTG."GroupNum"
-        WHERE OCRD."CardCode" = :list_of_cols_val_tab_del
-        AND OCRD."CardType" = 'C'
-        AND OCTG."ExtraDays" > 102;
-
-        IF PaymentTermsCount > 0 THEN
-            error := -20010;
-            error_message := 'Payment Terms not allowed more than 90 days for new Customer';
         END IF;
 
         IF IFNULL(BDPerson,'') = '' THEN
@@ -263,8 +323,8 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         FROM OCRD T0
         INNER JOIN OSLP T1 ON T0."SlpCode" = T1."SlpCode"
         WHERE T0."CardType" = 'C'
-        AND T1."GroupCode" NOT IN (1,3)
-        AND T0."CardCode" = :list_of_cols_val_tab_del;
+          AND T1."GroupCode" NOT IN (1,3)
+          AND T0."CardCode"  = :list_of_cols_val_tab_del;
 
         IF SLPCount > 0 THEN
             error := -20012;
@@ -273,8 +333,10 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 
         SELECT COUNT(T0."U_BDPerson") INTO LeadSourceI
         FROM OCRD T0
-        WHERE T0."CardType" = 'C' AND T0."U_Lead_Source" = 'Inbound' AND T0."U_BDPerson" <> 'Digital Marketing'
-        AND T0."CardCode" = :list_of_cols_val_tab_del;
+        WHERE T0."CardType"      = 'C'
+          AND T0."U_Lead_Source" = 'Inbound'
+          AND T0."U_BDPerson"   <> 'Digital Marketing'
+          AND T0."CardCode"      = :list_of_cols_val_tab_del;
 
         IF LeadSourceI > 0 THEN
             error := -20013;
@@ -283,8 +345,10 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 
         SELECT COUNT(T0."U_BDPerson") INTO LeadSourceO
         FROM OCRD T0
-        WHERE T0."CardType" = 'C' AND T0."U_Lead_Source" = 'Outbound' AND T0."U_BDPerson" = 'Digital Marketing'
-        AND T0."CardCode" = :list_of_cols_val_tab_del;
+        WHERE T0."CardType"      = 'C'
+          AND T0."U_Lead_Source" = 'Outbound'
+          AND T0."U_BDPerson"    = 'Digital Marketing'
+          AND T0."CardCode"      = :list_of_cols_val_tab_del;
 
         IF LeadSourceO > 0 THEN
             error := -20014;
@@ -293,49 +357,167 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
 
         SELECT COUNT(T0."U_BDPerson") INTO BDP1Count
         FROM OCRD T0
-        WHERE T0."U_BDPerson" NOT IN ( SELECT "SlpName" FROM OSLP WHERE "GroupCode" IN (2,3,4))
-        AND T0."CardType" = 'C' AND T0."CardCode" = :list_of_cols_val_tab_del;
+        WHERE T0."U_BDPerson" NOT IN (SELECT "SlpName" FROM OSLP WHERE "GroupCode" IN (2,3,4))
+          AND T0."CardType" = 'C'
+          AND T0."CardCode" = :list_of_cols_val_tab_del;
 
         IF BDP1Count > 0 THEN
             error := -20015;
             error_message := N'The selected BD person does not match the standard BD person list.';
         END IF;
 
-		IF :transaction_type = 'A' AND (TRIM(LabelType) IS NULL    OR LabelType = 'Without Matangi Logo & Address') THEN
-    			error := -20018;
-				error_message := N'The Label type cannot be blank or "Without Matangi Logo & Address".';
-		END IF;
-        -----------------------------------------------------------------------------------------
-        -- ADDED VALIDATION: Compulsory Email & Email Group Code for Mobi Alert Customers
-        -----------------------------------------------------------------------------------------
-        IF MobiAlert IN ('Y', 'Yes') THEN
+        IF :transaction_type = 'A'
+        AND (TRIM(LabelType) IS NULL OR LabelType = 'Without Matangi Logo & Address') THEN
+            error := -20018;
+            error_message := N'The Label type cannot be blank or "Without Matangi Logo & Address".';
+        END IF;
+
+        -- Mobi Alert: compulsory email & email group code
+        IF MobiAlert IN ('Y','Yes') THEN
             IF EXISTS (
                 SELECT 1
-                FROM "OCRD" T0
-                LEFT JOIN "OCPR" T1 ON T0."CardCode" = T1."CardCode"
+                FROM OCRD T0
+                LEFT JOIN OCPR T1 ON T0."CardCode" = T1."CardCode"
                 WHERE T0."CardCode" = :list_of_cols_val_tab_del
                   AND (T1."Name" IS NULL
-                      OR IFNULL(T1."E_MailL", '') = ''
-                      OR IFNULL(T1."EmlGrpCode", '') = '-1')
+                    OR IFNULL(T1."E_MailL",'')    = ''
+                    OR IFNULL(T1."EmlGrpCode",'') = '-1')
             ) THEN
                 error := -20024;
                 error_message := N'The Email ID and Email Group Code are compulsory in Contact Persons to send overdue Mobi Alerts.';
             END IF;
         END IF;
-        -----------------------------------------------------------------------------------------
-    END IF;
 
+        -- ============================================================
+        -- RULE 1: House Bank and Account mandatory for Customer
+        -- ============================================================
+        IF IFNULL(v_HouseBank,'') = '' OR IFNULL(v_HousBnkAct,'') = '' THEN
+            error := -20025;
+            error_message := N'House Bank and Bank Account are mandatory for customers.';
+        END IF;
+
+        -- ============================================================
+        -- RULE 2: Selected House Bank Account must have ControlKey = 'Y'
+        -- ============================================================
+        IF IFNULL(v_HouseBank,'') <> '' AND IFNULL(v_HousBnkAct,'') <> '' THEN
+            SELECT COUNT(*) INTO v_CtrlKeyCount
+            FROM DSC1
+            WHERE "BankCode"   = :v_HouseBank
+              AND "Account"    = :v_HousBnkAct
+              AND "ControlKey" = 'Y';
+
+            IF v_CtrlKeyCount = 0 THEN
+                error := -20026;
+                error_message := N'Selected bank account is not allowed. Only active bank accounts are permitted.';
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- RULE 3: House Bank change blocked if open sales orders exist
+        -- Fires on UPDATE ONLY and ONLY when HouseBank/HousBnkAct
+        -- is actually changed — all other BP field updates pass freely
+        -- ============================================================
+        IF :transaction_type = 'U' THEN
+
+            SELECT IFNULL("HouseBank",''), IFNULL("HousBnkAct",'')
+            INTO v_OldHouseBank, v_OldHousBnkAct
+            FROM OCRD
+            WHERE "CardCode" = :list_of_cols_val_tab_del;
+
+            IF v_OldHouseBank <> IFNULL(v_HouseBank,'')
+            OR v_OldHousBnkAct <> IFNULL(v_HousBnkAct,'') THEN
+
+                SELECT COUNT(*) INTO v_OpenOrders
+                FROM ORDR
+                WHERE "CardCode"  = :list_of_cols_val_tab_del
+                  AND "DocStatus" = 'O';
+
+                IF v_OpenOrders > 0 THEN
+                    error := -20027;
+                    error_message := N'House Bank cannot be changed. Customer has '
+                                     || v_OpenOrders
+                                     || ' open sales order(s). Close all orders before modifying the House Bank.';
+                END IF;
+
+            END IF;
+
+        END IF;
+        -- ============================================================
+        -- PAYMENT TERMS VALIDATIONS (Customer only — v_CardCode LIKE 'C%')
+        -- ============================================================
+
+        -- PT Rule 1: Sequence — no skipping of payment term fields
+        IF (:v_PT4 <> '' AND :v_PT3 = '') OR
+           (:v_PT3 <> '' AND :v_PT2 = '') OR
+           (:v_PT2 <> '' AND :v_PT1 = '') THEN
+            error := -8003;
+            error_message := N'Sequence Error: You must maintain the sequence. Do not skip previous Payment Term fields.';
+        END IF;
+
+        -- PT Rule 2: Each filled PT field must exactly match a valid OCTG entry
+        IF :error = 0 THEN
+            IF (:v_PT1 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT1)) OR
+               (:v_PT2 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT2)) OR
+               (:v_PT3 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT3)) OR
+               (:v_PT4 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT4)) THEN
+                error := -8004;
+                error_message := N'Data Integrity Error: Manually entered Payment Term is invalid. It must exactly match the Payment Terms Master or be left blank.';
+            END IF;
+        END IF;
+
+        -- PT Rule 3a: No PT field should duplicate the BP standard payment term
+        IF :error = 0 THEN
+            IF (:v_PT1 <> '' AND :v_GN1 = :v_MainGN) OR
+               (:v_PT2 <> '' AND :v_GN2 = :v_MainGN) OR
+               (:v_PT3 <> '' AND :v_GN3 = :v_MainGN) OR
+               (:v_PT4 <> '' AND :v_GN4 = :v_MainGN) THEN
+                error := -8005;
+                error_message := N'Duplicate Error: The Payment Terms matches the Standard Payment Term assigned to this BP.';
+            END IF;
+
+            -- PT Rule 3b: No two PT fields can have the same value
+            IF (:v_PT1 <> '' AND (:v_PT1 = :v_PT2 OR :v_PT1 = :v_PT3 OR :v_PT1 = :v_PT4)) OR
+               (:v_PT2 <> '' AND (:v_PT2 = :v_PT3 OR :v_PT2 = :v_PT4)) OR
+               (:v_PT3 <> '' AND (:v_PT3 = :v_PT4)) THEN
+                error := -8006;
+                error_message := N'Duplicate Error: You cannot select the same Payment Term in multiple payment terms.';
+            END IF;
+        END IF;
+
+        -- PT Rule 4: No payment term (standard or UDF) can exceed 90 days
+        IF :error = 0 THEN
+            IF EXISTS (
+                SELECT 1 FROM OCTG
+                WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 102
+                  AND (
+                      "GroupNum" = :v_GroupNum OR
+                      (:v_GN1 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN1) OR
+                      (:v_GN2 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN2) OR
+                      (:v_GN3 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN3) OR
+                      (:v_GN4 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN4)
+                  )
+            ) AND v_CardCode LIKE 'C%' THEN
+                error := -8007;
+                error_message := N'Policy Error: You cannot select a Payment Term that exceeds 90 days. Please select a shorter term.';
+            END IF;
+        END IF;
+
+    END IF; -- CardType = 'C'
+
+    -- ─────────────────────────────────────────────────────────────
+    -- VENDOR-SPECIFIC VALIDATIONS
+    -- ─────────────────────────────────────────────────────────────
     IF CardType = 'S' THEN
-        IF UsrCod IN ('purchase', 'dipurchase') THEN
 
+        IF UsrCod IN ('purchase','dipurchase') THEN
             IF Series NOT LIKE 'V%' THEN
                 error := -20016;
                 error_message := N'Please select proper Type and Proper Series ' || Series;
             END IF;
-
         END IF;
 
         IF :transaction_type = 'A' AND Series LIKE 'V%' THEN
+
             IF UPPER(IFNULL(MSMEtype,'')) <> 'NA' THEN
                 IF IFNULL(MSME,'') = '' THEN
                     error := -20017;
@@ -343,21 +525,32 @@ IF Object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
                 END IF;
             END IF;
 
-    		--Supplier only--
-		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE Left(T0."CardCode",4) in ('VIRD','VPRD','VPPD','VEXP','VFAS','VGPR','VLAB','VORD') and T0."CardCode" = :list_of_cols_val_tab_del AND (IFNULL(T0."WTLiable",'')='N' or T0."WTLiable"='N')) THEN
-        	error := -20019;
-	        error_message := 'Subject to Withholding Tax is mandatory for Supplier, please select in Account Tab.';
-    		END IF;
+            -- Withholding Tax liable check
+            IF EXISTS (
+                SELECT 1 FROM OCRD T0
+                WHERE LEFT(T0."CardCode",4) IN ('VIRD','VPRD','VPPD','VEXP','VFAS','VGPR','VLAB','VORD')
+                  AND T0."CardCode" = :list_of_cols_val_tab_del
+                  AND (IFNULL(T0."WTLiable",'') = 'N' OR T0."WTLiable" = 'N')
+            ) THEN
+                error := -20019;
+                error_message := N'Subject to Withholding Tax is mandatory for Supplier, please select in Account Tab.';
+            END IF;
 
-		    --WT Code must be assigned--
-		    IF EXISTS (SELECT 1 FROM OCRD T0 WHERE T0."CardCode" = :list_of_cols_val_tab_del AND T0."CardType" = 'S' AND T0."WTLiable" = 'Y' AND
-    							NOT EXISTS (SELECT 1 FROM CRD4 T1 WHERE T1."CardCode" = T0."CardCode")) THEN
-        	error := -20020;
-	        error_message := 'At least one Withholding Tax Code must be assigned for Supplier.';
-    		END IF;
+            -- WT Code must be assigned
+            IF EXISTS (
+                SELECT 1 FROM OCRD T0
+                WHERE T0."CardCode" = :list_of_cols_val_tab_del
+                  AND T0."CardType" = 'S'
+                  AND T0."WTLiable" = 'Y'
+                  AND NOT EXISTS (SELECT 1 FROM CRD4 T1 WHERE T1."CardCode" = T0."CardCode")
+            ) THEN
+                error := -20020;
+                error_message := N'At least one Withholding Tax Code must be assigned for Supplier.';
+            END IF;
+
         END IF;
-    END IF;
-END IF;
+    END IF; -- CardType = 'S'
+END IF; -- Object_type = '2'
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
 
 ------------------------- SALES ORDER START -------------------------------
@@ -985,7 +1178,7 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
          END IF;
          END IF;*/
 
-        IF CardCode LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
+        /*IF CardCode LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
 			-- 1. EXW (Ex-Works) Validation
 			-- Rule: ONLY Ex-Work is allowed. FOB and Freight MUST be blank.
 			IF (IncoTerm = 'EXW') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
@@ -1013,7 +1206,7 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 			    error := 30095;
 			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 			END IF;
-		END IF;
+		END IF;*/
 
         MinSO := MinSO + 1;
     END WHILE;
@@ -1665,7 +1858,7 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
             END IF;
          END IF;*/
 
-         	IF CardCodeSO LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
+         	/*IF CardCodeSO LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
 				-- 1. EXW (Ex-Works) Validation
 				-- Rule: ONLY Ex-Work is allowed. FOB and Freight MUST be blank.
 				IF (IncoTerm = 'EXW') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
@@ -1693,7 +1886,7 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 				    error := 30095;
 				    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 				END IF;
-			END IF;
+			END IF;*/
             -- Increment loop counter
             MinSO := MinSO + 1;
         END WHILE;
@@ -5320,7 +5513,6 @@ DECLARE CountPRO Int;
 	END WHILE;
 END IF;
 
-
 IF object_type = '202' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE MinPRO Int;
 DECLARE MaxPRO Int;
@@ -5373,7 +5565,6 @@ END IF;
 ----------------------------------------------------------------------------------------------------------------
 /*
 IF Object_type = '15' and (:transaction_type ='A') Then
-
 DECLARE DLrate decimal(18,2);
 DECLARE DLExrate decimal(18,2);
 DECLARE DLDocCur Nvarchar(50);
@@ -19799,10 +19990,10 @@ if Item like '%FG%' then
             error := -1047;
             error_message := 'The PCRM from 1BT cannot be moved to any warehouse other than DI-RAW,PC-RAW';
         end if;
-		if FromWhs = 'DI-RAW' and ToWhs not in ('1BT') then
+		/*if FromWhs = 'DI-RAW' and ToWhs not in ('1BT') then
             error := -1048;
             error_message := 'The DIRM from DI-RAW cannot be moved to any warehouse other than 1BT';
-        end if;
+        end if;*/
         if FromWhs = 'DI-QC' and ToWhs not in ('DI-QCR','DI-RAW','1BT') then
             error := -1049;
             error_message := 'The DIRM from DI-QC cannot be moved to any warehouse other than DI-QCR,DI-RAW';
@@ -21739,13 +21930,13 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 			error_message := 'Please do not write date in Customer Ref. No., write it in Customer Ref. Date.';
 		END IF;
 
-		IF IFNULL(TotalQty,0) = 0 THEN
+		/*IF IFNULL(TotalQty,0) = 0 THEN
 	        error := -1227;
 	        error_message := 'Customer Total Quantity cannot be empty.';
 	    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
 	        error := -1228;
 	        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| (IFNULL(SumQty,0) - IFNULL(TotalQty,0)) ||'.';
-	    END IF;
+	    END IF;*/
 
 	    IF OtherTotalQty IS NOT NULL AND IFNULL(OtherTotalQty,0) <> IFNULL(TotalQty,0) THEN
 	        error := -1229;
@@ -22978,96 +23169,6 @@ IF :object_type = '13' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := 'PCPM items cannot be sold from PCPACTU / 2PCPACTU warehouse (A/R Invoice blocked).';
     END IF;
 END IF;
-------------------------------Multiple Payment Terms for BP Master-----------------------------------
-IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-    -- Declare Variables
-    DECLARE v_GroupNum INT;
-    DECLARE v_MainGN NVARCHAR(10);
-    DECLARE v_PT1 NVARCHAR(100);
-    DECLARE v_PT2 NVARCHAR(100);
-    DECLARE v_PT3 NVARCHAR(100);
-    DECLARE v_PT4 NVARCHAR(100);
-    DECLARE v_GN1 NVARCHAR(10);
-    DECLARE v_GN2 NVARCHAR(10);
-    DECLARE v_GN3 NVARCHAR(10);
-    DECLARE v_GN4 NVARCHAR(10);
-    DECLARE v_CardCode NVARCHAR(10);
-
-    -- Fetch current data being saved
-    SELECT "GroupNum",
-           IFNULL("U_PaymentTerm01",''),
-           IFNULL("U_PaymentTerm02",''),
-           IFNULL("U_PaymentTerm03",''),
-           IFNULL("U_PaymentTerm04",''),
-           IFNULL("CardCode",'')
-    INTO v_GroupNum, v_PT1, v_PT2, v_PT3, v_PT4, v_CardCode
-    FROM OCRD
-    WHERE "CardCode" = :list_of_cols_val_tab_del;
-
-    -- Standardize variables for comparison
-    v_MainGN := CAST(:v_GroupNum AS NVARCHAR(10));
-    v_GN1 := SUBSTR_BEFORE(:v_PT1, ' - ');
-    v_GN2 := SUBSTR_BEFORE(:v_PT2, ' - ');
-    v_GN3 := SUBSTR_BEFORE(:v_PT3, ' - ');
-    v_GN4 := SUBSTR_BEFORE(:v_PT4, ' - ');
-
-    -- RULE 1: Sequence Maintenance
-    IF (:v_PT4 <> '' AND :v_PT3 = '') OR
-       (:v_PT3 <> '' AND :v_PT2 = '') OR
-       (:v_PT2 <> '' AND :v_PT1 = '') THEN
-        error := -8003;
-        error_message := 'Sequence Error: You must maintain the sequence. Do not skip previous Payment Term fields.';
-    END IF;
-
-    -- RULE 2: Exact Match to OCTG or Blank
-    IF :error = 0 THEN
-        IF (:v_PT1 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT1)) OR
-           (:v_PT2 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT2)) OR
-           (:v_PT3 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT3)) OR
-           (:v_PT4 <> '' AND NOT EXISTS (SELECT 1 FROM OCTG WHERE CAST("GroupNum" AS NVARCHAR(10)) || ' - ' || "PymntGroup" = :v_PT4)) THEN
-            error := -8004;
-            error_message := 'Data Integrity Error: Manually entered Payment Term is invalid. It must exactly match the Payment Terms Master or be left blank.';
-        END IF;
-    END IF;
-
-    -- RULE 3: Duplicate Checking
-    IF :error = 0 THEN
-        IF (:v_PT1 <> '' AND :v_GN1 = :v_MainGN) OR
-           (:v_PT2 <> '' AND :v_GN2 = :v_MainGN) OR
-           (:v_PT3 <> '' AND :v_GN3 = :v_MainGN) OR
-           (:v_PT4 <> '' AND :v_GN4 = :v_MainGN) THEN
-            error := -8005;
-            error_message := 'Duplicate Error: The Payment Terms matches the Standard Payment Term assigned to this BP.';
-        END IF;
-
-        IF (:v_PT1 <> '' AND (:v_PT1 = :v_PT2 OR :v_PT1 = :v_PT3 OR :v_PT1 = :v_PT4)) OR
-           (:v_PT2 <> '' AND (:v_PT2 = :v_PT3 OR :v_PT2 = :v_PT4)) OR
-           (:v_PT3 <> '' AND (:v_PT3 = :v_PT4)) THEN
-            error := -8006;
-            error_message := 'Duplicate Error: You cannot select the same Payment Term in multiple payment terms.';
-        END IF;
-    END IF;
-
-    -- RULE 4: Max 90 Days Validation (New)
-    -- Checks the standard GroupNum AND all UDFs against the OCTG table for duration > 90 days
-    IF :error = 0 THEN
-        IF EXISTS (
-            SELECT 1 FROM OCTG
-            WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 102
-              AND (
-                  "GroupNum" = :v_GroupNum OR
-                  (:v_GN1 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN1) OR
-                  (:v_GN2 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN2) OR
-                  (:v_GN3 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN3) OR
-                  (:v_GN4 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN4)
-              )
-        ) AND v_CardCode like 'C%' THEN
-            error := -8007;
-            error_message := 'Policy Error: You cannot select a Payment Term that exceeds 90 days. Please select a shorter term.';
-        END IF;
-    END IF;
-END IF;
-
 -----------------------------------------------------------------------
 -- 1. PURCHASE ORDER DRAFT VALIDATION (OBJECT 112 -> 22)
 -----------------------------------------------------------------------
