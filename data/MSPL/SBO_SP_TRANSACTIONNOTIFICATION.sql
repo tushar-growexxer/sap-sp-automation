@@ -22669,20 +22669,29 @@ IF :object_type = 'LICENSEMANAGER' AND (:transaction_type = 'A' OR :transaction_
         DECLARE ErrorLineStr NVARCHAR(10) := '';
         DECLARE ErrorItemStr NVARCHAR(50) := '';
 
-        -- Check if any row in @IMPORTCHILD has a U_ItemCode that does NOT start with 'LIC'
+        -- 1. Count rows where ItemCode is NOT blank AND does NOT start with 'LIC'
         SELECT COUNT(*) INTO ErrorCount
         FROM "@IMPORTCHILD"
-        WHERE "Code" = :list_of_cols_val_tab_del AND IFNULL("U_ItemCode", '') NOT LIKE 'LIC%';
+        WHERE "Code" = :list_of_cols_val_tab_del
+          AND IFNULL("U_ItemCode", '') <> ''
+          AND "U_ItemCode" NOT LIKE 'LIC%';
 
         IF :ErrorCount > 0 THEN
-            -- Grab the first failing line and item code to show in the error message
-            SELECT TOP 1 CAST("LineId" AS NVARCHAR(10)), IFNULL("U_ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            -- 2. Get the first bad LineId (Using MIN prevents the 1299 No Data Found error)
+            SELECT MIN(CAST("LineId" AS NVARCHAR(10))) INTO ErrorLineStr
             FROM "@IMPORTCHILD"
-            WHERE "Code" = :list_of_cols_val_tab_del AND IFNULL("U_ItemCode", '') NOT LIKE 'LIC%'
-            ORDER BY "LineId";
+            WHERE "Code" = :list_of_cols_val_tab_del
+              AND IFNULL("U_ItemCode", '') <> ''
+              AND "U_ItemCode" NOT LIKE 'LIC%';
+
+            -- 3. Fetch the actual wrong item code for that specific line
+            SELECT MAX("U_ItemCode") INTO ErrorItemStr
+            FROM "@IMPORTCHILD"
+            WHERE "Code" = :list_of_cols_val_tab_del
+              AND CAST("LineId" AS NVARCHAR(10)) = :ErrorLineStr;
 
             error := 50007;
-            error_message := 'Invalid Item Code selected! The Item Code must start with "LIC". [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            error_message := 'Invalid Item Code selected! The Item Code must start with "LIC". [Row: ' || IFNULL(:ErrorLineStr, 'Unknown') || ', Item: ' || IFNULL(:ErrorItemStr, '') || ']';
         END IF;
 END IF;
 -----------------------------------------------------------------------------------------

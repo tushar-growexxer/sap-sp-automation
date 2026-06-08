@@ -21930,13 +21930,13 @@ IF :object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 			error_message := 'Please do not write date in Customer Ref. No., write it in Customer Ref. Date.';
 		END IF;
 
-		/*IF IFNULL(TotalQty,0) = 0 THEN
+		IF IFNULL(TotalQty,0) = 0 THEN
 	        error := -1227;
 	        error_message := 'Customer Total Quantity cannot be empty.';
 	    ELSEIF IFNULL(SumQty,0) > IFNULL(TotalQty,0) THEN
 	        error := -1228;
 	        error_message := 'Total Order Qty exceeds Customer''s PO ( '||CustomerRef||' PO Qty: '|| TotalQty ||' ) - By '|| (IFNULL(SumQty,0) - IFNULL(TotalQty,0)) ||'.';
-	    END IF;*/
+	    END IF;
 
 	    IF OtherTotalQty IS NOT NULL AND IFNULL(OtherTotalQty,0) <> IFNULL(TotalQty,0) THEN
 	        error := -1229;
@@ -23220,20 +23220,29 @@ IF :object_type = 'LICENSEMANAGER' AND (:transaction_type = 'A' OR :transaction_
         DECLARE ErrorLineStr NVARCHAR(10) := '';
         DECLARE ErrorItemStr NVARCHAR(50) := '';
 
-        -- Check if any row in @IMPORTCHILD has a U_ItemCode that does NOT start with 'LIC'
+        -- 1. Count rows where ItemCode is NOT blank AND does NOT start with 'LIC'
         SELECT COUNT(*) INTO ErrorCount
         FROM "@IMPORTCHILD"
-        WHERE "Code" = :list_of_cols_val_tab_del AND IFNULL("U_ItemCode", '')<>'' AND IFNULL("U_ItemCode", '') NOT LIKE 'LIC%';
+        WHERE "Code" = :list_of_cols_val_tab_del
+          AND IFNULL("U_ItemCode", '') <> ''
+          AND "U_ItemCode" NOT LIKE 'LIC%';
 
         IF :ErrorCount > 0 THEN
-            -- Grab the first failing line and item code to show in the error message
-            SELECT TOP 1 CAST("LineId" AS NVARCHAR(10)), IFNULL("U_ItemCode", '') INTO ErrorLineStr, ErrorItemStr
+            -- 2. Get the first bad LineId (Using MIN prevents the 1299 No Data Found error)
+            SELECT MIN(CAST("LineId" AS NVARCHAR(10))) INTO ErrorLineStr
             FROM "@IMPORTCHILD"
-            WHERE "Code" = :list_of_cols_val_tab_del AND IFNULL("U_ItemCode", '')<>'' AND IFNULL("U_ItemCode", '') NOT LIKE 'LIC%'
-            ORDER BY "LineId";
+            WHERE "Code" = :list_of_cols_val_tab_del
+              AND IFNULL("U_ItemCode", '') <> ''
+              AND "U_ItemCode" NOT LIKE 'LIC%';
+
+            -- 3. Fetch the actual wrong item code for that specific line
+            SELECT MAX("U_ItemCode") INTO ErrorItemStr
+            FROM "@IMPORTCHILD"
+            WHERE "Code" = :list_of_cols_val_tab_del
+              AND CAST("LineId" AS NVARCHAR(10)) = :ErrorLineStr;
 
             error := 50007;
-            error_message := 'Invalid Item Code selected! The Item Code must start with "LIC". [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
+            error_message := 'Invalid Item Code selected! The Item Code must start with "LIC". [Row: ' || IFNULL(:ErrorLineStr, 'Unknown') || ', Item: ' || IFNULL(:ErrorItemStr, '') || ']';
         END IF;
 END IF;
 -----------------------------------------------------------------------------------------
