@@ -702,43 +702,57 @@ End If;
 ----------------------------------------------- Debit Note --------------------------------------------------------
 IF (:object_type = '19' AND (:transaction_type IN ('A','U'))) THEN
 
-	select count(*) into Temp from ORPC where "DocEntry"=:list_of_cols_val_tab_del;
+    SELECT COUNT(*) INTO Temp FROM ORPC WHERE "DocEntry" = :list_of_cols_val_tab_del;
 
-	If :Temp > 0 then
+    IF :Temp > 0 THEN
 
-			SELECT T0."DocEntry" INTO DocEntry FROM ORPC T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+        SELECT STRING_AGG("E_MailL", ',') INTO MailID
+        FROM (
+            SELECT DISTINCT T1."E_MailL"
+            FROM OCRD T0
+            INNER JOIN OCPR T1 ON T0."CardCode" = T1."CardCode"
+            INNER JOIN ORPC T2 ON T0."CardCode" = T2."CardCode"
+            WHERE T2."CANCELED" = 'N' AND T2."DocEntry" = :list_of_cols_val_tab_del
+        ) P;
 
-			select STRING_AGG("E_MailL",',') INTO MailID from
-			(
-				select distinct T1."E_MailL" from OCRD T0
-				Inner Join OCPR T1 on T0."CardCode"=T1."CardCode"
-				Inner Join ORPC T2 on T0."CardCode"=T2."CardCode"
-				where T2."CANCELED"='N' and T2."DocEntry"=:list_of_cols_val_tab_del
-			) P;
+        SELECT
+            "DocEntry",
+            LTRIM(
+                CASE
+                    WHEN LEFT("CardCode",4) IN ('VIRD','VIRI','VPRD','VPRI','VPPD','VORD','VORI')
+                        THEN 'purchasemgr1@matangiindustries.com,accounts8@matangiindustries.com'
+                    WHEN LEFT("CardCode",4) IN ('VEXP','VFAS','VGPR','VLAB')
+                        THEN 'purchasemgr@matangiindustries.com,accounts8@matangiindustries.com'
+                    ELSE ''
+                END ||
+                CASE "BPLId"
+                    WHEN 3 THEN ',amstore1@matangiindustries.com'
+                    WHEN 4 THEN ',storemgr1@matangiindustries.com'
+                    ELSE ''
+                END ||
+                ',intaudit.mgr@matangiindustries.com',
+            ','),
 
-			SELECT
-			    CASE
-			        WHEN LEFT("CardCode",4) IN ('VIRD','VIRI','VPRD','VPRI','VPPD','VORD','VORI') THEN 'purchasemgr1@matangiindustries.com,accounts8@matangiindustries.com'
-			        WHEN LEFT("CardCode",4) IN ('VEXP','VFAS','VGPR','VLAB') THEN 'purchasemgr@matangiindustries.com,accounts8@matangiindustries.com'
-			    END
-			INTO EmailCC FROM ORPC WHERE "DocEntry" = :list_of_cols_val_tab_del;
+            CASE
+                WHEN LEFT("CardCode",4) IN ('VIRD','VIRI','VPRD','VPRI','VPPD','VORD','VORI') THEN 'E'
+                WHEN LEFT("CardCode",4) IN ('VEXP','VFAS','VGPR','VLAB') THEN 'D'
+            END
 
-			SELECT
-				CASE
-					WHEN LEFT("CardCode",4) IN ('VIRD','VIRI','VPRD','VPRI','VPPD','VORD','VORI') THEN 'E'
-					WHEN LEFT("CardCode",4) IN ('VEXP','VFAS','VGPR','VLAB') THEN 'D'
-				END
-			INTO ObjectType FROM ORPC WHERE "DocEntry" = :list_of_cols_val_tab_del;
+        INTO DocEntry, EmailCC, ObjectType
+        FROM ORPC
+        WHERE "DocEntry" = :list_of_cols_val_tab_del;
 
-			Mobile := '';
-			EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
-			Mobi_TYPE := 'Debit Note';
-			Select CURRENT_SCHEMA Into DBName from Dummy;
-			If(:DBName = 'MILIVE') Then
-				CALL "MOBIALERT"."Add_Config_Proc" (119,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
-			END IF;
-	End If;
-End If;
+        Mobile := '';
+        EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+        Mobi_TYPE := 'Debit Note';
+        SELECT CURRENT_SCHEMA INTO DBName FROM Dummy;
+
+        IF (:DBName = 'MILIVE') THEN
+            CALL "MOBIALERT"."Add_Config_Proc" (119, :DocEntry, :transaction_type, :MailID, :Mobile, :EmailCC, :EmailBCC, :ObjectType, :Mobi_TYPE);
+        END IF;
+
+    END IF;
+END IF;
 
 -------------------------------------Sales Order PI ------------------------------------------------------------------------------------
 IF (:object_type = '17' AND (:transaction_type IN ('A','U'))) THEN

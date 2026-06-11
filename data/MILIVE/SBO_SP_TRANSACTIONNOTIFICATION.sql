@@ -20022,7 +20022,7 @@ if Item like '%FG%' then
             error := -1046;
             error_message := 'The PCRM from PC-QC cannot be moved to any warehouse other than PC-QCR,PC-RAW';
         end if;
-		if FromWhs = '1BT' and ToWhs not in ('DI-RAW','PC-RAW', 'OF-RAW','PC-QC','DI-QC') then
+		if FromWhs = '1BT' and ToWhs not in ('DI-RAW','PC-RAW', 'OF-RAW','PC-QC','DI-QC','DI-TRD') then
             error := -1047;
             error_message := 'The PCRM from 1BT cannot be moved to any warehouse other than DI-RAW,PC-RAW';
         end if;
