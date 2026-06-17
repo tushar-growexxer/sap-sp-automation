@@ -600,6 +600,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE BPPayment NVARCHAR(200);
     DECLARE CCodeType NVARCHAR(5);
     DECLARE ItemCodeType NVARCHAR(5);
+    DECLARE IncoTerm NVARCHAR(30);
 
     -- Line Level Variables
     DECLARE SOEntryType NVARCHAR(50);
@@ -623,6 +624,7 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     DECLARE SOItemCategory NVARCHAR(50);
     DECLARE SOItemSubCategory NVARCHAR(50);
     DECLARE LeadTime DOUBLE;
+    DECLARE ExWorkPriceKG,FOBPriceKG,FreightPriceKG DOUBLE;
     DECLARE ExpeLT DOUBLE;
     DECLARE ExpectedDelDate DATE;
     DECLARE U_Agro_Chem NVARCHAR(50);
@@ -651,7 +653,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             U_Pack8, U_Pack9, U_Pack10, U_Pack11, U_Pack12, U_Pack13,
             U_Pack14, U_Pack15 NVARCHAR(50);
     DECLARE COA_Appr NVARCHAR(5);
+    DECLARE SOPallet, Pallet1, Pallet2, Pallet3, PackingType NVARCHAR(100);
     DECLARE IMItemName NVARCHAR(200);
+    DECLARE BPLId NVARCHAR(5);
+    DECLARE OcrCodee NVARCHAR(10);
+    declare Name nvarchar(50);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -666,21 +672,23 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         SELECT
             T1."SeriesName", T0."CardCode", T0."DocCur", T0."NumAtCard", T0."SlpCode", T0."U_RMRKPRD", T0."U_RMRKSTR",
             T0."U_RMRKQC", ifnull(T0."Comments", ''), T0."DocRate", T0."DocDate", T0."DocDueDate", T0."U_CNPJ_Num", T0."U_CEP_Num",
-            T0."U_CUIT_Num", T0."U_Tax_ID", T0."U_FinlDest", T0."U_Export_Remark", T0."U_ExportRemarks", T0."CardName",
-            T0."U_PLoad", T0."U_PDischrg",
+            T0."U_CUIT_Num", T0."U_Tax_ID", T0."U_FinlDest", T0."U_Export_Remark", T0."U_ExportRemarks", T0."CardName", T0."BPLId", T0."U_Incoterms",
+            T0."U_PLoad", T0."U_PDischrg", T5."BPLName",
             T2."PymntGroup",
-            T3."SlpCode", T2."PymntGroup"
+            T3."SlpCode", T4."PymntGroup"
         INTO
             Series, CardCodeSO, SOCurrency, CustRef, SESO, RMRKPRD, RMRKSTR,
             RMRKQC, SOCmnt, SOrate, SOdate, DLDate, CNPJ, CEP,
-            CUIT, TaxID, City, ExpRmk, ExpRmkO, BPName,
-            PLoad, PDischrg,
+            CUIT, TaxID, City, ExpRmk, ExpRmkO, BPName, BPLId, IncoTerm,
+            PLoad, PDischrg, Name,
             POPayment,
             BPSLP, BPPayment
         FROM ODRF T0
         INNER JOIN NNM1 T1 ON T0."Series" = T1."Series"
         INNER JOIN OCTG T2 ON T0."GroupNum" = T2."GroupNum"
         INNER JOIN OCRD T3 ON T0."CardCode" = T3."CardCode"
+        inner join octg t4 on t4."GroupNum" = t3."GroupNum"
+        LEFT JOIN OBPL T5 ON T0."BPLId" = T5."BPLId"
         WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType" = 17;
 
         -- Get Min and Max line numbers for the loop
@@ -769,6 +777,39 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             END IF;
         END IF;
 
+                -- Validation 30075: Credit Limit Check (Only for Add)
+        /*IF (:transaction_type = 'A') THEN
+            SELECT T0."CardType", T0."CreditLine", T0."Balance" INTO CardType, CreditLimit, DueBalance
+            FROM OCRD T0 WHERE T0."CardCode" = :CardCodeSO;
+
+            IF CardType = 'C' THEN
+                SELECT Days_Between(Min(T0."DueDate"), Current_Date) INTO DueDays
+                FROM JDT1 T0
+                WHERE T0."ShortName" = :CardCodeSO AND T0."BalDueDeb" != T0."BalDueCred" AND T0."TransType" <> 30 AND T0."BalDueDeb" > 0;
+
+                IF (CardCodeSO LIKE 'CPE%' OR CardCodeSO LIKE 'CIE%') THEN
+                    IF :DueBalance > :CreditLimit THEN
+                        error := 30075;
+                        error_message := 'Sales Order cannot be punched because credit limit of the customer has been exceeded [Draft].';
+                    END IF;
+                    IF DueDays > 15 THEN
+                        error := 30075;
+                        error_message := 'Sales Order cannot be punched because payment of the customer is overdue by ' || Duedays || ' days. [Draft].';
+                    END IF;
+                END IF;
+                IF (CardCodeSO LIKE 'CPD%' OR CardCodeSO LIKE 'CID%') THEN
+                    IF :DueBalance > :CreditLimit THEN
+                        error := 30075;
+                        error_message := 'Sales Order cannot be punched because credit limit of the customer has been exceeded [Draft].';
+                    END IF;
+                    IF DueDays > 10 THEN
+                        error := 30075;
+                        error_message := 'Sales Order cannot be punched because payment of the customer is overdue by ' || Duedays || ' days [Draft].';
+                    END IF;
+                END IF;
+            END IF;
+        END IF;*/
+
         -- Validation 31011: Sales Employee Check
         IF BPSLP <> SESO THEN
             SELECT T0."SlpName" INTO BPSlpName FROM OSLP T0 WHERE T0."SlpCode" = BPSLP;
@@ -797,14 +838,20 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error_message := N'Document payment terms do not match Business Partner master. [DRAFT]';
         END IF;
 
+        -- Validation 31013: Branch Plant Check for specific customers
+    	IF Name IS NOT NULL AND CardCodeSO IN ('CPE0002','CPE0071','CPE0027','CPE0003','CPE0156','CPE0057','CPE0087') AND Name <> 'UNIT - I' THEN
+	        error := 31013;
+	        error_message := 'Sales Orders for specified customers must be created from UNIT - I only.';
+   	 	END IF;
+
         -- 'ADD' Transaction Specific Header Validations
         IF (:transaction_type = 'A') THEN
             -- Validation 31014: Currency and Series Check
-            IF (CardCodeSO LIKE 'CPE%' AND SOCurrency = 'INR') OR (CardCodeSO LIKE 'CSE%' AND SOCurrency = 'INR') THEN
+            IF (CardCodeSO LIKE 'CPE%' AND SOCurrency = 'INR') OR (CardCodeSO LIKE 'CSE%' AND SOCurrency = 'INR') OR (CardCodeSO LIKE 'COE%' AND SOCurrency = 'INR') THEN
                 error := 31019;
                 error_message := N'Please Select Proper Currency. [DRAFT]';
             END IF;
-            IF (CardCodeSO LIKE 'CSE%' AND Series NOT LIKE 'EX%') OR (CardCodeSO LIKE 'CPE%' AND Series NOT LIKE 'EX%') THEN
+            IF (CardCodeSO LIKE 'CSE%' AND Series NOT LIKE 'EX%') OR (CardCodeSO LIKE 'CPE%' AND Series NOT LIKE 'EX%') OR (CardCodeSO LIKE 'COE%' AND Series NOT LIKE 'EX%') THEN
                 error := 31020;
                 error_message := N'Please Select Proper Series. [DRAFT]';
             END IF;
@@ -821,15 +868,12 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
             -- Validation 31016: Exchange Rate Check
             IF CardCodeSO LIKE 'C_E%' THEN
-                SELECT COUNT(T0."Rate") INTO PrtCnt FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SOdate;
-                IF PrtCnt > 0 THEN
-                    SELECT T0."Rate" INTO SOExrate FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SOdate;
-                    IF SOExrate <> SOrate THEN
-                        error := 31023;
-                        error_message := N'Not allowed to change exchange rate. [DRAFT]';
-                    END IF;
-                END IF;
-            END IF;
+            SELECT IFNULL(MAX(T0."Rate"), 0) INTO SOExrate FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SOdate;
+    		IF SOExrate > 0 AND SOExrate <> SOrate THEN
+        	error := 30031;
+        	error_message := N'Not allowed to change exchange rate.';
+	    	END IF;
+			END IF;
         END IF;
 
         -- =====================================================
@@ -856,37 +900,41 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         WHILE MinSO <= MaxSO DO
             -- Get all line-level data in a single, efficient query
             SELECT
-                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt", T1."TaxCode",
+                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt", T1."TaxCode",T1."U_Pkg_Type",
                 T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), count(T1."U_TOPLT"),
                 T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS", T1."U_ApprOnCOA", t2."ItemName"
+                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS", T1."U_ApprOnCOA", t2."ItemName", T1."OcrCode",
+                T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg"
             INTO
-                SOEntryType, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, Freetext, TaxCode,
+                SOEntryType, SOItemCode, LicenseTypeSO, Qty, LicenseNoSO, Freetext, TaxCode,PackingType,
                 SOName, SOPckCode, SOPackType, Capacity, SOOtherPackng, HASCOM, Commission,
                 CommissionPer, BatchCount,
                 SOItemGrpCode, SOItemCategory, SOItemSubCategory, typpltibc,
-                U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, Freetext, PSS, COA_Appr, IMItemName
+                U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, Freetext, PSS, COA_Appr, IMItemName, OcrCodee,
+                SOPallet,Pallet1,Pallet2,Pallet3,  ExWorkPriceKG,FOBPriceKG,FreightPriceKG
             FROM DRF1 T1 JOIN ODRF ON ODRF."DocEntry" = T1."DocEntry"
             INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+            INNER JOIN OCRD T3 ON T3."CardCode" = :CardCodeSO
             WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO AND ODRF."ObjType" = 17
             GROUP BY
-                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt", T1."TaxCode",
+                T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."Quantity", T1."U_LicenseNum", T1."FreeTxt", T1."TaxCode",T1."U_Pkg_Type",
                 T1."Dscription", T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_Opack", T1."U_UNE_APPR", T1."U_Commission_Q",
                 T1."U_Q_CommissionPer", T1."U_NoOfBatchRequired",
                 T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''),
                 T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS", T1."U_ApprOnCOA", t2."ItemName";
+                T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription",T1."FreeTxt",T1."U_PSS", T1."U_ApprOnCOA", t2."ItemName", T1."OcrCode",
+                T1."U_Opack",IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg";
 
             -- Validation 31017: Entry Type Check
-            IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
+            IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE '%RM%' OR SOItemCode LIKE '%FG%' OR SOItemCode LIKE '%TR%')) THEN
                 error := 31024;
                 error_message := N'Please select Entry Type at row level. [DRAFT]';
             END IF;
 
             -- Validation 31018: License Type and Quantity Check
-            IF (LicenseTypeSO IS NULL OR LicenseTypeSO = '') AND SOCmnt NOT LIKE '%sample%' THEN
+            IF (LicenseTypeSO IS NULL OR LicenseTypeSO = '') AND SOCmnt NOT LIKE '%sample%' AND CardCodeSO LIKE 'C_E%' THEN
                 error := 31025;
                 error_message := N'Please enter License Type. [DRAFT]';
             END IF;
@@ -1090,11 +1138,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 END IF;
             END IF;
 
-            /*-- Validation 32037: Type of Pallets/IBC Check
+            -- Validation 32037: Type of Pallets/IBC Check
 	        IF typpltibc = 0 THEN
 	            error := 32037;
 	            error_message := N'Please enter Type of pallets/IBC.';
-	        END IF;*/
+	        END IF;
 
             -- Validation 31028: Item Category/Sub-Category Check
             IF (SOItemCode LIKE '%FG%') AND (SOItemCategory = '' OR SOItemSubCategory = '') THEN
@@ -1111,6 +1159,106 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         		error := 31041;
         		error_message := N'Please select Approval On COA Yes/No at Line No - '||MinSO+1 || ' [DRAFT].';
         	END IF;
+
+        -- =================================================
+        -- Validation 31040: Packing Type & Pallet Code Check
+		-- =================================================
+		-- Packing Type must be selected
+			IF IFNULL(PackingType, '') = '' THEN
+			    error := 31040;
+			    error_message := N'Packing Type cannot be left blank.';
+			END IF;
+		-- Pallet Code must not be blank
+			IF IFNULL(SOPallet, '') = '' THEN
+			    error := 31041;
+			    error_message := N'Pallet Code is mandatory. Allowed values: NA or pallet codes mapped with the selected Customer.';
+			END IF;
+		-- Validate Pallet Code when not NA
+			IF SOPallet <> 'NA'
+			   AND SOPallet NOT IN (IFNULL(Pallet1,''), IFNULL(Pallet2,''), IFNULL(Pallet3,'')) THEN
+			    error := 31042;
+			    error_message := N'Invalid Pallet Code. Please select a pallet code mapped with the selected Customer or choose NA.';
+			END IF;
+		-- Pallet Code NA allowed only for specific Packing Types
+			IF SOPallet = 'NA'
+			   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose')
+			   AND (CardCodeSO NOT LIKE 'C_D%' OR CardCodeSO IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346')) THEN
+			    error := 30094;
+			    error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
+			END IF;
+
+		IF (:transaction_type = 'A') THEN
+		IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
+
+        -- VALIDATION 1: ItemCode prefix must match Distribution Rule suffix
+            IF LEFT(SOItemCode, 2) <> RIGHT(OcrCodee, 2) THEN
+                error         := 30095;
+                error_message := N'Invalid Distribution Rule: Item '          || SOItemCode          ||
+                                  ' must have Distribution Rule ending with '  || LEFT(SOItemCode, 2) ||
+                                  ' but found '                                || OcrCode;
+            END IF;
+
+      -- VALIDATION 2: Branch = 3 (Unit-1) → No prefix 2 or 3 allowed
+            IF BPLId = 3 THEN
+                IF OcrCodee LIKE '2%' OR OcrCodee LIKE '3%' THEN
+                    error         := 30096;
+                    error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 2 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 3: Branch = 4 (Unit-2) → Must use prefix 2
+            IF BPLId = 4 THEN
+                IF OcrCodee NOT LIKE '2%' THEN
+                    error         := 30097;
+                    error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 4: Branch = 5 (Unit-3) → Must use prefix 3
+            IF BPLId = 5 THEN
+                IF OcrCodee NOT LIKE '3%' THEN
+                    error         := 30098;
+                    error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 2';
+                END IF;
+            END IF;
+         END IF;
+         END IF;
+
+        IF CardCodeSO LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
+			-- 1. EXW (Ex-Works) Validation
+			-- Rule: ONLY Ex-Work is allowed. FOB and Freight MUST be blank.
+			IF (IncoTerm = 'EXW') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+			    error := 30092;
+			    error_message := N'If Incoterm is EXW, ONLY Ex-Work is allowed. FOB and Freight must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 2. FOB Validation
+			-- Rule: FOB is mandatory. Freight MUST be blank. (Ex-Work is optional/allowed).
+			IF (IncoTerm = 'FOB') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+			    error := 30093;
+			    error_message := N'If Incoterm is FOB, the FOB field is mandatory and Freight must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 3. FCA Validation
+			-- Rule: Ex-Work and Freight are BOTH mandatory. FOB MUST be blank.
+			IF (IncoTerm = 'FCA') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000) THEN
+			    error := 30094;
+			    error_message := N'If Incoterm is FCA, both Ex-Work and Freight are mandatory, and FOB must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 4. CFR, CIF, CIP, CPT, DAP, DDP Validation
+			-- Rule: FOB and Freight are BOTH mandatory. (Ex-Work is optional/allowed).
+			IF (IncoTerm IN ('CFR', 'CIF', 'CIP', 'CPT', 'DAP', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000) THEN
+			    error := 30095;
+			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
+			END IF;
+		END IF;
 
             MinSO := MinSO + 1;
         END WHILE;
@@ -1177,6 +1325,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     DECLARE PSS NVARCHAR(5);
     DECLARE SOPackType NVARCHAR(500);
     DECLARE SOPckCode NVARCHAR(500);
+    DECLARE IncoTerm NVARCHAR(30);
 
     -- FIXED: DECIMAL(18,6) for Capacity and master columns to handle 190.5 accurately
     DECLARE Capacity DECIMAL(18,6);
@@ -1201,6 +1350,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     DECLARE typpltibc INT;
     DECLARE Freetext NVARCHAR(100);
     DECLARE LeadTime DOUBLE;
+    DECLARE ExWorkPriceKG,FOBPriceKG,FreightPriceKG DOUBLE;
     DECLARE ExpeLT DOUBLE;
     DECLARE ExpectedDelDate DATE;
     DECLARE U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care,
@@ -1209,10 +1359,11 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     DECLARE SOPackng NVARCHAR(100);
     DECLARE SOName nvarchar(200);
     DECLARE COA_Appr NVARCHAR(5);
-    DECLARE PackingType NVARCHAR(25);
-    DECLARE SOPallet NVARCHAR(100);
+    DECLARE SOPallet, Pallet1, Pallet2, Pallet3, PackingType NVARCHAR(100);
     DECLARE SOItemName NVARCHAR(200);
     DECLARE IMItemName NVARCHAR(200);
+    DECLARE OcrCodee NVARCHAR(10);
+    DECLARE BPLId NVARCHAR(5);
 
     -- =======================================================
     -- SECTION 1: EFFICIENTLY SELECT ALL HEADER DATA UPFRONT
@@ -1221,15 +1372,15 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         T0."CardCode", T0."DocCur", ifnull(T0."Comments", ''), T0."SlpCode", T0."U_RMRKPRD", T0."U_RMRKSTR", T0."U_RMRKQC",
         T0."DocDate", T0."DocDueDate", T0."U_PLoad", T0."U_PDischrg", T0."U_CNPJ_Num", T0."U_CEP_Num", T0."U_CUIT_Num",
         T0."U_Tax_ID", T0."U_FinlDest", T0."U_Export_Remark", T0."U_ExportRemarks",
-        T0."DocRate", T0."CardName", T3."BPLName", T0."NumAtCard",
+        T0."DocRate", T0."CardName", T3."BPLName", T0."NumAtCard",T0."BPLId",
         T1."SeriesName",
         T2."PymntGroup",
-        T4."SlpCode", T4."CardType", T4."CreditLine", T4."Balance", T2."PymntGroup"
+        T4."SlpCode", T4."CardType", T4."CreditLine", T4."Balance", T5."PymntGroup"
     INTO
         CardCode, SOCurrency, SOCmnt, SOSLP, RMRKPRD, RMRKSTR, RMRKQC,
         SODate, DueDate, PLoad, PDischrg, CNPJ, CEP, CUIT,
         TaxID, City, ExpRmk, ExpRmkO,
-        SOrate, BPName, Name, CustRef,
+        SOrate, BPName, Name, CustRef, BPLId,
         Series,
         POPayment,
         BPSLP, CardType, CreditLimit, DueBalance, BPPayment
@@ -1238,6 +1389,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     INNER JOIN OCTG T2 ON T0."GroupNum" = T2."GroupNum"
     LEFT JOIN OBPL T3 ON T0."BPLId" = T3."BPLId"
     INNER JOIN OCRD T4 ON T0."CardCode" = T4."CardCode"
+    inner join octg t5 on t5."GroupNum" = t4."GroupNum"
     WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 
     SELECT Days_Between(Min(T0."DueDate"), Current_Date) INTO DueDays FROM JDT1 T0
@@ -1304,6 +1456,14 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         error_message := N'Document payment terms do not match Business Partner master.';
     END IF;
 
+    -- Validation 32010: Branch Plant Check for specific customers
+    IF Name IS NOT NULL AND CardCode IN ('CPE0002','CPE0071','CPE0027','CPE0003','CPE0156','CPE0057','CPE0087') AND Name <> 'UNIT - I' THEN
+        error := 32010;
+        error_message := 'Sales Orders for specified customers must be created from UNIT - I only.';
+    END IF;
+
+
+
     -- Validation 32011: Sales Employee Check
     IF BPSLP <> SOSLP THEN
         SELECT T0."SlpName" INTO BPSlpName FROM OSLP T0 WHERE T0."SlpCode" = BPSLP;
@@ -1353,11 +1513,11 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     -- 'ADD' Transaction Specific Header Validations
     IF (:transaction_type = 'A') THEN
         -- Validation 32021: Currency and Series Check
-        IF (CardCode LIKE 'CPE%' AND SOCurrency = 'INR') OR (CardCode LIKE 'CSE%' AND SOCurrency = 'INR') THEN
+        IF (CardCode LIKE 'CPE%' AND SOCurrency = 'INR') OR (CardCode LIKE 'CSE%' AND SOCurrency = 'INR') OR (CardCode LIKE 'COE%' AND SOCurrency = 'INR') THEN
             error := 32021;
             error_message := N'Please Select Proper Currency.';
         END IF;
-        IF (CardCode LIKE 'CSE%' AND Series NOT LIKE 'EX%') OR (CardCode LIKE 'CPE%' AND Series NOT LIKE 'EX%') THEN
+        IF (CardCode LIKE 'CSE%' AND Series NOT LIKE 'EX%') OR (CardCode LIKE 'CPE%' AND Series NOT LIKE 'EX%') OR (CardCode LIKE 'COE%' AND Series NOT LIKE 'EX%') THEN
             error := 32021;
             error_message := N'Please Select Proper Series.';
         END IF;
@@ -1374,12 +1534,12 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 
         -- Validation 32023: Exchange Rate Check
         IF CardCode LIKE 'C_E%' THEN
-            SELECT T0."Rate" INTO SOExrate FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SODate;
-            IF SOExrate <> SOrate THEN
-                error := 32023;
-                error_message := N'Not allowed to change exchange rate.';
-            END IF;
-        END IF;
+            SELECT IFNULL(MAX(T0."Rate"), 0) INTO SOExrate FROM ORTT T0 WHERE T0."Currency" = :SOCurrency AND T0."RateDate" = :SOdate;
+    		IF SOExrate > 0 AND SOExrate <> SOrate THEN
+        	error := 30031;
+        	error_message := N'Not allowed to change exchange rate.';
+	    	END IF;
+		END IF;
     END IF;
 
     -- =====================================================
@@ -1411,22 +1571,26 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             T2."ItmsGrpCod", IFNULL(T2."U_PCAT", ''), IFNULL(T2."U_PSCAT", ''), T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
             T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining", T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA",
-            T1."U_Opack", t1."Dscription", t2."ItemName"
+            T1."U_Opack", IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t1."Dscription", t2."ItemName", T1."OcrCode",
+            T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg"
         INTO
             SOEntryType, SOItemCode, LicenseTypeSO, LicenseNoSO, PSS, Qty, TaxCode,PackingType,
             SOPckCode, SOPackType, Capacity, HASCOM, Commission, CommissionPer,
             typpltibc, Freetext,
             SOItemGrpCode, SOItemCategory, SOItemSubCategory, BatchCount,
             U_Agro_Chem, U_Per_HM_CR, U_Food, U_Paints_Pigm, U_Indus_Care, U_Lube_Additiv, U_Textile, U_Oil_Gas, U_CAS_No, U_Other1, U_Other2, U_Pharma, U_Mining, SOName, SOPackng, COA_Appr,
-            SOPallet, SOItemName, IMItemName
+            SOPallet,Pallet1,Pallet2,Pallet3, SOItemName, IMItemName, OcrCodee,
+            ExWorkPriceKG,FOBPriceKG,FreightPriceKG
         FROM RDR1 T1
         INNER JOIN OITM T2 ON T1."ItemCode" = T2."ItemCode"
+        INNER JOIN OCRD T3 ON T3."CardCode" = :CardCode
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO
         GROUP BY T1."U_EntryType", T1."ItemCode", T1."U_LicenseType", T1."U_LicenseNum", T1."U_PSS", T1."Quantity", T1."TaxCode",T1."U_Pkg_Type",
             T1."U_Pcode", T1."U_PTYPE", T1."Factor1", T1."U_UNE_APPR", T1."U_Commission_Q", T1."U_Q_CommissionPer",
             T1."FreeTxt", T2."ItmsGrpCod", T2."U_PCAT", T2."U_PSCAT", T1."U_NoOfBatchRequired",
             T2."U_Agro_Chem", T2."U_Per_HM_CR", T2."U_Food", T2."U_Paints_Pigm", T2."U_Indus_Care", T2."U_Lube_Additiv", T2."U_Textile", T2."U_Oil_Gas", T2."U_CAS_No",
-            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA",T1."U_Opack",  t1."Dscription", t2."ItemName";
+            T2."U_Other1", T2."U_Other2", T2."U_Pharma", T2."U_Mining",T1."Dscription", T1."U_Pcode", T1."U_ApprOnCOA",T1."U_Opack", IFNULL(T3."U_PalletCode01",''),IFNULL(T3."U_PalletCode02",''),IFNULL(T3."U_PalletCode03",''), t1."Dscription", t2."ItemName", T1."OcrCode",
+            T1."U_Ex_work_pkg",T1."U_FOB_pkg",T1."U_Freight_pkg";
 
         -- Validation 32024: Entry Type Check (Only for Add)
         IF (:transaction_type = 'A') AND (SOEntryType = 'Blank' AND (SOItemCode LIKE 'PCRM%' OR SOItemCode LIKE 'PCFG%')) THEN
@@ -1435,7 +1599,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         END IF;
 
         -- Validation 32025: License and Quantity Checks
-        IF (LicenseTypeSO IS NULL OR LicenseTypeSO = '') AND SOCmnt NOT LIKE '%sample%' THEN
+        IF (LicenseTypeSO IS NULL OR LicenseTypeSO = '') AND SOCmnt NOT LIKE '%sample%' AND CardCode LIKE 'C_E%' THEN
             error := 32025;
             error_message := N'Please enter License Type.';
         END IF;
@@ -1529,7 +1693,7 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         END IF;
 
         -- Validation 32032: HSN Code Check
-        IF SOItemCode NOT IN ('SER0123', 'WSTG0001') THEN
+        IF SOItemCode NOT IN ('SER0121', 'WSTG0001') THEN
             SELECT concat(concat(concat(concat("Chapter",'.'),"Heading"),'.'),"SubHeading") INTO ItmHSN FROM OCHP T0 INNER JOIN OITM T1 ON T0."AbsEntry" = T1."ChapterID" WHERE T1."ItemCode" = SOItemCode;
             SELECT concat(concat(concat(concat("Chapter",'.'),"Heading"),'.'),"SubHeading") INTO InvHSN FROM OCHP T0 INNER JOIN RDR1 T1 ON T1."HsnEntry" = T0."AbsEntry" WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = MinSO;
             IF ItmHSN <> InvHSN THEN
@@ -1565,11 +1729,11 @@ IF Object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             error_message := N'Number of Batches is required for item ' || SOItemCode || ' at line ' || MinSO + 1;
         END IF;
 
-        /*-- Validation 32037: Type of Pallets/IBC Check
+        -- Validation 32037: Type of Pallets/IBC Check
         IF typpltibc = 0 THEN
             error := 32037;
             error_message := N'Please enter Type of pallets/IBC.';
-        END IF;*/
+        END IF;
 
         -- Validation 32038: Alias Name Check
         IF Series NOT LIKE 'CL%' AND (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode NOT LIKE 'WS%' AND SOItemCode <> 'PCFG0424') THEN
@@ -1669,6 +1833,94 @@ IF IFNULL(SOPallet, '') = '' THEN
     error := 30092;
     error_message := N'Pallet Code is mandatory. Allowed values: NA or pallet codes mapped with the selected Customer.';
 END IF;
+-- Validate Pallet Code when not NA
+IF SOPallet <> 'NA'
+   AND SOPallet NOT IN (IFNULL(Pallet1,''), IFNULL(Pallet2,''), IFNULL(Pallet3,'')) THEN
+    error := 30093;
+    error_message := N'Invalid Pallet Code. Please select a pallet code mapped with the selected Customer or choose NA.';
+END IF;
+
+-- Pallet Code NA allowed only for specific Packing Types
+IF SOPallet = 'NA'
+   AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose')
+   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346')) THEN
+    error := 30094;
+    error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
+END IF;
+
+IF (:transaction_type = 'A') THEN
+IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
+
+        -- VALIDATION 1: ItemCode prefix must match Distribution Rule suffix
+            IF LEFT(SOItemCode, 2) <> RIGHT(OcrCodee, 2) THEN
+                error         := 30095;
+                error_message := N'Invalid Distribution Rule: Item '          || SOItemCode          ||
+                                  ' must have Distribution Rule ending with '  || LEFT(SOItemCode, 2) ||
+                                  ' but found '                                || OcrCode;
+            END IF;
+
+      -- VALIDATION 2: Branch = 3 (Unit-1) → No prefix 2 or 3 allowed
+            IF BPLId = 3 THEN
+                IF OcrCodee LIKE '2%' OR OcrCodee LIKE '3%' THEN
+                    error         := 30096;
+                    error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 2 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 3: Branch = 4 (Unit-2) → Must use prefix 2
+            IF BPLId = 4 THEN
+                IF OcrCodee NOT LIKE '2%' THEN
+                    error         := 30097;
+                    error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 3';
+                END IF;
+            END IF;
+
+      -- VALIDATION 4: Branch = 5 (Unit-3) → Must use prefix 3
+            IF BPLId = 5 THEN
+                IF OcrCodee NOT LIKE '3%' THEN
+                    error         := 30098;
+                    error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+                                      OcrCode ||
+                                      '. Please select a rule without prefix 1 or 2';
+                END IF;
+            END IF;
+         END IF;
+         END IF;
+
+        IF CardCode LIKE 'C_E%' AND SODate >= '2026-06-05' THEN
+			-- 1. EXW (Ex-Works) Validation
+			-- Rule: ONLY Ex-Work is allowed. FOB and Freight MUST be blank.
+			IF (IncoTerm = 'EXW') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+			    error := 30092;
+			    error_message := N'If Incoterm is EXW, ONLY Ex-Work is allowed. FOB and Freight must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 2. FOB Validation
+			-- Rule: FOB is mandatory. Freight MUST be blank. (Ex-Work is optional/allowed).
+			IF (IncoTerm = 'FOB') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+			    error := 30093;
+			    error_message := N'If Incoterm is FOB, the FOB field is mandatory and Freight must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 3. FCA Validation
+			-- Rule: Ex-Work and Freight are BOTH mandatory. FOB MUST be blank.
+			IF (IncoTerm = 'FCA') AND (IFNULL(ExWorkPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(FOBPriceKG, 0.000) <> 0.000) THEN
+			    error := 30094;
+			    error_message := N'If Incoterm is FCA, both Ex-Work and Freight are mandatory, and FOB must be blank at line - ' || MinSO+1;
+			END IF;
+
+			-- 4. CFR, CIF, CIP, CPT, DAP, DDP Validation
+			-- Rule: FOB and Freight are BOTH mandatory. (Ex-Work is optional/allowed).
+			IF (IncoTerm IN ('CFR', 'CIF', 'CIP', 'CPT', 'DAP', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000) THEN
+			    error := 30095;
+			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
+			END IF;
+		END IF;
+
 
         MinSO := MinSO + 1;
     END WHILE;
