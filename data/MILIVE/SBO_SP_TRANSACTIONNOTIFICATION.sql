@@ -95,7 +95,6 @@ END IF;
 -- CONSOLIDATED BUSINESS PARTNER VALIDATION
 -- Object_type = '2' (Business Partner)
 IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-
     -- ─────────────────────────────────────────────────────────────
     -- DECLARE ALL VARIABLES
     -- ─────────────────────────────────────────────────────────────
@@ -4996,7 +4995,7 @@ DECLARE ItemGR Nvarchar(50);
 	END WHILE;
 END IF;
 
------BY pass DI product to store in Unit-II 2EX1PCFG-----------
+-----BY pass DI product to store in Unit-II 2EX1PCFG--------
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;

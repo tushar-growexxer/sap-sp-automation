@@ -4851,7 +4851,7 @@ End If;
 -- FORM Name   : Delivery
 -- Added Date  :
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4873,7 +4873,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -9122,6 +9122,89 @@ DECLARE CountPRO Int;
 	END WHILE;
 END IF;
 
+IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE GRPOIC1 NVARCHAR(50);
+    DECLARE GRPOIC2 NVARCHAR(50);
+    DECLARE GRNType NVARCHAR(500);
+    DECLARE GRNSeries NVARCHAR(50);
+    DECLARE MaxLinePDQ INT;
+    DECLARE Fact1 INT;
+
+    -- Get the maximum VisOrder (MaxLinePDQ)
+    SELECT MAX(T0."VisOrder") INTO MaxLinePDQ
+    FROM PDN1 T0
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+    -- Get GRNSeries (SeriesName)
+    SELECT NNM1."SeriesName" INTO GRNSeries
+    FROM OPDN
+    INNER JOIN NNM1 ON NNM1."Series" = OPDN."Series"
+    WHERE OPDN."DocEntry" = :list_of_cols_val_tab_del;
+
+    -- Get GRPOIC1 (ItemCode for VisOrder = 0)
+    SELECT PDN1."ItemCode" INTO GRPOIC1
+    FROM PDN1
+    WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del
+    AND PDN1."VisOrder" = 0;
+
+    -- Get GRNType (U_PTYPE for VisOrder = 0)
+    SELECT PDN1."U_PTYPE" INTO GRNType
+    FROM PDN1
+    WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del
+    AND PDN1."VisOrder" = 0;
+
+    -- If GRNSeries is not like 'CL%' or 'JC%' (e.g., exclude these series)
+    IF GRNSeries NOT LIKE 'CL%' AND GRNSeries NOT LIKE 'JC%' THEN
+        -- If GRNType contains 'Drum', ItemCode like 'PC%' and MaxLinePDQ > 0
+        IF GRNType LIKE '%Drum%' AND GRPOIC1 LIKE 'PC%' AND MaxLinePDQ > 0 THEN
+            -- Get GRPOIC2 (ItemCode for VisOrder = 1)
+            SELECT PDN1."ItemCode" INTO GRPOIC2
+            FROM PDN1
+            WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del
+            AND PDN1."VisOrder" = 1;
+
+            -- Get packing factor (Factor1) for VisOrder = 1
+            SELECT PDN1."Factor1" INTO Fact1
+            FROM PDN1
+            WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del
+            AND PDN1."VisOrder" = 1;
+
+            -- If GRPOIC1 is like 'PCRM%' and GRPOIC2 is like 'PCPM%' check the packing capacity
+            IF GRPOIC1 LIKE 'PCRM%' AND GRPOIC2 LIKE 'PCPM%' THEN
+                IF Fact1 <> 1 THEN
+                    -- Error: Packing capacity should be 1
+                    error := 246;
+                    error_message := N'Packing capacity should be 1...';
+                END IF;
+            END IF;
+        END IF;
+
+        -- If GRNType contains 'Tank' (similar logic for Tank)
+        IF GRNType LIKE '%Tank%' and MaxLinePDQ=1 THEN
+            -- Get GRPOIC2 (ItemCode for VisOrder = 1)
+            SELECT PDN1."ItemCode" INTO GRPOIC2
+            FROM PDN1
+            WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del
+            AND PDN1."VisOrder" = 1;
+
+            -- Get packing factor (Factor1) for VisOrder = 1
+            SELECT PDN1."Factor1" INTO Fact1
+            FROM PDN1
+            WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del
+            AND PDN1."VisOrder" = 1;
+
+            -- If GRPOIC1 is like 'PCRM%' and GRPOIC2 is like 'PCPM%' check the packing capacity
+            IF GRPOIC1 LIKE 'PCRM%' AND GRPOIC2 LIKE 'PCPM%' THEN
+                IF Fact1 <> 1 THEN
+                    -- Error: Packing capacity should be 1
+                    error := 246;
+                    error_message := N'Packing capacity should be 1...';
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+END IF;
+
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE DLQTD Int;
 DECLARE MinLineDLQ Int;
@@ -10412,12 +10495,10 @@ DECLARE MaxGI int;
 				    	error :=287;
 				        error_message := N'Not allowed to issue Jumbo bag.';
 			     	End If;
-
-
-			     	/*IF ICode LIKE '%RM%'AND ICode <> 'SCRM0016' AND ICode <> 'PCRM0017' AND ICode <> 'SCRM0025' THEN
+			     	IF ICode LIKE '%RM%'AND ICode <> 'SCRM0016' AND ICode <> 'PCRM0017' AND ICode <> 'SCRM0025' THEN
 				    	error :=287;
 				        error_message := N'Not allowed to issue RM directly. Contact SAP team';
-			     	End If;*/
+			     	End If;
 
 			     	IF ICode LIKE '%FG%' THEN
 				    	error :=287;
@@ -11265,6 +11346,26 @@ If object_type = '15' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 		END WHILE;
 	END IF;
 	end if;
+END IF;
+
+------------------------GRN Delay remark------------------
+IF Object_type = '20' and (:transaction_type ='A' OR :transaction_type ='U' ) Then
+DECLARE GRNDelayRrk nvarchar(200);
+DECLARE GRNDate Date;
+DECLARE GateEdate Date;
+DECLARE Delay Int;
+
+	(SELECT T0."U_RMKPRD" into GRNDelayRrk FROM OPDN T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del);
+	(SELECT T0."DocDate" into GRNDate FROM OPDN T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del);
+	(SELECT T0."U_UNE_GEDT" into GateEdate FROM OPDN T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del);
+	(SELECT DAYS_BETWEEN(T0."U_UNE_GEDT",T0."DocDate") INTO Delay FROM OPDN T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del);
+
+	  	IF Delay > 0 then
+			IF (GRNDelayRrk IS NULL OR GRNDelayRrk = '') THEN
+				error:=339;
+				error_message:=N'Please select GRN Delay remark';
+			END IF;
+		END IF;
 END IF;
 
 IF Object_type = '20' and (:transaction_type ='A' OR :transaction_type ='U' ) Then
@@ -12514,13 +12615,13 @@ END IF;
 
 IF object_type = '20' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 
-DECLARE Vendor Nvarchar(20);
+DECLARE Series Nvarchar(20);
 DECLARE ExRate Double;
 DECLARE U_ExRate Double;
 
-	SELECT "CardCode" INTO Vendor FROM OPDN T0 WHERE T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT "SeriesName" INTO Series FROM OPDN T0 LEFT JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry" =:list_of_cols_val_tab_del;
 
-		IF Vendor LIKE 'V__I%' THEN
+		IF Series LIKE 'IM%' THEN
 
 			SELECT "DocRate" INTO ExRate FROM OPDN T0 WHERE T0."DocEntry" =:list_of_cols_val_tab_del;
 
@@ -12617,7 +12718,44 @@ DECLARE CardCode nvarchar(200);
 	MinLinePDQ := MinLinePDQ+1;
 	END WHILE;
 END IF;
+
 -------------
+-- FORM Name : Goods Receipt PO
+-- Purpose : Payment Terms must be as per Sales Order
+IF object_type = '20' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+
+DECLARE MinLinePDQ INT;
+DECLARE MaxLinePDQ INT;
+DECLARE BaseRef nvarchar(16);
+DECLARE BaseEntry INT;
+DECLARE BaseType INT;
+DECLARE POPayment nvarchar(200);
+DECLARE GRNPayment nvarchar(200);
+DECLARE CardCode nvarchar(200);
+
+	SELECT Min(T0."VisOrder") INTO MinLinePDQ from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxLinePDQ from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+ 	SELECT T0."CardCode" INTO CardCode FROM OPDN T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+	SELECT OCTG."PymntGroup" INTO GRNPayment FROM OPDN INNER JOIN OCTG ON OPDN."GroupNum" = OCTG."GroupNum" WHERE OPDN."DocEntry"= :list_of_cols_val_tab_del;
+
+	   WHILE :MinLinePDQ<=MaxLinePDQ DO
+
+	  		SELECT T0."BaseRef" INTO BaseRef FROM PDN1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinLinePDQ;
+			SELECT T0."BaseEntry" INTO BaseEntry FROM PDN1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinLinePDQ;
+			SELECT T0."BaseType" INTO BaseType FROM PDN1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinLinePDQ;
+		 	IF BaseType = 22 THEN
+			     SELECT OCTG."PymntGroup" INTO POPayment FROM OPOR INNER JOIN OCTG ON OPOR."GroupNum" = OCTG."GroupNum"  WHERE OPOR."DocEntry"= BaseEntry;
+
+	                IF GRNPayment <> POPayment THEN
+           			error := 430;
+       				error_message := N'Goods receipt PO payment terms : [' || GRNPayment || '] is not same as base document purchase order payment terms [' || POPayment || ']';
+	               END IF;
+			END IF;
+	MinLinePDQ := MinLinePDQ+1;
+	END WHILE;
+
+END IF;
+
 IF Object_type = '202' and (:transaction_type ='A') Then
 Declare ItemCode nvarchar(20);
 Declare PlanQty Double;
@@ -20240,6 +20378,49 @@ IF object_type = '13' AND (:transaction_type ='A' or :transaction_type ='U' ) TH
 			END IF;
 	END IF;
 END IF;
+
+-----------------------------GRN Receipt quantity Compulsory [Draft]------30-12-2024---------
+
+IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
+Declare ItCode nvarchar(50);
+Declare RecQty int;
+DECLARE MinGRN int;
+DECLARE MaxGRN int;
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+	If DraftObj = 20 THEN
+		SELECT Min(T0."VisOrder") INTO MinGRN from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+		SELECT Max(T0."VisOrder") INTO MaxGRN from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	WHILE MinGRN<=MaxGRN DO
+		(Select DRF1."U_UNE_ACQT" into RecQty from DRF1 WHERE DRF1."DocEntry"=list_of_cols_val_tab_del and DRF1."VisOrder"=MinGRN);
+	         IF (RecQty IS NULL OR RecQty = 0) then
+	         	  error :=-1072;
+	              error_message := N'Please enter actual receipt quantity';
+	         END IF;
+    	 MinGRN := MinGRN+1;
+		END WHILE;
+	End If;
+END IF;
+-----------------------------GRN Receipt quantity Compulsory------30-12-2024---------
+IF Object_type = '20' and (:transaction_type ='A' or :transaction_type ='U' ) Then
+Declare ItCode nvarchar(50);
+Declare RecQty float;
+DECLARE MinGRN int;
+DECLARE MaxGRN int;
+
+	SELECT Min(T0."VisOrder") INTO MinGRN from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGRN from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	WHILE MinGRN<=MaxGRN DO
+		(Select PDN1."U_UNE_ACQT" into RecQty from PDN1 WHERE PDN1."DocEntry"=list_of_cols_val_tab_del and PDN1."VisOrder"=MinGRN);
+
+	         IF (RecQty IS NULL OR RecQty = 0) then
+	         	  error :=-1073;
+	              error_message := N'Please enter actual receipt quantity';
+	         END IF;
+     MinGRN := MinGRN+1;
+	END WHILE;
+End If;
 
 /* This Validation is Commented until U_Q_SONo field is not added in MSPL Database
 
