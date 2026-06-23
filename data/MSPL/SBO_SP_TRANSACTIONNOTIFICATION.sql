@@ -5079,11 +5079,11 @@ DECLARE GRNSeries nvarchar(50);
 				error_message:=N'Please Select Proper Currency';
 			END IF;
 
-			IF (GRNParty LIKE 'VPRI%' and GRNSeries NOT LIKE 'IM%' and GRNSeries NOT LIKE 'JC%' and GRNSeries <> 'CL1/2324' and GRNParty <> 'VPRI0011') THEN
+			IF (GRNParty LIKE 'VPRI%' and GRNSeries NOT LIKE 'IM%' and GRNSeries NOT LIKE 'JC%' and GRNSeries not like 'CL%' and GRNParty <> 'VPRI0011') THEN
 				error:=82;
 				error_message:=N'Please Select Proper Series';
 			END IF;
-			IF (GRNParty LIKE 'VSRI%' and GRNSeries NOT LIKE 'IM%' and GRNSeries NOT LIKE 'JC%' and GRNSeries <> 'CL1/2324' and GRNParty <> 'VPRI0011') THEN
+			IF (GRNParty LIKE 'VSRI%' and GRNSeries NOT LIKE 'IM%' and GRNSeries NOT LIKE 'JC%' and GRNSeries not like 'CL%' and GRNParty <> 'VPRI0011') THEN
 				error:=82;
 				error_message:=N'Please Select Proper Series';
 			END IF;

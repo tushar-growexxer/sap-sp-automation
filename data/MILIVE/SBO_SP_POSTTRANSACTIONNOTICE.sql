@@ -66,35 +66,48 @@ END IF;
 ---------------------Delivery--Mobi Alert---------16-12-2024------02 SalesDel Crd Lmt 0 and OD Days 0 to 15>>SM---------------------------------------------
 IF (:object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
 
-	select Count(*) into TEMP from
-	(select T1."CardCode",min(T0."DueDate") as "DueDateOld",T1."Balance",T1."CreditLine" from JDT1 T0
-		INNER JOIN OCRD T1 ON T0."ShortName" = T1."CardCode" and T1."CardType"='C' and T1."CardCode" LIKE 'CPE%'
-		where T0."BalDueDeb" != T0."BalDueCred" and T1."Balance">0 and T1."CardCode" =
-		(SELECT T0."CardCode" FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" = 15)
-		group by T1."CardCode",T1."Balance",T1."CreditLine" ) as A where DAYS_BETWEEN(A."DueDateOld",Current_Date)>0 and DAYS_BETWEEN(A."DueDateOld",Current_Date)<=15 and
+	SELECT Count(*) INTO TEMP FROM
+	(SELECT T1."CardCode", MIN(T0."DueDate") AS "DueDateOld", T1."Balance", T1."CreditLine" FROM JDT1 T0
+		INNER JOIN OCRD T1 ON T0."ShortName" = T1."CardCode" AND T1."CardType"='C' AND T1."CardCode" LIKE 'CPE%'
+		WHERE T0."BalDueDeb" != T0."BalDueCred" AND T1."Balance">0 AND T1."CardCode" =
+		(SELECT T0."CardCode" FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T0."ObjType" = 15)
+		GROUP BY T1."CardCode", T1."Balance", T1."CreditLine" ) AS A WHERE DAYS_BETWEEN(A."DueDateOld", Current_Date)>0 AND DAYS_BETWEEN(A."DueDateOld", Current_Date)<=15 AND
 			(SELECT T1."Balance" FROM ODRF T0
-			Left Join OCRD T1 on T0."CardCode" = T1."CardCode"
-			WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" = 15)
+			LEFT JOIN OCRD T1 ON T0."CardCode" = T1."CardCode"
+			WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T0."ObjType" = 15)
 			<=
 			(SELECT T1."CreditLine" FROM ODRF T0
-			Left Join OCRD T1 on T0."CardCode" = T1."CardCode"
-			WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" = 15)
-			and (SELECT T0."GroupNum" FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" = 15) NOT IN (5,70,34,23,73);
+			LEFT JOIN OCRD T1 ON T0."CardCode" = T1."CardCode"
+			WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T0."ObjType" = 15)
+			AND (SELECT T0."GroupNum" FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T0."ObjType" = 15) NOT IN (5,70,34,23,73);
 
 	IF :TEMP > 0 THEN
 
-		SELECT T0."DocEntry" INTO DocEntry FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del and T0."ObjType" = 15;
+		SELECT T0."DocEntry" INTO DocEntry FROM ODRF T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del AND T0."ObjType" = 15;
 
-		MailID := 'saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,custsupport@matangiindustries.com';
+        -- Dynamically check the Sales Employee email and assign the result directly to MailID
+        SELECT CASE
+            WHEN COUNT(*) > 0 THEN 'saleshead@matangiindustries.com,custsupport@matangiindustries.com'
+            ELSE 'saleshead@matangiindustries.com,Salesmgr@matangiindustries.com,custsupport@matangiindustries.com'
+        END INTO MailID
+        FROM ODRF T0
+        INNER JOIN OCRD T1 ON T0."CardCode" = T1."CardCode"
+        INNER JOIN OSLP T2 ON T1."SlpCode" = T2."SlpCode"
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+          AND T0."ObjType" = 15
+          AND T2."Email" IN ('bde4@matangiindustries.com', 'sales4@matangiindustries.com');
+
 		Mobile := '';
 		EmailCC := 'Ramesh@matangiindustries.com';
 		EmailBCC := '';
 		ObjectType := 'B';
 		Mobi_TYPE := 'Delivery - Credit Limit Passed2';
-		Select CURRENT_SCHEMA Into DBName from Dummy;
-		If(:DBName = 'MILIVE') Then
-		CALL "MOBIALERT"."Add_Config_Proc" (115,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+
+		SELECT CURRENT_SCHEMA INTO DBName FROM Dummy;
+		IF(:DBName = 'MILIVE') THEN
+		    CALL "MOBIALERT"."Add_Config_Proc" (115,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 		END IF;
+
 	END IF;
 END IF;
 ---------------------Delivery--Mobi Alert---------16-12-2024------03 SalesDel Crd Lmt Cross and OD Days 0 to 15 -->CFO-----------------------------

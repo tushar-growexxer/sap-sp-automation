@@ -24552,48 +24552,54 @@ DECLARE MaxIN INT;
 DECLARE ItemCodeIN NVARCHAR(50);
 DECLARE OcrCodeIN NVARCHAR(50);
 DECLARE BranchIN INT;
-    SELECT OINV."BPLId" INTO BranchIN FROM OINV WHERE OINV."DocEntry" = :list_of_cols_val_tab_del;
+DECLARE DocDate DATE;
+
+    SELECT OINV."BPLId",OINV."DocDate" INTO BranchIN,DocDate FROM OINV WHERE OINV."DocEntry" = :list_of_cols_val_tab_del;
     SELECT MIN(T0."VisOrder") INTO MinIN FROM INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
     SELECT MAX(T0."VisOrder") INTO MaxIN FROM INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-    WHILE :MinIN <= :MaxIN DO
-        SELECT T1."ItemCode", T1."OcrCode" INTO ItemCodeIN, OcrCodeIN
-        FROM OINV T0
-        INNER JOIN INV1 T1 ON T0."DocEntry" = T1."DocEntry"
-        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = :MinIN;
-        IF LEFT(ItemCodeIN, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
-            IF LEFT(ItemCodeIN, 2) <> RIGHT(OcrCodeIN, 2) THEN
-                error := 50020;
-                error_message := N'Invalid Distribution Rule: Item ' || ItemCodeIN ||
-                                  ' must have Distribution Rule ending with ' || LEFT(ItemCodeIN, 2) ||
-                                  ' but found ' || OcrCodeIN;
-            END IF;
 
-            IF BranchIN = 3 THEN
-                IF OcrCodeIN LIKE '2%' OR OcrCodeIN LIKE '3%' THEN
-                    error := 50021;
-                    error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
-                                      OcrCodeIN || '. Please select a rule without prefix 2 or 3';
-                END IF;
-            END IF;
+    IF DocDate >= '2026-04-01' THEN
 
-            IF BranchIN = 4 THEN
-                IF OcrCodeIN NOT LIKE '2%' THEN
-                    error := 50022;
-                    error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
-                                      OcrCodeIN || '. Please Select rule without prefix 1 or 3';
-                END IF;
-            END IF;
+	    WHILE :MinIN <= :MaxIN DO
+	        SELECT T1."ItemCode", T1."OcrCode" INTO ItemCodeIN, OcrCodeIN
+	        FROM OINV T0
+	        INNER JOIN INV1 T1 ON T0."DocEntry" = T1."DocEntry"
+	        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = :MinIN;
+	        IF LEFT(ItemCodeIN, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
+	            IF LEFT(ItemCodeIN, 2) <> RIGHT(OcrCodeIN, 2) THEN
+	                error := 50020;
+	                error_message := N'Invalid Distribution Rule: Item ' || ItemCodeIN ||
+	                                  ' must have Distribution Rule ending with ' || LEFT(ItemCodeIN, 2) ||
+	                                  ' but found ' || OcrCodeIN;
+	            END IF;
 
-            IF BranchIN = 5 THEN
-                IF OcrCodeIN NOT LIKE '3%' THEN
-                    error := 50023;
-                    error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
-                                      OcrCodeIN || '. Please Select rule without prefix 1 or 2';
-                END IF;
-            END IF;
-        END IF;
-        MinIN := MinIN + 1;
-    END WHILE;
+	            IF BranchIN = 3 THEN
+	                IF OcrCodeIN LIKE '2%' OR OcrCodeIN LIKE '3%' THEN
+	                    error := 50021;
+	                    error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+	                                      OcrCodeIN || '. Please select a rule without prefix 2 or 3';
+	                END IF;
+	            END IF;
+
+	            IF BranchIN = 4 THEN
+	                IF OcrCodeIN NOT LIKE '2%' THEN
+	                    error := 50022;
+	                    error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+	                                      OcrCodeIN || '. Please Select rule without prefix 1 or 3';
+	                END IF;
+	            END IF;
+
+	            IF BranchIN = 5 THEN
+	                IF OcrCodeIN NOT LIKE '3%' THEN
+	                    error := 50023;
+	                    error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+	                                      OcrCodeIN || '. Please Select rule without prefix 1 or 2';
+	                END IF;
+	            END IF;
+	        END IF;
+	        MinIN := MinIN + 1;
+	    END WHILE;
+	 END IF;
 END IF;
 
 --Draft
@@ -24603,52 +24609,57 @@ DECLARE MaxIN INT;
 DECLARE ItemCodeIN NVARCHAR(50);
 DECLARE OcrCodeIN NVARCHAR(50);
 DECLARE BranchIN INT;
+DECLARE DocDate DATE;
+
     (SELECT ODRF."ObjType" INTO DraftObj FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del);
     IF DraftObj = 13 THEN
-        (SELECT ODRF."BPLId" INTO BranchIN FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del AND ODRF."ObjType" = 13);
+        (SELECT ODRF."BPLId",ODRF."DocDate" INTO BranchIN,DocDate FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del AND ODRF."ObjType" = 13);
         (SELECT MIN(T0."VisOrder") INTO MinIN FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."ObjType" = 13);
         (SELECT MAX(T0."VisOrder") INTO MaxIN FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."ObjType" = 13);
-        WHILE :MinIN <= :MaxIN DO
-            (SELECT T1."ItemCode", T1."OcrCode" INTO ItemCodeIN, OcrCodeIN
-            FROM ODRF T0
-            INNER JOIN DRF1 T1 ON T0."DocEntry" = T1."DocEntry"
-            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = :MinIN
-            AND T0."ObjType" = 13);
-            IF LEFT(ItemCodeIN, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 
-                IF LEFT(ItemCodeIN, 2) <> RIGHT(OcrCodeIN, 2) THEN
-                    error := 50020;
-                    error_message := N'Invalid Distribution Rule: Item ' || ItemCodeIN ||
-                                      ' must have Distribution Rule ending with ' || LEFT(ItemCodeIN, 2) ||
-                                      ' but found ' || OcrCodeIN;
-                END IF;
+        IF DocDate >= '2026-04-01' THEN
+	        WHILE :MinIN <= :MaxIN DO
+	            (SELECT T1."ItemCode", T1."OcrCode" INTO ItemCodeIN, OcrCodeIN
+	            FROM ODRF T0
+	            INNER JOIN DRF1 T1 ON T0."DocEntry" = T1."DocEntry"
+	            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T1."VisOrder" = :MinIN
+	            AND T0."ObjType" = 13);
+	            IF LEFT(ItemCodeIN, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 
-                IF BranchIN = 3 THEN
-                    IF OcrCodeIN LIKE '2%' OR OcrCodeIN LIKE '3%' THEN
-                        error := 50021;
-                        error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
-                                          OcrCodeIN || '. Please select a rule without prefix 2 or 3';
-                    END IF;
-                END IF;
+	                IF LEFT(ItemCodeIN, 2) <> RIGHT(OcrCodeIN, 2) THEN
+	                    error := 50020;
+	                    error_message := N'Invalid Distribution Rule: Item ' || ItemCodeIN ||
+	                                      ' must have Distribution Rule ending with ' || LEFT(ItemCodeIN, 2) ||
+	                                      ' but found ' || OcrCodeIN;
+	                END IF;
 
-                IF BranchIN = 4 THEN
-                    IF OcrCodeIN NOT LIKE '2%' THEN
-                        error := 50022;
-                        error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
-                                          OcrCodeIN || '. Please Select rule without prefix 1 or 3';
-                    END IF;
-                END IF;
+	                IF BranchIN = 3 THEN
+	                    IF OcrCodeIN LIKE '2%' OR OcrCodeIN LIKE '3%' THEN
+	                        error := 50021;
+	                        error_message := N'Invalid Distribution Rule: Unit-1 Branch cannot use Distribution Rule ' ||
+	                                          OcrCodeIN || '. Please select a rule without prefix 2 or 3';
+	                    END IF;
+	                END IF;
 
-                IF BranchIN = 5 THEN
-                    IF OcrCodeIN NOT LIKE '3%' THEN
-                        error := 50023;
-                        error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
-                                          OcrCodeIN || '. Please Select rule without prefix 1 or 2';
-                    END IF;
-                END IF;
-            END IF;
-            MinIN := MinIN + 1;
-        END WHILE;
+	                IF BranchIN = 4 THEN
+	                    IF OcrCodeIN NOT LIKE '2%' THEN
+	                        error := 50022;
+	                        error_message := N'Invalid Distribution Rule: Unit-2 Branch must use Distribution Rule prefix 2 but found ' ||
+	                                          OcrCodeIN || '. Please Select rule without prefix 1 or 3';
+	                    END IF;
+	                END IF;
+
+	                IF BranchIN = 5 THEN
+	                    IF OcrCodeIN NOT LIKE '3%' THEN
+	                        error := 50023;
+	                        error_message := N'Invalid Distribution Rule: Unit-3 Branch must use Distribution Rule with prefix 3 but found ' ||
+	                                          OcrCodeIN || '. Please Select rule without prefix 1 or 2';
+	                    END IF;
+	                END IF;
+	            END IF;
+	            MinIN := MinIN + 1;
+	        END WHILE;
+	    END IF;
     END IF;
 END IF;
 ------------------------------------------------------------------------------------------------
