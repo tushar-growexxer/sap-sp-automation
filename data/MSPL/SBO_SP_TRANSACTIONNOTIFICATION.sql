@@ -255,13 +255,26 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     -- ─────────────────────────────────────────────────────────────
     -- ACCOUNTS PAYABLE ACCOUNT VALIDATION
     -- ─────────────────────────────────────────────────────────────
-    IF (GroupTypee = '105' AND DebAcct NOT IN ('20203121'))
-    OR (GroupTypee = '103' AND DebAcct NOT IN ('21000315'))
-    OR (GroupTypee = '106' AND DebAcct NOT IN ('20203120'))
-    OR (GroupTypee = '102' AND DebAcct NOT IN ('10502000'))
-    OR (GroupTypee = '104' AND DebAcct NOT IN ('11200520')) THEN
+    IF (GroupTypee = '105' AND DebAcct not in ('20203121')) OR (GroupTypee = '101' AND DebAcct not in ('20203101')) OR (GroupTypee = '106' AND DebAcct not in ('20203120'))
+       OR (GroupTypee = '102' AND DebAcct not in ('10502000')) OR (GroupTypee = '100' AND DebAcct not in ('10501000')) OR (GroupTypee = '110' AND DebAcct not in ('20203536'))
+       OR (GroupTypee = '109' AND DebAcct not in ('20203102')) OR (GroupTypee = '113' AND DebAcct not in ('10700001')) THEN
         error := -20000;
         error_message := N'Please select proper Accounts Payable in Business Partner.';
+    END IF;
+
+
+    IF (((Series like 'COD%' or Series like 'CPD%' or Series like 'CSD%') AND GroupTypee <> '100')
+    	or ((Series like 'VSRD%' or Series like 'VPRD%' or Series like 'VORD%') AND GroupTypee <> '101')
+    	or ((Series like 'COE%' or Series like 'CPE%' or Series like 'CSE%') AND GroupTypee <> '102')
+    	or ((Series like 'VSRI%' or Series like 'VPRI%' or Series like 'VORI%') AND GroupTypee <> '105')
+    	or ((Series like 'VFAS%' or Series like 'VLAB%' or Series like 'VEXP%' or Series like 'VGPR%') AND GroupTypee <> '106')
+    	or ((Series like 'VPPD%') AND GroupTypee <> '109')
+    	or ((Series like 'EMP%') AND GroupTypee <> '110')
+    	or ((Series like 'STLO%') AND GroupTypee <> '113')) THEN
+
+       error := -20019;
+       error_message := N'Series and Group not matching in Business Partner.';
+
     END IF;
 
     -- ─────────────────────────────────────────────────────────────
