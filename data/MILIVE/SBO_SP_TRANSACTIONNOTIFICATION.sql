@@ -94,7 +94,7 @@ END IF;
 ----------------------ITEM MASTER VALIDATION END----------------------------
 -- CONSOLIDATED BUSINESS PARTNER VALIDATION
 -- Object_type = '2' (Business Partner)
-/*IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     -- ─────────────────────────────────────────────────────────────
     -- DECLARE ALL VARIABLES
     -- ─────────────────────────────────────────────────────────────
@@ -549,7 +549,7 @@ END IF;
 
         END IF;
     END IF; -- CardType = 'S'
-END IF; */-- Object_type = '2'
+END IF; -- Object_type = '2'
 ------------------------ END BUSINESS PARTNER MASTER VALIDATIONS -------------------------------
 
 ------------------------- SALES ORDER START -------------------------------
