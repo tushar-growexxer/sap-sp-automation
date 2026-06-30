@@ -2586,7 +2586,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
         IF :transaction_type = 'A' AND DocDate >= '2025-11-26' THEN
             SELECT COUNT(T0."ItemCode") INTO TempCounter FROM DRF1 T0
-            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ItemCode" LIKE '%RM%' AND T0."ItemCode" NOT LIKE 'OFRM%'
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ItemCode" LIKE '%RM%' AND T0."ItemCode" NOT LIKE 'OFRM%' AND T0."ItemCode" NOT LIKE 'SCRM%'
             AND T0."ItemCode" NOT IN ('PCRM0018', 'PCRM0017', 'SCRM0010', 'OFRM0020', 'OFRM0001' ,'SCRM0016');
 
             SELECT DISTINCT T0."BaseEntry" INTO BaseDocEntry FROM DRF1 T0
@@ -5430,7 +5430,7 @@ Declare ITSeries nvarchar(50);
 		select OWTR."CardCode" into ITCardCode from OWTR where OWTR."DocEntry"=list_of_cols_val_tab_del;
 		SELECT NNM1."SeriesName" INTO ITSeries FROM OWTR LEFT JOIN NNM1 ON NNM1."Series" = OWTR."Series" where OWTR."DocEntry"=list_of_cols_val_tab_del;
 
-		IF  ITSeries NOT LIKE 'JC%' and ITCardCode = 'VPPD0015' and ITCardCode = 'VPRD0018' and ITCardCode = 'VPRD0041' and ITCardCode = 'VPPD0012' THEN
+		IF  ITSeries NOT LIKE 'JC%' and ITCardCode in ('VPPD0015','VPRD0018','VPRD0041','VPPD0012') THEN
 			error :=102;
 			error_message := N'Please select jobwork Series ..';
 		END IF;
@@ -5655,11 +5655,7 @@ DECLARE ITCapacity Int;
 	SELECT Max(T0."VisOrder") INTO MaxIT from WTR1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	WHILE :MinIT <= :MaxIT DO
 		SELECT WTR1."Factor1" into ITCapacity FROM WTR1 WHERE WTR1."DocEntry" = :list_of_cols_val_tab_del and WTR1."VisOrder"=MinIT;
-			IF ITCapacity <> 950 and ITCapacity <> 180 and ITCapacity <> 230 and ITCapacity <> 20 and ITCapacity <> 1 and ITCapacity <> 25
-			and ITCapacity <> 50 and ITCapacity <> 200 and ITCapacity <> 170 and ITCapacity <> 190 and ITCapacity <> 220 and ITCapacity <> 850 and ITCapacity <> 900
-			and ITCapacity <> 1000 and ITCapacity <> 160 and ITCapacity <> 165 and ITCapacity <> 800 and ITCapacity <> 197 and ITCapacity <> 30 and ITCapacity <> 35 and ITCapacity <> 250
-			and ITCapacity <> 215 and ITCapacity <> 185 and ITCapacity <> 225 and ITCapacity <> 228 and ITCapacity <> 210 and ITCapacity <> 15 and ITCapacity <> 232 and ITCapacity <> 235
-			and ITCapacity <> 300 and ITCapacity <> 270 and ITCapacity <> 245 and ITCapacity <> 231 and ITCapacity <> 140 and ITCapacity <> 240 THEN
+			IF ITCapacity NOT IN (950,180,230,20,1,25,50,200,170,190,220,850,900,1000,160,165,800,197,30,35,250,215,185,225,228,210,15,232,235,300,270,245,231,140,240) THEN
 				error :=104;
 				error_message := N'Capacity may wrong';
 			END IF;
@@ -5814,7 +5810,7 @@ Declare MaxIT Int;
 
 			IF  fROMWHS LIKE '%TR%' THEN
 				IF tOwHS = 'Y' THEN
-					IF Challan1 = '' then
+					IF ifnull(Challan1, '') = '' then
 						error :=106;
 						error_message := N'Something went wrong ..';
 					End If;
@@ -11627,7 +11623,7 @@ DECLARE ItemCode Nvarchar(50);
 		SELECT PDN1."Price" into Price FROM PDN1 INNER JOIN OPDN ON OPDN."DocEntry" = PDN1."DocEntry"
 		WHERE OPDN."DocEntry" = :list_of_cols_val_tab_del and PDN1."VisOrder"=MinGRN;
 
-			IF (Price = 0) THEN
+			IF IFNULL(Price,0) = 0 THEN
 				error :=351;
 				error_message := N'Please enter price';
 			END IF;
@@ -15171,7 +15167,7 @@ THEN
 		select ODRF."CardCode" into ITCardCode from ODRF where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=67;
 		select ODRF."Series" into ITSeries from ODRF where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=67;
 
-		IF  ITSeries <> 775 and ITCardCode = 'VPPD0015' and ITCardCode = 'VPRD0018' and ITCardCode = 'VPRD0041' and ITCardCode = 'VPPD0012' THEN
+		IF  ITSeries NOT LIKE 'JC%' and ITCardCode in ('VPPD0015','VPRD0018','VPRD0041','VPPD0012') THEN
 			error :=102;
 			error_message := N'Please select JC1/2021 Series ..';
 		END IF;
@@ -15403,11 +15399,7 @@ THEN
 	SELECT Max(T0."VisOrder") INTO MaxIT from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	WHILE :MinIT <= :MaxIT DO
 		SELECT DRF1."Factor1" into ITCapacity FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinIT;
-			IF ITCapacity <> 950 and ITCapacity <> 180 and ITCapacity <> 230 and ITCapacity <> 20 and ITCapacity <> 1 and ITCapacity <> 25
-			and ITCapacity <> 50 and ITCapacity <> 200 and ITCapacity <> 170 and ITCapacity <> 190 and ITCapacity <> 220 and ITCapacity <> 850 and ITCapacity <> 900
-			and ITCapacity <> 1000 and ITCapacity <> 160 and ITCapacity <> 165 and ITCapacity <> 800 and ITCapacity <> 197 and ITCapacity <> 30 and ITCapacity <> 35 and ITCapacity <> 250
-			and ITCapacity <> 215 and ITCapacity <> 185 and ITCapacity <> 225 and ITCapacity <> 228 and ITCapacity <> 210 and ITCapacity <> 15 and ITCapacity <> 232 and ITCapacity <> 235
-			and ITCapacity <> 300 and ITCapacity <> 270 and ITCapacity <> 245 and ITCapacity <> 231 THEN
+			IF ITCapacity NOT IN (950,180,230,20,1,25,50,200,170,190,220,850,900,1000,160,165,800,197,30,35,250,215,185,225,228,210,15,232,235,300,270,245,231,140,240) THEN
 				error :=104;
 				error_message := N'Capacity may wrong';
 			END IF;
@@ -15435,7 +15427,7 @@ THEN
 
 			IF  fROMWHS LIKE '%TR%' THEN
 				IF tOwHS = 'Y' THEN
-					IF Challan1 = '' then
+					IF ifnull(Challan1, '') = '' then
 						error :=106;
 						error_message := N'Something went wrong ..';
 					End If;
@@ -19944,7 +19936,7 @@ THEN
 		SELECT DRF1."Price" into Price FROM DRF1 INNER JOIN ODRF ON ODRF."DocEntry" = DRF1."DocEntry"
 		WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=20 and DRF1."VisOrder"=MinGRN;
 
-			IF (Price = 0) THEN
+			IF IFNULL(Price,0) = 0 THEN
 				error :=351;
 				error_message := N'Please enter price';
 			END IF;
@@ -20759,7 +20751,7 @@ DECLARE CustRef Nvarchar(200);
 		END IF;
 END IF;
 
-/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 	DECLARE MinGRN INT;
     DECLARE MaxGRN INT;
     DECLARE CurrentItemCode NVARCHAR(50);
@@ -20829,7 +20821,7 @@ END IF;
 			END WHILE;
 		end if;
 	END IF;
-END IF;*/
+END IF;
 
 IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 	DECLARE FromWhs NVARCHAR(15);
@@ -24088,6 +24080,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
         END IF;
 END IF;
+
 -----------------------------------------------------------------------------------------
 -- A/P INVOICE POSTING VALIDATION: Master License & Customs Check
 -----------------------------------------------------------------------------------------
@@ -24358,6 +24351,7 @@ IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             END IF;
         END IF;
 END IF;
+
 -- ==============================================================================
 -- A/P Invoice DRAFTS: "No Required" Strict Cleanup Rule (Separated by Base Object Type)
 -- ==============================================================================
