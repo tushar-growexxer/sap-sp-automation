@@ -5849,7 +5849,7 @@ DECLARE CardCodeDL Nvarchar(50);
 	END WHILE;
 END IF;
 ----------------------------------------------------------------------------------------------------------------
-/*
+
 IF Object_type = '15' and (:transaction_type ='A') Then
 DECLARE DLrate decimal(18,2);
 DECLARE DLExrate decimal(18,2);
@@ -5872,7 +5872,7 @@ DECLARE DLSeries Nvarchar(50);
    END IF;
   END IF;
 End If;
-*/
+
 --------------------------------A/R Invoice------------------
 IF Object_type = '13' and (:transaction_type ='A' ) Then
 Declare BaseType nvarchar(50);
@@ -14874,8 +14874,8 @@ THEN
 END IF;
 END IF;
 
-/*
-IF Object_type = '112' and (:transaction_type ='A') Then
+
+/*IF Object_type = '112' and (:transaction_type ='A') Then
 DECLARE DLrate decimal(18,2);
 DECLARE DLExrate decimal(18,2);
 DECLARE DLDocCur Nvarchar(50);
@@ -14902,8 +14902,8 @@ Declare DLExrateCount int;
    END IF;
   END IF;
  End If;
-END IF;
-*/
+END IF;*/
+
 --------------------------------A/R Invoice------------------
 IF Object_type = '112' and (:transaction_type ='A' ) Then
 Declare BaseType nvarchar(50);
