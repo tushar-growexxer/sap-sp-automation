@@ -5242,8 +5242,9 @@ DECLARE Series Nvarchar(50);
 			SELECT T1."ItemCode" into ItemGR FROM IGN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinGR;
 
 			IF ItemGR LIKE 'PCFG%' and WhsGR NOT LIKE '%QC' and ItemGR <> 'PCFG0263'
-				and ItemGR <> 'PCFG0316' and ItemGR <> 'PCFG0309' and ItemGR <> 'PCFG0308' and ItemGR <> 'PCFG0307' and ItemGR <> 'PCFG0306' and ItemGR <> 'PCFG0515'
-				and ItemGR <> 'PCFG0305' and ItemGR <> 'DIFG0017' and ItemGR <> 'PCFG0250' AND ItemGR <> 'PCFG0606' AND ItemGR <> 'PCFG0381' AND ItemGR <> 'PCFG0223' THEN
+				AND ItemGR <> 'PCFG0316' AND ItemGR <> 'PCFG0309' AND ItemGR <> 'PCFG0308' AND ItemGR <> 'PCFG0307' AND ItemGR <> 'PCFG0306' AND ItemGR <> 'PCFG0515'
+				AND ItemGR <> 'PCFG0480' AND ItemGR <> 'PCFG0305' AND ItemGR <> 'DIFG0017' AND ItemGR <> 'PCFG0250' AND ItemGR <> 'PCFG0606' AND ItemGR <> 'PCFG0381'
+				AND ItemGR <> 'PCFG0223' THEN
 				error :=-9001;
 				error_message := N'Please Enter Proper Warehouse..';
 			END IF;
