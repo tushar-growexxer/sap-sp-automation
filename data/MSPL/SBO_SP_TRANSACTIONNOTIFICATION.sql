@@ -8993,7 +8993,7 @@ Declare Base int;
 	select distinct DAYS_BETWEEN(t4."DocDate",CURRENT_DATE) into dayss from OINV t4 where  t4."DocEntry"=list_of_cols_val_tab_del;
 	select t5."SeriesName" into Srs from OINV t4 INNER JOIN NNM1 t5 ON t5."Series" = t4."Series" where  t4."DocEntry"=list_of_cols_val_tab_del;
 
-		IF (dayss <> 0) and Srs NOT LIKE 'CL%' then
+		IF (dayss <> 0) and Srs NOT LIKE 'CL%' and Srs NOT LIKE 'BE%' then
 			error :=233;
 			error_message := N'You are not allowed to create invoice in other than todays date';
 		End If;
