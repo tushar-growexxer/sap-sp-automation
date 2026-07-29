@@ -6466,10 +6466,10 @@ DECLARE Nopltibc Nvarchar(50);
 			error :=143;
 			error_message := N'Please enter Pallates/IBC';
 		END IF;
-		IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND pltibc <> 'BOX' AND pltibc <> 'Loose' AND pltibc <> 'Vessel' then
+		/*IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND pltibc <> 'BOX' AND pltibc <> 'Loose' AND pltibc <> 'Vessel' then
 			error :=144;
 			error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
-		END IF;
+		END IF;*/
 		IF Nopltibc IS NULL  then
 			error :=145;
 			error_message := N'Please enter No of Pallates/IBC';
@@ -6659,53 +6659,53 @@ DECLARE ItemCd Nvarchar(10);
 				error_message := N'Please enter Per unit quantity';
 			END IF;
 			IF Ttlunt IS NULL  then
-				error :=135;
+				error :=1350;
 				error_message := N'Please enter Total unit';
 			END IF;
 			IF Wghtpckng IS NULL  then
-				error :=135;
+				error :=1359;
 				error_message := N'Please enter weight of packing type';
 			END IF;
 			IF pckngtype IS NULL  then
-				error :=135;
+				error :=1356;
 				error_message := N'Please enter packing type';
 			END IF;
 			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND pckngtype <> 'Loose' AND
 		 		pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
-				error :=135;
+				error :=1353;
 				error_message := N'Please select proper packing type';
 			END IF;
 			IF typpltibc IS NULL  then
-				error :=135;
+				error :=1356;
 				error_message := N'Please enter Type of pallets/IBC';
 			END IF;
 			IF typpltibc <> 'COUNTRY WOOD PALLETS' and typpltibc <> 'IBC TANK' and typpltibc <> 'ISO TANK' and typpltibc <> 'Loose' and
 				typpltibc <> 'PINE WOOD PALLETS' and typpltibc <> 'PLASTIC PALLETS' and typpltibc <> 'BAGS' and typpltibc <> 'BOX' then
-				error :=135;
+				error :=1359;
 				error_message := N'Please enter proper Type of pallets/IBC/ISO';
 			END IF;
 			IF lictype IS NULL  then
-				error :=135;
+				error :=1351;
 				error_message := N'Please enter License Type';
 			END IF;
 			IF licno IS NULL and lictype <> 'DBK' then
-				error :=135;
+				error :=1352;
 				error_message := N'Please enter License No';
 			END IF;
 			IF pltibc IS NULL  then
-				error :=135;
+				error :=1353;
 				error_message := N'Please enter Pallates/IBC';
 			END IF;
 			IF pltibc <> 'PALLETS' AND  pltibc <> 'IBC Tank' AND  pltibc <> 'ISO Tank' AND  pltibc <> 'BAGS' AND  pltibc <> 'BOX' AND  pltibc <> 'Loose' then
-				error :=135;
+				error :=1344;
 				error_message := N'Please enter proper word PALLETS/IBC Tank/ISO Tank';
 			END IF;
 			IF Nopltibc IS NULL  then
-				error :=135;
+				error :=13555;
 				error_message := N'Please enter No of Pallates/IBC';
 			END IF;
 			IF ItemCd in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and (QCBatchNo IS NULL or QCBatchNo = '') then
-				error := 135;
+				error := 13533;
 				error_message := N'Please enter QC Batch No.';
 			END IF;
 		END IF;
@@ -6713,8 +6713,7 @@ DECLARE ItemCd Nvarchar(10);
 	END WHILE;
 END IF;
 
-
-IF Object_type = '18' and (:transaction_type ='A' or :transaction_type ='U' ) Then
+IF Object_type = '18' and (:transaction_type = 'A' or :transaction_type = 'U') Then
 Declare BaseType nvarchar(50);
 (Select max(PCH1."BaseType") into BaseType
 	from PCH1 inner join OPCH on OPCH."DocEntry"=PCH1."DocEntry"
