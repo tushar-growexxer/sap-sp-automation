@@ -19,7 +19,7 @@ error_message := N'Ok';
 
 -- CONSOLIDATED ITEM MASTER VALIDATION
 -- Object_type = '4' (Item Master)
------------------------------- ITEM MASTER --------------------------------------------
+------------------------------ ITEM MASTER ---------------------------------------
 IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE ValidFor1 nvarchar(50);
     DECLARE UsrCod nvarchar(50);
@@ -297,7 +297,7 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
             error := -20019;
             error_message := N'Incorrect Group: You selected ' || IFNULL(:GroupName, 'None') || N'. For Series ' || IFNULL(:Series, 'Unknown') || N', the Group must be Import.';
 
-        ELSEIF (:Series LIKE 'VFAS%' OR :Series LIKE 'VLAB%' OR :Series LIKE 'VEXP%' OR :Series LIKE 'VGPR%') AND :GroupTypee <> '103' THEN
+        ELSEIF (:Series LIKE 'VFAS%' OR :Series LIKE 'VLAB%' OR :Series LIKE 'VGPR%') AND :GroupTypee <> '103' THEN
             error := -20019;
             error_message := N'Incorrect Group: You selected ' || IFNULL(:GroupName, 'None') || N'. For Series ' || IFNULL(:Series, 'Unknown') || N', the Group must be Domestic Supplier.';
 
@@ -1183,9 +1183,14 @@ END IF;
 -- Pallet Code NA allowed only for specific Packing Types
 IF SOPallet = 'NA'
    AND PackingType NOT IN ('IBC Tank', 'ISO Tank', 'Tanker', 'Loose')
-   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0179','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346')) THEN
+   AND (CardCode NOT LIKE 'C_D%' OR CardCode IN ('CPD0003','CPD0031','CPD0070','CPD0250','CPD0252','CPD0274','CPD0285','CPD0316','CPD0329','CPD0346')) THEN
     error := 30094;
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
+END IF;
+
+IF TaxCode = 'RIGST18T' THEN
+    error := 30094;
+    error_message := N'RIGST18T Tax Code is not allowed.';
 END IF;
 
 IF (:transaction_type = 'A') THEN
@@ -1260,6 +1265,22 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 			END IF;
 		END IF;
+
+	    IF CardCode LIKE 'C_D%' AND SODate >= '2026-09-15' THEN
+            -- 1. DAP Validation
+            -- Rule: ONLY FOB is allowed. Ex-Work and Freight MUST be blank/zero.
+            IF (IncoTerm = 'DAP') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+                error := 30096;
+                error_message := N'If Incoterm is DAP, ONLY FOB is allowed. Ex-Work and Freight must be blank at line - ' || MinSO+1;
+            END IF;
+
+            -- 2. EXW and DDP Validation
+            -- Rule: ONLY FOB and Freight are allowed. Ex-Work MUST be blank/zero.
+            IF (IncoTerm IN ('EXW', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000) THEN
+                error := 30097;
+                error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight are mandatory, and Ex-Work must be blank at line - ' || MinSO+1;
+            END IF;
+        END IF;
 
         MinSO := MinSO + 1;
     END WHILE;
@@ -1868,6 +1889,11 @@ IF SOPallet = 'NA'
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
 
+IF TaxCode = 'RIGST18T' THEN
+    error := 30094;
+    error_message := N'RIGST18T Tax Code is not allowed.';
+END IF;
+
 IF (:transaction_type = 'A') THEN
 IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 
@@ -1940,6 +1966,22 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 				    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 				END IF;
 			END IF;
+
+			IF CardCode LIKE 'C_D%' AND SODate >= '2026-09-15' THEN
+            -- 1. DAP Validation
+            -- Rule: ONLY FOB is allowed. Ex-Work and Freight MUST be blank/zero.
+            IF (IncoTerm = 'DAP') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+                error := 30096;
+                error_message := N'If Incoterm is DAP, ONLY FOB is allowed. Ex-Work and Freight must be blank at line - ' || MinSO+1;
+            END IF;
+
+            -- 2. EXW and DDP Validation
+            -- Rule: ONLY FOB and Freight are allowed. Ex-Work MUST be blank/zero.
+            IF (IncoTerm IN ('EXW', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000) THEN
+                error := 30097;
+                error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight are mandatory, and Ex-Work must be blank at line - ' || MinSO+1;
+            END IF;
+        END IF;
             -- Increment loop counter
             MinSO := MinSO + 1;
         END WHILE;
@@ -2279,7 +2321,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := N'Payment term does not match the Business Partner Master record.';
     END IF;*/
 
-    IF IFNULL(DeliveryTerm,'') NOT IN ('FOB', 'CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
+    IF IFNULL(DeliveryTerm,'') NOT IN ('FOB', 'CIF Kandla','CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad','CFR Kandla') THEN
         error := -40028;
         error_message := N'Please select a valid Delivery Term.';
     END IF;
@@ -2654,7 +2696,9 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             error_message := N'Payment term does not match the Business Partner Master record.';
         END IF;*/
 
-        IF IFNULL(DeliveryTerm,'') NOT IN ('FOB', 'CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra', 'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate', 'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad') THEN
+        IF IFNULL(DeliveryTerm,'') NOT IN ('FOB', 'CIF Kandla','CIF Mundra', 'CIF Nhava sheva', 'CIF Pipavav', 'CIP Mundra',
+        'CIP Nhava Sheva', 'Ex  work', 'CIF Nhavasheva/ Pipavav', 'CIF Nhavasheva/ Mundra', 'CIF Mundra / Pipavav', 'Delivered rate',
+        'CIP ICD Ahmedabad', 'CFR Nhava Sheva', 'DAP Mundra', 'DAP Vatva', 'DAP HO', 'DAP Saykha', 'CIP Mumbai airport', 'CIF ICD Ahmedabad','CFR Kandla') THEN
             error := -40058;
             error_message := N'Please select a valid Delivery Term.';
         END IF;
@@ -2739,8 +2783,7 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
     DECLARE PackingCapacity DOUBLE;
     DECLARE RowPriority NVARCHAR(10);
 
-	-- Header-Level Validations
-	-----------------------------------------------------------------------------------
+
 	SELECT T0."DocDate", T0."ReqDate", T0."TaxDate"
 	INTO DocDate, ReqDate, TaxDate
 	FROM OPRQ T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
@@ -2795,10 +2838,9 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 	  AND (T0."ItemCode" LIKE '%RM%' OR T0."ItemCode" LIKE '%PM%' OR T0."ItemCode" LIKE '%FG%' OR T0."ItemCode" LIKE '%TR%')
 	  AND IFNULL(T0."U_Priority", '') = '';
 
--- If ErrorLine is not null, an error exists
+
 	IF :ErrorLine IS NOT NULL THEN
 	    error := -41020;
-	    -- Add +1 because B1 stores VisOrder starting at 0, but users see line 1
 	    error_message := N'Select Priority at row level at line - ' || (:ErrorLine + 1);
 	END IF;
 
@@ -2951,7 +2993,7 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 			END IF;*/
 		END IF;
 
-		IF ItemCode NOT LIKE '%PM%' AND PackingType NOT IN (
+		IF ItemCode NOT LIKE '%PM%' AND ItemCode NOT LIKE 'SER%' AND PackingType NOT IN (
 	        SELECT T2."ItemName"
 	        FROM "@PO_ITEM_PACKING" T1
 	        INNER JOIN OITM T2 ON T2."ItemCode" = T1."U_PackCode"
@@ -2972,6 +3014,7 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 		MIN_ROW := MIN_ROW + 1;
 	END WHILE;
 END IF;
+
 
 -- =================================================================================================================================
 -- >> Section 2: Purchase Request DRAFT Validations (Object Type: 112)
@@ -3052,10 +3095,9 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 		  AND (T0."ItemCode" LIKE '%RM%' OR T0."ItemCode" LIKE '%PM%' OR T0."ItemCode" LIKE '%FG%' OR T0."ItemCode" LIKE '%TR%')
 		  AND IFNULL(T0."U_Priority", '') = '';
 
--- If ErrorLine is not null, an error exists
+
 		IF :ErrorLine IS NOT NULL THEN
 		    error := -41020;
-		    -- Add +1 because B1 stores VisOrder starting at 0, but users see line 1
 		    error_message := N'Select Priority at row level at line - ' || (:ErrorLine + 1);
 		END IF;
 
@@ -3222,7 +3264,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 			    error_message := N'Select Packing Capacity at line - '||MIN_ROW+1;
 			END IF;*/
 
-			IF ItemCode NOT LIKE '%PM%' AND PackingType NOT IN (
+			IF ItemCode NOT LIKE '%PM%' AND ItemCode NOT LIKE 'SER%' AND PackingType NOT IN (
 		        SELECT T2."ItemName"
 		        FROM "@PO_ITEM_PACKING" T1
 		        INNER JOIN OITM T2 ON T2."ItemCode" = T1."U_PackCode"
@@ -3914,12 +3956,6 @@ DECLARE JrnlMemo Nvarchar(50);
 			IF WhsGI NOT LIKE '%RAW%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' THEN
 				error :=27022;
 				error_message := N'Please Enter Proper Warehouse..';
-			END IF;
-		END IF;
-		IF ItemGI LIKE '%PM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIPM0018' THEN
-			IF WhsGI NOT LIKE '%PAC%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%'  and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
-				error :=27023;
-				error_message := N'Please Enter Proper Warehouse..PM';
 			END IF;
 		END IF;
 		IF SeriesGI LIKE  '%JW%' and  ItemGI <> 'PCRM0017' THEN
@@ -5293,7 +5329,7 @@ DECLARE ItemGR Nvarchar(50);
 	END WHILE;
 END IF;
 
-IF object_type = '59' AND (:transaction_type = 'A') THEN
+/*IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5313,7 +5349,7 @@ DECLARE ItemGR Nvarchar(50);
 		END IF;
 		MinGR := MinGR+1;
 	END WHILE;
-END IF;
+END IF;*/
 --------------------------------------
 -- when creating/updating/deleting a Goods Receipt (object_type = 59)
 IF :object_type = '59' AND (:transaction_type = 'A') THEN
@@ -5850,30 +5886,50 @@ DECLARE CardCodeDL Nvarchar(50);
 	END WHILE;
 END IF;
 ----------------------------------------------------------------------------------------------------------------
+IF :object_type = '15' AND (:transaction_type = 'A') THEN
+    DECLARE DLrate DECIMAL(18,2) := 0;
+    DECLARE DLExrate DECIMAL(18,2) := 0;
+    DECLARE DLDocCur NVARCHAR(50) := '';
+    DECLARE DLdate DATE;
+    DECLARE DLCardCode NVARCHAR(50) := '';
+    DECLARE DLSeries NVARCHAR(50) := '';
+    DECLARE DLCurSource NVARCHAR(1) := '';
 
-IF Object_type = '15' and (:transaction_type ='A') Then
-DECLARE DLrate decimal(18,2);
-DECLARE DLExrate decimal(18,2);
-DECLARE DLDocCur Nvarchar(50);
-DECLARE DLdate date;
-DECLARE DLCardCode Nvarchar(50);
-DECLARE DLSeries Nvarchar(50);
-  SELECT T0."DocRate" into DLrate FROM ODLN T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-  SELECT T0."DocDate" into DLdate FROM ODLN T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-  SELECT T0."CardCode" into DLCardCode FROM ODLN T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-  SELECT T0."DocCur" into DLDocCur FROM ODLN T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-  (SELECT T1."SeriesName" into DLSeries FROM ODLN T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry"= :list_of_cols_val_tab_del);
+    -- Consolidate header lookups including CurSource
+    SELECT
+        IFNULL(T0."DocRate", 0),
+        T0."DocDate",
+        IFNULL(T0."CardCode", ''),
+        IFNULL(T0."DocCur", ''),
+        IFNULL(T0."CurSource", ''),
+        IFNULL(T1."SeriesName", '')
+    INTO
+        DLrate,
+        DLdate,
+        DLCardCode,
+        DLDocCur,
+        DLCurSource,
+        DLSeries
+    FROM ODLN T0
+    LEFT JOIN NNM1 T1 ON T0."Series" = T1."Series"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 
-  IF DLCardCode LIKE 'C_E%' and DLSeries NOT LIKE 'CL%' THEN
-   SELECT T0."Rate" into DLExrate FROM ORTT T0 WHERE T0."Currency" = DLDocCur and T0."RateDate" = DLdate;
+    -- Bypass check if document currency source is Local ('L')
+    IF DLCurSource <> 'L' AND DLCardCode LIKE 'C_E%' AND DLSeries NOT LIKE 'CL%' THEN
+        -- Fetch rate safely from ORTT without throwing error 1299
+        SELECT IFNULL((
+            SELECT TOP 1 T0."Rate"
+            FROM ORTT T0
+            WHERE T0."Currency" = DLDocCur
+              AND T0."RateDate" = DLdate
+        ), 0) INTO DLExrate FROM DUMMY;
 
-   IF DLExrate <> DLrate THEN
-    error :=126;
-    error_message := N'Not allowed to change exchange rate.';
-   END IF;
-  END IF;
-End If;
-
+        IF DLExrate > 0 AND DLExrate <> DLrate THEN
+            error := 126;
+            error_message := N'Not allowed to change exchange rate.';
+        END IF;
+    END IF;
+END IF;
 --------------------------------A/R Invoice------------------
 IF Object_type = '13' and (:transaction_type ='A' ) Then
 Declare BaseType nvarchar(50);
@@ -6288,7 +6344,7 @@ IF object_type = '18' and (:transaction_type = 'A' or :transaction_type = 'U') T
 					IF BASEDOCNO IS NOT NULL THEN
 						IF (Countt > 1) AND ITEMCODE NOT IN ('SER0079') THEN
 							 error:=138;
-							 error_message :='Not Allowed to select same base doc no of same item. ' || ITEMCODE;
+							 error_message :='Not Allowed to select same base doc no of same item. ' || ITEMCODE || ' Row '|| MINN;
 						END IF;
 					END IF;
 				 MINN = MINN + 1;
@@ -6991,41 +7047,47 @@ Declare Baserefno nvarchar(50);
 	    END IF;
 End If;
 
-If object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') then
+If :object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') then
 	DECLARE POUNIT varchar(50);
 	DECLARE GRPOUNIT varchar(50);
 	DECLARE MINNGRPO int;
 	DECLARE MAXXGRPO int;
 	DECLARE GRPOSeries varchar(50);
 	DECLARE Code varchar(50);
+
 	Select MIN(T0."VisOrder") into MINNGRPO from PDN1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 	Select MAX(T0."VisOrder") into MAXXGRPO from PDN1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
-	SELECT T1."SeriesName" into GRPOSeries FROM OPDN T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry"= :list_of_cols_val_tab_del;
+	SELECT MAX(T1."SeriesName") into GRPOSeries FROM OPDN T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry"= :list_of_cols_val_tab_del;
 
-	IF GRPOSeries NOT LIKE 'CL%' then
-		WHILE MINNGRPO<=MAXXGRPO
+	-- Fetch the GRPO Branch ID once outside the loop for better performance
+	SELECT MAX("BPLId") INTO GRPOUNIT FROM OPDN WHERE "DocEntry" = :list_of_cols_val_tab_del;
+
+	IF IFNULL(:GRPOSeries, '') NOT LIKE 'CL%' then
+		WHILE :MINNGRPO <= :MAXXGRPO
 		DO
-			select T1."ItemCode" into Code FROM PDN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder" = MINNGRPO;
-			IF Code <> 'PCPM0098' and Code <> 'PCPM0099' and Code <> 'PCPM0100' and Code <> 'PCPM0101' and Code <> 'PCPM0102' then
+			-- MAX() prevents the 1299 error if there is a gap in VisOrder (returns NULL instead)
+			select MAX(T1."ItemCode") into Code FROM PDN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder" = :MINNGRPO;
 
-				select T2."BPLId" into POUNIT FROM POR1 T1 LEFT OUTER JOIN OPOR T2 ON T1."DocEntry" = T2."DocEntry"
-				LEFT OUTER JOIN PDN1 T3 ON T2."DocEntry" = T3."BaseEntry" AND T1."LineNum" = T3."BaseLine"
-				AND T1."ItemCode" = T3."ItemCode" LEFT OUTER JOIN OPDN T4 ON T3."DocEntry" = T4."DocEntry"
-				WHERE T4."DocEntry" = :list_of_cols_val_tab_del and T3."VisOrder" = MINNGRPO;
+			-- Only process if a valid ItemCode is found for this VisOrder
+			IF :Code IS NOT NULL THEN
+				IF :Code <> 'PCPM0098' and :Code <> 'PCPM0099' and :Code <> 'PCPM0100' and :Code <> 'PCPM0101' and :Code <> 'PCPM0102' then
 
-				select T4."BPLId" into GRPOUNIT FROM POR1 T1 LEFT OUTER JOIN OPOR T2 ON T1."DocEntry" = T2."DocEntry"
-				LEFT OUTER JOIN PDN1 T3 ON T2."DocEntry" = T3."BaseEntry" AND T1."LineNum" = T3."BaseLine"
-				AND T1."ItemCode" = T3."ItemCode" LEFT OUTER JOIN OPDN T4 ON T3."DocEntry" = T4."DocEntry"
-				WHERE T4."DocEntry" = :list_of_cols_val_tab_del and T3."VisOrder" = MINNGRPO;
+					-- Start from PDN1 and LEFT JOIN to OPOR. MAX() prevents 1299 if there is no Base PO.
+					select MAX(T2."BPLId") into POUNIT
+					FROM PDN1 T3
+					LEFT OUTER JOIN OPOR T2 ON T3."BaseEntry" = T2."DocEntry" AND T3."BaseType" = '22'
+					WHERE T3."DocEntry" = :list_of_cols_val_tab_del and T3."VisOrder" = :MINNGRPO;
 
-				IF POUNIT IS NOT NULL THEN
-					IF POUNIT != GRPOUNIT THEN
-						error:='164';
-						error_message :='Something went wrong.UNIT.'||MINNGRPO;
+					IF :POUNIT IS NOT NULL AND :GRPOUNIT IS NOT NULL THEN
+						IF :POUNIT != :GRPOUNIT THEN
+							error := '164';
+							error_message := 'Something went wrong.UNIT.' || :MINNGRPO;
+						END IF;
 					END IF;
-				END IF;
-			End IF;
-			MINNGRPO = MINNGRPO + 1;
+				End IF;
+			END IF;
+
+			MINNGRPO := :MINNGRPO + 1;
 		END WHILE;
 	END IF;
 END IF;
@@ -7573,7 +7635,7 @@ DECLARE ICode Nvarchar(50);
 	END WHILE;
 END IF;
 
-/*
+
 IF Object_type = '15' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
@@ -7665,8 +7727,8 @@ DECLARE U_Mining nvarchar(50);
 	 MinSO=MinSO+1;
 	END WHILE;
 END IF;
-*/
-/*
+
+
 IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
@@ -7712,7 +7774,7 @@ DECLARE U_Mining nvarchar(50);
 	select "U_Mining" into U_Mining  from oitm where "ItemCode"= SOItemCode;
 
 		IF Series NOT LIKE 'CL%' then
-		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode <> 'PCFG0424') THEN
+		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE '%SER%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode <> 'PCFG0424') THEN
 				IF Freetext = U_Agro_Chem then
 				else
 					IF Freetext = U_Per_HM_CR then
@@ -7740,7 +7802,7 @@ DECLARE U_Mining nvarchar(50);
 																IF Freetext = U_Mining then
 																else
 																	error:=1808;
-																	error_message:=N'Please Select Proper Alias Name in Invoice (Alias Name not in master)';
+																	error_message:=N'Please Select Proper Alias Name in Invoice (Alias Name not in master) at line - ' || MinSO + 1;
 																END IF;
 															END IF;
 														END IF;
@@ -7759,7 +7821,7 @@ DECLARE U_Mining nvarchar(50);
 	 MinSO=MinSO+1;
 	END WHILE;
 END IF;
-*/
+
 ----------------- Alias name not match--------
 
 IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
@@ -8491,7 +8553,7 @@ Declare Invremark varchar(500);
 		END IF;
 END IF;
 
-/*IF Object_type = 'SHIPMASTER' and (:transaction_type ='U') Then
+IF Object_type = 'SHIPMASTER' and (:transaction_type ='U') Then
 Declare InvDet Int;
 Declare DlDet Int;
 Declare bldate date;
@@ -8515,7 +8577,7 @@ Declare etadate date;
 			END IF;
 		End If;
 	END IF;
-END IF;*/
+END IF;
 
 IF Object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
     DECLARE InvDet INT DEFAULT 0;
@@ -9559,7 +9621,7 @@ DECLARE MaxPR int;
 	END WHILE;
 END IF;
 
-IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
+/*IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 Declare ICode Nvarchar(150);
 Declare Iname Nvarchar(500);
 Declare Srs Nvarchar(150);
@@ -9601,7 +9663,7 @@ DECLARE MaxGI int;
 	     	END IF;
 	     MinGI=MinGI+1;
 		END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A')  THEN
 Declare ICode Nvarchar(150);
@@ -10014,36 +10076,50 @@ DECLARE BRS nvarchar(50);
 	END IF;
 END IF;
 
-IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-DECLARE MinIN Int;
-DECLARE MaxIN Int;
-DECLARE BaseEntry Int;
-DECLARE BRIN Int;
-DECLARE BROR Int;
-DECLARE ICOD varchar(50);
-DECLARE Series varchar(50);
+IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE MinIN Int;
+    DECLARE MaxIN Int;
+    DECLARE BaseEntry Int;
+    DECLARE BRIN Int;
+    DECLARE BROR Int;
+    DECLARE ICOD varchar(50);
+    DECLARE Series varchar(50);
 
-	SELECT Min(T0."VisOrder") INTO MinIN from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT Max(T0."VisOrder") INTO MaxIN from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT OPDN."BPLId" into BRIN FROM OPDN WHERE OPDN."DocEntry" = :list_of_cols_val_tab_del;
-	SELECT NNM1."SeriesName" into Series FROM NNM1 INNER JOIN OPDN ON OPDN."Series" = NNM1."Series" WHERE OPDN."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT MIN(T0."VisOrder") INTO MinIN FROM PDN1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT MAX(T0."VisOrder") INTO MaxIN FROM PDN1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT MAX(OPDN."BPLId") INTO BRIN FROM OPDN WHERE OPDN."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT MAX(NNM1."SeriesName") INTO Series FROM NNM1 INNER JOIN OPDN ON OPDN."Series" = NNM1."Series" WHERE OPDN."DocEntry" = :list_of_cols_val_tab_del;
 
-	IF Series NOT LIKE 'CL%' THEN
-	WHILE :MinIN <= :MaxIN DO
-		SELECT PDN1."ItemCode" into ICOD FROM PDN1 WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del and PDN1."VisOrder"=MinIN;
-		IF ICOD <> 'PCPM0099' and ICOD <> 'PCPM0098' and ICOD <> 'PCPM0100' and ICOD <> 'PCPM0101' and ICOD <> 'PCPM0102' and ICOD <> 'PCPM0102' THEN
-			SELECT PDN1."BaseEntry" into BaseEntry FROM PDN1 WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del and PDN1."VisOrder"=MinIN;
+    IF IFNULL(:Series, '') NOT LIKE 'CL%' THEN
+        WHILE :MinIN <= :MaxIN DO
 
-			SELECT OPOR."BPLId" into BROR FROM OPOR WHERE OPOR."DocEntry" = BaseEntry;
+            SELECT MAX(PDN1."ItemCode"), MAX(PDN1."BaseEntry") INTO ICOD, BaseEntry
+            FROM PDN1
+            WHERE PDN1."DocEntry" = :list_of_cols_val_tab_del AND PDN1."VisOrder" = :MinIN;
 
-			IF BRIN <> BROR THEN
-					error :=315;
-					error_message := N'PO and GRN should be of same Branch';
-			END IF;
-		END IF;
-		MinIN := MinIN+1;
-	END WHILE;
-	END IF;
+            IF :ICOD IS NOT NULL THEN
+                IF :ICOD <> 'PCPM0098' AND :ICOD <> 'PCPM0099' AND :ICOD <> 'PCPM0100' AND :ICOD <> 'PCPM0101' AND :ICOD <> 'PCPM0102' THEN
+
+                    -- This prevents the crash at line 10067 by ignoring manual rows (BaseEntry -1)
+                    IF :BaseEntry IS NOT NULL AND :BaseEntry <> -1 THEN
+
+                        SELECT MAX(OPOR."BPLId") INTO BROR FROM OPOR WHERE OPOR."DocEntry" = :BaseEntry;
+
+                        IF :BROR IS NOT NULL AND :BRIN IS NOT NULL THEN
+                            IF :BRIN <> :BROR THEN
+                                error := 315;
+                                error_message := N'PO and GRN should be of same Branch';
+                            END IF;
+                        END IF;
+
+                    END IF;
+
+                END IF;
+            END IF;
+
+            MinIN := :MinIN + 1;
+        END WHILE;
+    END IF;
 END IF;
 
 IF object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
@@ -11540,7 +11616,6 @@ DECLARE MaxLinePDQ Int;
 END IF;
 
 IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
-
 DECLARE warehouse Nvarchar(50);
 DECLARE MinLinePDQ Int;
 DECLARE MaxLinePDQ Int;
@@ -12003,7 +12078,7 @@ select OWOR."U_PV_Used" into PVused from OWOR WHERE OWOR."DocEntry"= :list_of_co
 
 END IF;
 
-/*IF Object_type = '202' and (:transaction_type ='A') Then
+IF Object_type = '202' and (:transaction_type ='A') Then
 Declare ReactorNo nvarchar(50);
 Declare Entry INT;
 Declare StartDate Date;
@@ -12026,7 +12101,7 @@ Declare Temp nvarchar(20);
 			error_message := N'Please check the Start date for production order' || ReactorNo || StartDate ||  StartTime ||  Entry || ' Check This ' || Temp ;
 
 		END IF;
-END IF;*/
+END IF;
 -----------------
 -- FORM Name   : Production Order
 -- Note        : For Special Production order, [Special Entry Reason] is mandatory. IF 'Others' is selected in [Special Entry Reason] then remarks must not be empty.
@@ -12394,33 +12469,6 @@ DECLARE Branch Nvarchar(50);
 		MinIT := MinIT+1;
 	END WHILE;
 END IF;
-/*
-IF Object_type = '46' and (:transaction_type ='A' OR :transaction_type ='U') Then
-DECLARE MinJV int;
-DECLARE MaxJV int;
-DECLARE Drule Nvarchar(250);
-DECLARE Accnt Nvarchar(250);
-DECLARE TransType int;
-
-	(SELECT min(T0."Line_ID") Into MinJV FROM JDT1 T0 INNER JOIN OVPM ON OVPM."TransId" = T0."TransId" where OVPM."DocEntry" = :list_of_cols_val_tab_del);
-	(SELECT max(T0."Line_ID") Into MaxJV FROM JDT1 T0 INNER JOIN OVPM ON OVPM."TransId" = T0."TransId" where OVPM."DocEntry" = :list_of_cols_val_tab_del);
-	WHILE MinJV <= MaxJV
-	DO
-	(SELECT JDT1."ProfitCode" into Drule FROM JDT1 INNER JOIN OVPM ON OVPM."TransId" = JDT1."TransId"
-		WHERE OVPM."DocEntry" =:list_of_cols_val_tab_del AND JDT1."Line_ID"=MinJV);
-	(SELECT JDT1."Account" into Accnt FROM JDT1 INNER JOIN OVPM ON OVPM."TransId" = JDT1."TransId"
-		WHERE OVPM."DocEntry" =:list_of_cols_val_tab_del AND JDT1."Line_ID"=MinJV);
-
-			IF  (Accnt LIKE '5%' OR Accnt LIKE '4%') then
-				IF (Drule = '' OR Drule IS NULL) THEN
-					error:=461;
-					error_message:=N'Please select distribution rule.';
-				END IF;
-			END IF;
-	 MinJV=MinJV+1;
-	END WHILE;
-END IF;
-*/
 
 If Object_Type = '112' and (:transaction_type='A' ) then
 Declare PrdSeries  Nvarchar(50);
@@ -12457,6 +12505,473 @@ if DraftObj = 60 THEN
 		END IF;
 		MinGI := MinGI+1;
 	END WHILE;
+END IF;
+END IF;
+
+IF object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE MinGI Int;
+DECLARE MaxGI Int;
+DECLARE PMGI Nvarchar(50);
+DECLARE PMQTY decimal;
+DECLARE Base Nvarchar(50);
+DECLARE SeriesGI Nvarchar(50);
+DECLARE ItemCod Nvarchar(50);
+DECLARE SeriesPRO Nvarchar(50);
+DECLARE UsrCod Nvarchar(50);
+DECLARE PrdSeries Nvarchar(50);
+DECLARE BPLName Nvarchar(50);
+DECLARE ItemCode Nvarchar(50);
+DECLARE Machinery Nvarchar(254);
+DECLARE BPLNameE Nvarchar(50);
+DECLARE BPLNameECount Int;
+DECLARE JMemo Nvarchar(50);
+DECLARE Warehouse Nvarchar(50);
+DECLARE IssueItemCode Nvarchar(50);
+DECLARE IssueWhsCode Nvarchar(50);
+DECLARE ProdType Nvarchar(5);
+DECLARE ISFA nvarchar(2);
+DECLARE FRWHS NVARCHAR(10);
+DECLARE OcrCode nvarchar(50);
+
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+
+IF DraftObj = 60 THEN
+
+
+/* Decimal not allowed for Packing - Error 23 */
+
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	WHILE :MinGI <= :MaxGI DO
+		SELECT DRF1."ItemCode" into PMGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT SUBSTR_AFTER(DRF1."Quantity",'.') into PMQTY FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		IF PMGI LIKE '%PM%' then
+			IF PMQTY > 0 then
+				error :=23;
+				error_message := N'Decimal not allowed for Packing';
+			END IF;
+		END IF;
+		MinGI := MinGI+1;
+	END WHILE;
+
+
+/* Job Work Production Series - Error 43 */
+
+	SELECT NNM1."SeriesName" into SeriesGI
+	FROM ODRF
+	INNER JOIN NNM1 ON NNM1."Series" = ODRF."Series"
+	WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del
+	and ODRF."ObjType"=60;
+
+	SELECT OUSR."USER_CODE" into UsrCod
+	FROM ODRF
+	INNER JOIN OUSR ON OUSR."USERID" = ODRF."UserSign"
+	WHERE ODRF."DocEntry"= :list_of_cols_val_tab_del
+	and ODRF."ObjType"=60;
+
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	IF UsrCod LIKE '%prod05%' THEN
+		WHILE :MinGI<= :MaxGI DO
+			SELECT "ItemCode" into ItemCod FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+			IF ItemCod IS NOT NULL AND ItemCod <> '' then
+				SELECT TOP 1 "BaseRef" into Base FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+				IF Base IS NOT NULL THEN
+					SELECT TOP 1 NNM1."SeriesName" into SeriesPRO FROM OWOR INNER JOIN NNM1 ON NNM1."Series" = OWOR."Series" WHERE OWOR."DocNum" = Base;
+
+					IF SeriesPRO LIKE 'JW%'  THEN
+						IF SeriesGI NOT LIKE 'JW%' THEN
+							error :=43;
+							error_message := N'Please select job work series for job work production order.';
+						END IF;
+					END IF;
+				END IF;
+				MinGI := MinGI+1;
+			END IF;
+		END WHILE;
+	END IF;
+
+
+/* Minimum Remarks - Error 353 */
+
+	SELECT LENGTH(T0."Comments") into JMemo FROM ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+	IF JMemo < 50 OR JMemo IS NULL THEN
+		error :=353;
+		error_message := N'Please mention remarks with minimum 20 words';
+	END IF;
+
+
+/* Unit-II Machinery Mandatory - Error 436 */
+
+	SELECT T0."BPLName" INTO BPLName from ODRF T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+	IF BPLName = 'UNIT - II' THEN
+
+		SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+		SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+		WHILE :MinGI<=MaxGI DO
+
+			select "WhsCode" into Warehouse from DRF1 where "DocEntry"=:list_of_cols_val_tab_del and "VisOrder" = MinGI;
+			select T0."ItemCode" INTO ItemCode from DRF1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinGI;
+
+			IF ItemCode LIKE 'E%' and Warehouse<>'2BT' THEN
+
+				select T0."U_Machinery" INTO Machinery from DRF1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinGI;
+				IF Machinery = '' OR Machinery IS NULL THEN
+					error :=436;
+					error_message := N'Please select Machinery for which item you are issuing...!';
+				END IF;
+
+			END IF;
+
+		MinGI := MinGI+1;
+		END WHILE;
+	END IF;
+
+
+/* Unit-II Machinery Branch Validation - Error 437 */
+
+	IF BPLName = 'UNIT - II' THEN
+
+		SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+		SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+		WHILE :MinGI<=MaxGI DO
+
+			SELECT T0."ItemCode" INTO ItemCode from DRF1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinGI;
+			SELECT T0."U_Machinery" INTO Machinery from DRF1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinGI;
+
+			IF ItemCode LIKE 'E%' THEN
+
+				IF Machinery <> '' AND Machinery IS NOT NULL THEN
+				 	SELECT Count(T0."U_BPLName") INTO BPLNameECount FROM "@EQUIPMENT" T0 WHERE T0."Code" = Machinery;
+				 	SELECT MAX(T0."U_BPLName") INTO BPLNameE FROM "@EQUIPMENT" T0 WHERE T0."Code" = Machinery;
+
+				 	IF BPLNameECount>0 THEN
+
+						IF BPLNameE <> BPLName THEN
+							error :=437;
+							error_message := N'Selected Machinery belongs to another branch...!';
+						END IF;
+					END IF;
+				END IF;
+
+			END IF;
+
+			MinGI := MinGI+1;
+		END WHILE;
+	END IF;
+
+
+/* OF Material Warehouse - Errors -1116 / -1117 */
+
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	WHILE :MinGI<= :MaxGI DO
+
+		(SELECT T0."ItemCode",T0."WhsCode" into IssueItemCode,IssueWhsCode FROM DRF1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinGI);
+
+		IF IssueItemCode LIKE 'OFRM%' THEN
+			SELECT T1."Type" into ProdType
+			FROM DRF1 T0
+			INNER JOIN OWOR T1 ON T0."BaseEntry" = T1."DocEntry"
+			WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+			and T0."VisOrder" = MinGI
+			and T0."BaseType" = 202;
+
+			IF ProdType = 'S' then
+			  	IF (IssueItemCode like 'OFRM%' and IssueWhsCode not in ('OF-RAW')) then
+					error := -1116;
+					error_message := N'Please Select OF-RAW Warehouse for OF Materials.';
+				END IF;
+			END IF;
+		END IF;
+
+		IF IssueWhsCode = 'OF-RAW' THEN
+			IF IssueItemCode not like 'OFRM%' then
+				error := -1117;
+				error_message := N'Please Select Warehouse other than OF-RAW.';
+			END IF;
+		END IF;
+
+		MinGI := MinGI + 1;
+	END WHILE;
+
+
+/* Fixed Asset Restriction - Error -1187 */
+
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	SELECT OUSR."USER_CODE" into UsrCod
+	FROM ODRF
+	INNER JOIN OUSR ON OUSR."USERID" = ODRF."UserSign"
+	WHERE ODRF."DocEntry"= :list_of_cols_val_tab_del
+	and ODRF."ObjType"=60;
+
+	WHILE :MinGI<= :MaxGI DO
+
+		(Select T1."ItemCode",T1."U_IsFA",T0."WhsCode" into ItemCode,ISFA,FRWHS
+		from DRF1 T0
+		JOIN OITM T1 ON T0."ItemCode" = T1."ItemCode"
+		where T0."DocEntry"=list_of_cols_val_tab_del and T0."VisOrder"=MinGI);
+
+		IF (ItemCode like 'NU%' and ISFA = 'Y' and UsrCod not in ('account7', 'sap01', 'manager','sap02') and FRWHS NOT LIKE '%BT%') then
+			error :=-1187;
+			error_message := N''||ItemCode||' at Line-'||MinGI+1||' is Fixed Asset Item, you are not allowed to issue it.';
+		End If;
+
+		MinGI := MinGI+1;
+	END WHILE;
+
+
+/* Distribution Rule - Error 42 */
+
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	WHILE :MinGI<= :MaxGI DO
+
+		SELECT T0."OcrCode",T0."ItemCode" into OcrCode,ItemCode
+		FROM DRF1 T0
+		WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+		and T0."VisOrder" = MinGI;
+
+		IF OcrCode = '' OR OcrCode IS NULL then
+			error :=42;
+			error_message := N'Please Select Distr. Rule in Document'||ItemCode;
+		END IF;
+
+		MinGI := MinGI+1;
+	END WHILE;
+
+
+END IF;
+END IF;
+
+----------------------Draft version of UNIT-I Goods Issue Warehouse Check (2701-2704)------------------
+IF object_type='112' AND (:transaction_type = 'A') THEN
+DECLARE MinGI Int;
+DECLARE MaxGI Int;
+DECLARE WhsGI Nvarchar(50);
+DECLARE ItemGI Nvarchar(50);
+DECLARE SeriesGI Nvarchar(50);
+DECLARE VNoGI Nvarchar(50);
+DECLARE CNoGI Nvarchar(50);
+DECLARE Branch Nvarchar(50);
+DECLARE JrnlMemo Nvarchar(50);
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 60 THEN
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT "BPLName" INTO Branch FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+	SELECT "JrnlMemo" INTO JrnlMemo FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+	IF Branch = 'UNIT - I' AND JrnlMemo = 'Goods Issue' THEN
+
+	WHILE :MinGI<= :MaxGI DO
+		SELECT DRF1."WhsCode" into WhsGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT DRF1."ItemCode" into ItemGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT T0."SeriesName" into SeriesGI FROM NNM1 T0 INNER JOIN ODRF T1 ON T0."Series" = T1."Series" WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=60;
+		SELECT ODRF."U_UNE_CHNO" into VNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+		SELECT ODRF."U_UNE_VehicleNo" into CNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+		IF ItemGI LIKE '%FG%' and ItemGI <> 'PCFG0263' and SeriesGI NOT LIKE 'BT%' THEN
+			IF WhsGI NOT LIKE '%FG%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%TRD%' THEN
+				error :=2701;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF ItemGI LIKE '%RM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIRM0019' THEN
+			IF WhsGI NOT LIKE '%RAW%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' THEN
+				error :=2702;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF ItemGI LIKE '%PM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIPM0018' THEN
+			IF WhsGI NOT LIKE '%PAC%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%'  and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
+				error :=2703;
+				error_message := N'Please Enter Proper Warehouse..PM';
+			END IF;
+		END IF;
+		IF SeriesGI LIKE  '%JW%' and  ItemGI <> 'PCRM0017' THEN
+			IF WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
+				error :=2704;
+				error_message := N'Please Enter Proper Warehouse..JW';
+			END IF;
+		END IF;
+		MinGI := MinGI+1;
+	END WHILE;
+	END IF;
+END IF;
+END IF;
+
+----------------------Draft version of UNIT-I Issue for Production Warehouse Check (27011-27041)------------------
+IF object_type='112' AND (:transaction_type = 'A') THEN
+DECLARE MinGI Int;
+DECLARE MaxGI Int;
+DECLARE WhsGI Nvarchar(50);
+DECLARE ItemGI Nvarchar(50);
+DECLARE SeriesGI Nvarchar(50);
+DECLARE VNoGI Nvarchar(50);
+DECLARE CNoGI Nvarchar(50);
+DECLARE Branch Nvarchar(50);
+DECLARE JrnlMemo Nvarchar(50);
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 60 THEN
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT "BPLName" INTO Branch FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+	SELECT "JrnlMemo" INTO JrnlMemo FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+	IF Branch = 'UNIT - I' AND JrnlMemo = 'Issue for Production' THEN
+
+	WHILE :MinGI<= :MaxGI DO
+		SELECT DRF1."WhsCode" into WhsGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT DRF1."ItemCode" into ItemGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT T0."SeriesName" into SeriesGI FROM NNM1 T0 INNER JOIN ODRF T1 ON T0."Series" = T1."Series" WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=60;
+		SELECT ODRF."U_UNE_CHNO" into VNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+		SELECT ODRF."U_UNE_VehicleNo" into CNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+		IF ItemGI LIKE '%PCFG%' and ItemGI <> 'PCFG0263' and SeriesGI NOT LIKE 'BT%' THEN
+			IF WhsGI NOT LIKE '%FG%' and WhsGI NOT LIKE 'PC-QCR' and  WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%TRD%' THEN
+				error :=27011;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF ItemGI LIKE '%RM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIRM0019' THEN
+			IF WhsGI NOT LIKE '%RAW%' and WhsGI NOT LIKE 'PC-QCR' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' THEN
+				error :=27021;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF ItemGI LIKE '%PM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIPM0018' THEN
+			IF WhsGI NOT LIKE '%PAC%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%'  and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
+				error :=27031;
+				error_message := N'Please Enter Proper Warehouse..PM';
+			END IF;
+		END IF;
+		IF SeriesGI LIKE  '%JW%' and  ItemGI <> 'PCRM0017' THEN
+			IF WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
+				error :=27041;
+				error_message := N'Please Enter Proper Warehouse..JW';
+			END IF;
+		END IF;
+		MinGI := MinGI+1;
+	END WHILE;
+	END IF;
+END IF;
+END IF;
+
+----------------------Draft version of UNIT-II Goods Issue Warehouse Check (27021-27024)------------------
+IF object_type='112' AND (:transaction_type = 'A') THEN
+DECLARE MinGI Int;
+DECLARE MaxGI Int;
+DECLARE WhsGI Nvarchar(50);
+DECLARE ItemGI Nvarchar(50);
+DECLARE SeriesGI Nvarchar(50);
+DECLARE VNoGI Nvarchar(50);
+DECLARE CNoGI Nvarchar(50);
+DECLARE Branch Nvarchar(50);
+DECLARE JrnlMemo Nvarchar(50);
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 60 THEN
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT "BPLName" INTO Branch FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+	SELECT "JrnlMemo" INTO JrnlMemo FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+	IF Branch = 'UNIT - II' AND JrnlMemo = 'Goods Issue' THEN
+
+	WHILE :MinGI<= :MaxGI DO
+		SELECT DRF1."WhsCode" into WhsGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT DRF1."ItemCode" into ItemGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT T0."SeriesName" into SeriesGI FROM NNM1 T0 INNER JOIN ODRF T1 ON T0."Series" = T1."Series" WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=60;
+		SELECT ODRF."U_UNE_CHNO" into VNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+		SELECT ODRF."U_UNE_VehicleNo" into CNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+		IF ItemGI LIKE '%FG%' and ItemGI <> 'PCFG0263' and SeriesGI NOT LIKE 'BT%' THEN
+			IF WhsGI NOT LIKE '%FG%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%TRD%' THEN
+				error :=27021;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF ItemGI LIKE '%RM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIRM0019' THEN
+			IF WhsGI NOT LIKE '%RAW%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' THEN
+				error :=27022;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF SeriesGI LIKE  '%JW%' and  ItemGI <> 'PCRM0017' THEN
+			IF WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
+				error :=27024;
+				error_message := N'Please Enter Proper Warehouse..JW';
+			END IF;
+		END IF;
+		MinGI := MinGI+1;
+	END WHILE;
+	END IF;
+END IF;
+END IF;
+
+----------------------Draft version of UNIT-II Issue for Production Warehouse Check (27031-27034)------------------
+IF object_type='112' AND (:transaction_type = 'A') THEN
+DECLARE MinGI Int;
+DECLARE MaxGI Int;
+DECLARE WhsGI Nvarchar(50);
+DECLARE ItemGI Nvarchar(50);
+DECLARE SeriesGI Nvarchar(50);
+DECLARE VNoGI Nvarchar(50);
+DECLARE CNoGI Nvarchar(50);
+DECLARE Branch Nvarchar(50);
+DECLARE JrnlMemo Nvarchar(50);
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 60 THEN
+	SELECT Min(T0."VisOrder") INTO MinGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxGI from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT "BPLName" INTO Branch FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+	SELECT "JrnlMemo" INTO JrnlMemo FROM ODRF where ODRF."DocEntry" =:list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+	IF Branch = 'UNIT - II' AND JrnlMemo = 'Issue for Production' THEN
+
+	WHILE :MinGI<= :MaxGI DO
+		SELECT DRF1."WhsCode" into WhsGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT DRF1."ItemCode" into ItemGI FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinGI;
+		SELECT T0."SeriesName" into SeriesGI FROM NNM1 T0 INNER JOIN ODRF T1 ON T0."Series" = T1."Series" WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=60;
+		SELECT ODRF."U_UNE_CHNO" into VNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+		SELECT ODRF."U_UNE_VehicleNo" into CNoGI FROM ODRF WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del and ODRF."ObjType"=60;
+
+		IF ItemGI LIKE '%FG%' and ItemGI <> 'PCFG0263' and SeriesGI NOT LIKE 'BT%' THEN
+			IF WhsGI NOT LIKE '2PC-FLOR' and WhsGI NOT LIKE '2PC-QCR' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%TRD%' THEN
+				error :=27031;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF ItemGI LIKE '%RM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIRM0019' THEN
+			IF WhsGI NOT LIKE '2PC-FLOR' and WhsGI NOT LIKE '2PC-QCR' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' THEN
+				error :=27032;
+				error_message := N'Please Enter Proper Warehouse..';
+			END IF;
+		END IF;
+		IF ItemGI LIKE '%PM%' and SeriesGI NOT LIKE 'BT%' and ItemGI <> 'DIPM0018' THEN
+			IF WhsGI NOT LIKE '%PAC%' and WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%'  and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
+				error :=27033;
+				error_message := N'Please Enter Proper Warehouse..PM';
+			END IF;
+		END IF;
+		IF SeriesGI LIKE  '%JW%' and  ItemGI <> 'PCRM0017' THEN
+			IF WhsGI NOT LIKE '%SSPL%' and WhsGI NOT LIKE '%PDI%' and WhsGI NOT LIKE '%ADVP%' and WhsGI NOT LIKE '%GJCM%' and WhsGI NOT LIKE '%AP%' and WhsGI NOT LIKE '%DE%' and WhsGI NOT LIKE '%RDI%' THEN
+				error :=27034;
+				error_message := N'Please Enter Proper Warehouse..JW';
+			END IF;
+		END IF;
+		MinGI := MinGI+1;
+	END WHILE;
+	END IF;
 END IF;
 END IF;
 
@@ -15959,37 +16474,6 @@ if DraftObj = 18 THEN
 	END IF;
 END IF;
 END IF;
-/*
-IF object_type='112' AND (:transaction_type = 'A' or :transaction_type='U') THEN
-DECLARE TankerPRO Nvarchar(50);
-DECLARE ItemCodePRO Nvarchar(50);
-	select T1."U_UNE_LINE" into TankerPRO from ODRF T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=202;
-	select T1."ItemCode" into ItemCodePRO from ODRF T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=202;
-		IF TankerPRO IS NULL and ItemCodePRO LIKE 'PC%' then
-			error :=153;
-			error_message := N'Please enter Tanker load or not...';
-		END IF;
-END IF;
-*/
-
-
-/*
-IF object_type='112' AND (:transaction_type = 'A' or :transaction_type='U') THEN
-DECLARE TankerPRO Nvarchar(50);
-DECLARE ItemCodePRO Nvarchar(50);
-DECLARE PMCOUNTPRO int;
-
-	select T1."U_UNE_LINE" into TankerPRO from ODRF T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=202;
-	select T1."ItemCode" into ItemCodePRO from ODRF T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=202;
-	(Select  count("ItemCode") into PMCOUNTPRO from DRF1 where DRF1."DocEntry"=list_of_cols_val_tab_del and DRF1."ItemCode" LIKE '%PM%' );
-		IF ItemCodePRO <> 'PCFG0263' THEN
-			IF TankerPRO = 'N' and ItemCodePRO LIKE 'PC%' and PMCOUNTPRO = 0  then
-			error :=155;
-			error_message := N'Please add packing material...';
-			END IF;
-		END IF;
-END IF;
-*/
 
 IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 Declare CardCode nvarchar(50);
@@ -16703,7 +17187,7 @@ END IF;
 END IF;
 
 -------------------------------------------
-/*
+
 IF Object_type='112' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
@@ -16725,8 +17209,7 @@ DECLARE U_Other1 nvarchar(50);
 DECLARE U_Pharma nvarchar(50);
 DECLARE U_Mining nvarchar(50);
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
-if DraftObj = 15
-THEN
+if DraftObj = 15 THEN
 	(SELECT min(T0."VisOrder") Into MinSO FROM DRF1 T0 where T0."DocEntry" = :list_of_cols_val_tab_del);
 	(SELECT max(T0."VisOrder") Into MaxSO FROM DRF1 T0 where T0."DocEntry" = :list_of_cols_val_tab_del);
 	(SELECT T0."SeriesName" into Series FROM ODRF T1 INNER JOIN NNM1 T0 ON T0."Series"=T1."Series"
@@ -16804,9 +17287,9 @@ THEN
 	END WHILE;
 END IF;
 END IF;
-*/
 
-/*
+
+
 IF Object_type='112' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
@@ -16885,7 +17368,7 @@ if DraftObj = 13 THEN
 																IF Freetext = U_Mining then
 																else
 																	error:=1808;
-																	error_message:=N'Please Select Proper Alias Name in Invoice (Alias Name not in master)';
+																	error_message:=N'Please Select Proper Alias Name in Invoice (Alias Name not in master) at line - ' || MinSO + 1;
 																END IF;
 															END IF;
 														END IF;
@@ -16906,7 +17389,7 @@ if DraftObj = 13 THEN
 	END WHILE;
 END IF;
 END IF;
-*/
+
 ----------------- Alias name not match--------
 
 IF Object_type='112' and (:transaction_type ='A' OR :transaction_type = 'U') Then
@@ -17646,103 +18129,6 @@ if DraftObj = 13 THEN
 	END IF;
 END IF;
 
-/*
-IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-DECLARE MinPRO Int;
-DECLARE MaxPRO Int;
-DECLARE SONO Nvarchar(50);
-DECLARE FITEMPRO Nvarchar(50);
-DECLARE Pack1 Nvarchar(50);
-DECLARE Pack2 Nvarchar(50);
-DECLARE Pack3 Nvarchar(50);
-DECLARE Pack4 Nvarchar(50);
-DECLARE Pack5 Nvarchar(50);
-DECLARE Pack6 Nvarchar(50);
-DECLARE Pack7 Nvarchar(50);
-DECLARE Pack8 Nvarchar(50);
-DECLARE Pack9 Nvarchar(50);
-DECLARE Pack10 Nvarchar(50);
-DECLARE Pack11 Nvarchar(50);
-DECLARE Pack12 Nvarchar(50);
-DECLARE Pack13 Nvarchar(50);
-DECLARE Pack14 Nvarchar(50);
-DECLARE Pack15 Nvarchar(50);
-DECLARE Tanker Nvarchar(50);
-DECLARE PITEMPRO Int;
-DECLARE PPITEMPRO Nvarchar(50);
-DECLARE PPITEMPRO1 Nvarchar(500);
-DECLARE ITEMSO Nvarchar(50);
-DECLARE SOPCODE Int;
-DECLARE SOPCODE1 Nvarchar(50);
-DECLARE CountPRO Int;
-
-	SELECT Min(T0."VisOrder") INTO MinPRO from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT Max(T0."VisOrder") INTO MaxPRO from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT T1."OriginAbs" into SONO FROM ODRF T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=202;
-	SELECT T1."ItemCode" into FITEMPRO FROM ODRF T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=202;
-	SELECT T1."U_UNE_LINE" into Tanker FROM ODRF T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=202;
-	WHILE :MinPRO <= :MaxPRO DO
-		IF SONO IS NOT NULL and Tanker = 'N' and FITEMPRO <> 'PCFG0362' and FITEMPRO <> 'PCFG0363' THEN
-			SELECT T0."U_Pack1" into Pack1 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack2" into Pack2 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack3" into Pack3 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack4" into Pack4 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack5" into Pack5 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack6" into Pack6 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack7" into Pack7 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack8" into Pack8 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack9" into Pack9 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack10" into Pack10 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack11" into Pack11 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack12" into Pack12 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack13" into Pack13 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack14" into Pack14 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T0."U_Pack15" into Pack15 from "@SOPACKING" T0 WHERE T0."Code" = FITEMPRO;
-			SELECT T1."ItemCode" into PPITEMPRO FROM DRF1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinPRO;
-			SELECT T1."ItemName" into PPITEMPRO1 FROM DRF1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinPRO;
-
-			IF 	PPITEMPRO LIKE 'PCPM%' then
-				If PPITEMPRO1 NOT LIKE '%Pallet%' then
-					IF Pack1 <> PPITEMPRO THEN
-						IF Pack2 <> PPITEMPRO THEN
-							IF Pack3 <> PPITEMPRO THEN
-								IF Pack4 <> PPITEMPRO THEN
-									IF Pack5 <> PPITEMPRO THEN
-										IF Pack6 <> PPITEMPRO THEN
-											IF Pack7 <> PPITEMPRO THEN
-												IF Pack8 <> PPITEMPRO THEN
-													IF Pack9 <> PPITEMPRO THEN
-														IF Pack10 <> PPITEMPRO THEN
-															IF Pack11 <> PPITEMPRO THEN
-																IF Pack12 <> PPITEMPRO THEN
-																	IF Pack13 <> PPITEMPRO THEN
-																		IF Pack14 <> PPITEMPRO THEN
-																			IF Pack15 <> PPITEMPRO THEN
-																				error :=245;
-																				error_message := N'Packing Code of Production & Standardisation not matched';
-																			END IF;
-																		END IF;
-																	END IF;
-																END IF;
-															END IF;
-														END IF;
-													END IF;
-												END IF;
-											END IF;
-										END IF;
-									END IF;
-								END IF;
-							END IF;
-						END IF;
-					END IF;
-				END IF;
-			END IF;
-		END IF;
-		MinPRO := MinPRO + 1;
-	END WHILE;
-END IF;
-*/
-
 IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE DLQTD Int;
 DECLARE MinLineDLQ Int;
@@ -18163,88 +18549,7 @@ if DraftObj = 60 THEN
 END IF;
 END IF;
 
-
--------------------------------------------------------------------------------------------------------------------
-/*
-IF object_type='112' AND (:transaction_type = 'U') THEN
-DECLARE MinPRO Int;
-DECLARE MaxPRO Int;
-DECLARE Typ Nvarchar(50);
-DECLARE Devallow Nvarchar(50);
-DECLARE Qty11 decimal;
-DECLARE MainItemPRO Nvarchar(150);
-DECLARE SeriesPRO Nvarchar(150);
-DECLARE Approve Nvarchar(150);
-DECLARE PlannedQt decimal;
-DECLARE Qtity decimal;
-DECLARE IssuedQtyPRO decimal;
-DECLARE CompletedQty decimal;
-DECLARE ItemPRO Nvarchar(50);
-DECLARE UsrCod Nvarchar(50);
-
-	SELECT Min(T0."VisOrder") INTO MinPRO from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del ;
-	SELECT Max(T0."VisOrder") INTO MaxPRO from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
- 	select ODRF."Type" into Typ from ODRF where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=202;
- 	select NNM1."SeriesName" into SeriesPRO from ODRF INNER JOIN NNM1 ON ODRF."Series" = NNM1."Series" where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=202;
- 	select ODRF."U_Approve" into Approve from ODRF where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=202;
-	select ODRF."U_Devallow" into Devallow from ODRF where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=202;
-	select ODRF."PlannedQty" into PlannedQt from ODRF where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=202;
-	select ODRF."CmpltQty" into CompletedQty from ODRF where ODRF."DocEntry"=list_of_cols_val_tab_del and ODRF."ObjType"=202;
-
-	IF Typ = 'S' and SeriesPRO NOT LIKE 'DI%' THEN
-		IF Approve = 'Approved' and (UsrCod ='prod04' OR UsrCod ='prod05') and CompletedQty > 0 then
-			If (CompletedQty - PlannedQt) > ((PlannedQt*Devallow)/100) then
-				 error :=259;
-				 error_message := N'As per approval. Only '||Devallow||'% deviation allowed for receipt.1';
-			END IF;
-			If (PlannedQt - CompletedQty) > ((PlannedQt*Devallow)/100) then
-				 error :=259;
-				 error_message := N'As per approval. Only '||Devallow||'% deviation allowed for receipt.2';
-			END IF;
-		END IF;
-	END IF;
-END IF;
-*/
-
-/*
-IF object_type='112' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
-
-DECLARE CNT Int;
-DECLARE Comments Nvarchar(250);
-DECLARE Srs Nvarchar(250);
-
-
-	SELECT "Comments" INTO Comments FROM ODRF T1 where T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=59;
-	SELECT "SeriesName" INTO Srs FROM ODRF T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" where T0."DocEntry" = :list_of_cols_val_tab_del  and T0."ObjType"=59;
-	SELECT COUNT(*) INTO CNT FROM ODRF T1 where T1."Comments" = Comments  and T1."ObjType"=59;
-
-	IF :CNT>1 and Srs NOT LIKE 'DI%' and Comments IS NOT NULL THEN
-		error := 262;
-		error_message := 'Duplicate Batch Number Exist Check Batch No Again';
-		CNT:= 0;
-	END IF;
-END IF;
-
-
-IF object_type='112' AND (:transaction_type = 'U' OR :transaction_type = 'A') THEN
-
-DECLARE CNT Int;
-DECLARE Comments Nvarchar(500);
-DECLARE Srs Nvarchar(500);
-	SELECT "Comments" INTO Comments FROM ODRF T1 where T1."DocEntry" = :list_of_cols_val_tab_del and T1."ObjType"=60;
-	SELECT "SeriesName" INTO Srs FROM ODRF T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" where T0."DocEntry" = :list_of_cols_val_tab_del and T0."ObjType"=60;
-	SELECT COUNT(*) INTO CNT FROM ODRF T1 where T1."Comments" = Comments and T1."ObjType"=60;
-
-	IF :CNT>1 and Srs NOT LIKE 'DI%' and Comments IS NOT NULL THEN
-		error := 263;
-		error_message := 'Duplicate Batch Number Exist Check Batch No Again';
-		CNT:= 0;
-	END IF;
-END IF;
-*/
-
 IF object_type='112' AND ( :transaction_type = 'A') THEN
-
 DECLARE MINN int;
 DECLARE MAXX int;
 DECLARE CNT Int;
@@ -19535,7 +19840,7 @@ if DraftObj = 20 THEN
 	END IF;
 END IF;
 --------------------Delay Remarks-------
-/*
+
 IF object_type='112' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 
 DECLARE DelayRemark Nvarchar(50);
@@ -19566,7 +19871,7 @@ if DraftObj = 13 THEN
 
 	END IF;
 END IF;
-*/
+
 IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
 DECLARE MinIN Int;
@@ -20073,7 +20378,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The OFRM from 2OF-QC cannot be moved to any warehouse other than 2OF-QCR,2OF-RAW,2OF-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-RAW','2OF-FLOR','2PC-QC') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-RAW','2OF-FLOR','2OF-QC') then
             error := -1033;
             error_message := 'The OFRM from 2BT cannot be moved to any warehouse other than 1BT,2OF-RAW,2OF-FLOR';
         end if;
@@ -20106,10 +20411,10 @@ if Item like '%FG%' then
             error := -1038;
             error_message := 'The PCFG from PC-QC cannot be moved to any warehouse other than PC-QCR,PC-FG';
         end if;
-		if FromWhs = 'PC-QCR' and ToWhs not in ('1BT') then
+		/*if FromWhs = 'PC-QCR' and ToWhs not in ('1BT') then
             error := -1039;
             error_message := 'The PCFG from PC-QCR cannot be moved to any warehouse other than 1BT';
-        end if;
+        end if;*/
 		if FromWhs = '1BT' and ToWhs not in ('2BT','PC-FG','PC-QCR','DI-FG','DI-QCR','OF-FG', 'OF-QC', 'OF-QCR','PC-QC-TR','PC-TRD','OF-TRD') then
             error := -1040;
             error_message := 'The PCFG from 1BT cannot be moved to any warehouse other than 2BT,PC-FG,PC-QCR,DI-FG,DI-QCR';
@@ -20160,7 +20465,7 @@ if Item like '%FG%' then
             error := -1049;
             error_message := 'The DIRM from DI-QC cannot be moved to any warehouse other than DI-QCR,DI-RAW';
         end if;
-        if FromWhs = 'OF-QC' and ToWhs not in ('OF-QCR','OF-RAW') then
+        if FromWhs = 'OF-QC' and ToWhs not in ('OF-QCR','OF-RAW','1BT') then
             error := -1118;
             error_message := 'The OFRM from OF-QC cannot be moved to any warehouse other than OF-QCR,OF-RAW';
         end if;
@@ -21031,7 +21336,7 @@ IF Object_type = '112' and (:transaction_type ='A' OR :transaction_type ='U' ) T
 	end if;
 End If;
 
-IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 	DECLARE MinGRN INT;
     DECLARE MaxGRN INT;
     DECLARE CurrentItemCode NVARCHAR(50);
@@ -21101,7 +21406,7 @@ IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 			END WHILE;
 		end if;
 	END IF;
-END IF;
+END IF;*/
 
 IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 	DECLARE FromWhs NVARCHAR(15);
@@ -21334,11 +21639,6 @@ IF Object_type = '67' and (:transaction_type ='A' or :transaction_type ='U' ) Th
 		error_message := N'Mobile No. is required.';
 	END IF;
 
-	IF ((FromWhs like '%NU' and ToWhs like '%BT') OR (FromWhs like '%BT' and ToWhs like '%NU')) AND Series not like 'IT%' THEN
-		error := -1169;
-		error_message := N'Please select IT Series for Internal transfer.';
-	END IF;
-
 	IF ToWhs like '%RGP' THEN
 		IF ERD is null then
 			error := -1171;
@@ -21465,66 +21765,114 @@ IF Object_type = '67' and (:transaction_type ='A' or :transaction_type ='U' ) Th
 	END IF;
 End If;
 
-IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
-	DECLARE ItemCode NVARCHAR(50);
-	DECLARE ItemCnt INT;
-    DECLARE MinIn INT;
-    DECLARE MaxIn INT;
-    DECLARE GrpCode INT;
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+    DECLARE DraftObj INT;
     DECLARE FromWhs NVARCHAR(15);
     DECLARE ToWhs NVARCHAR(15);
-	DECLARE BaseDoc INT;
-	DECLARE SentQty INT;
-	DECLARE ReceivedQty INT;
-	DECLARE SendingQty INT;
-	DECLARE SendFromWhs NVARCHAR(15);
+    DECLARE BaseDoc INT;
+    DECLARE SendFromWhs NVARCHAR(15);
+    DECLARE InvalidLine INT;
+    DECLARE InvalidItem NVARCHAR(50);
+    DECLARE OverQtyItem NVARCHAR(50);
+    DECLARE SentQty DECIMAL(19,6);
+    DECLARE ReceivedQty DECIMAL(19,6);
+    DECLARE SendingQty DECIMAL(19,6);
 
-	(SELECT ODRF."ObjType" INTO DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+    -- 1. Get Draft Object Type
+    SELECT COALESCE(MAX(ODRF."ObjType"), -1)
+    INTO DraftObj
+    FROM ODRF
+    WHERE ODRF."DocEntry" = :list_of_cols_val_tab_del;
 
-	if DraftObj = 67 THEN
-		SELECT MIN(T0."VisOrder"), MAX(T0."VisOrder") INTO MinIn, MaxIn FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry"
-		WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."ObjType" = 67;
-		select T0."Filler",T0."ToWhsCode" into FromWhs,ToWhs from ODRF T0 where T0."DocEntry"=list_of_cols_val_tab_del and T0."ObjType" = 67;
+    IF :DraftObj = 67 THEN
+        -- 2. Fetch Header Warehouses safely
+        SELECT COALESCE(MAX(T0."Filler"), ''), COALESCE(MAX(T0."ToWhsCode"), '')
+        INTO FromWhs, ToWhs
+        FROM ODRF T0
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType" = 67;
 
-		IF FromWhs like '%RGP%' THEN
-			SELECT T1."RefDocEntr" INTO BaseDoc FROM ODRF T0 LEFT JOIN DRF21 T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = list_of_cols_val_tab_del and T0."ObjType" = 67;
-			select T0."Filler" into SendFromWhs from OWTR T0 where T0."DocEntry"= BaseDoc;
-			IF SendFromWhs <> ToWhs then
-				error := -1176;
-				error_message := N'Please select '||SendFromWhs|| ' in To Warehouse.';
-			ELSE
-				IF (BaseDoc <> -1 AND BaseDoc IS NOT NULL) THEN
-					WHILE :MinIn <= :MaxIn DO
-					   SELECT COUNT(T0."ItemCode") INTO ItemCnt FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry"
-					   WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinIn AND T1."ObjType" = 67
-					   AND T0."ItemCode" IN (SELECT distinct T3."ItemCode" from WTR1 T3 JOIN OWTR T4 ON T3."DocEntry" = T4."DocEntry" WHERE T3."DocEntry" = BaseDoc);
+        IF :FromWhs LIKE '%RGP%' THEN
+            -- 3. Fetch Base Document Reference
+            SELECT COALESCE(MAX(T1."RefDocEntr"), -1)
+            INTO BaseDoc
+            FROM ODRF T0
+            LEFT JOIN DRF21 T1 ON T0."DocEntry" = T1."DocEntry"
+            WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType" = 67;
 
-					   SELECT T0."ItemCode",T0."Quantity" INTO ItemCode,SendingQty FROM DRF1 T0 JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = :list_of_cols_val_tab_del and T0."VisOrder" = MinIn and T1."ObjType" = 67;
+            IF :BaseDoc > 0 THEN
+                -- 4. Get Source Warehouse from Base OWTR
+                SELECT COALESCE(MAX(T0."Filler"), '')
+                INTO SendFromWhs
+                FROM OWTR T0
+                WHERE T0."DocEntry" = :BaseDoc;
 
-					   IF ItemCnt = 0 THEN
-							error := -1177;
-					        error_message := N'You are not allowed to select item ('|| ItemCode ||') other than gate pass items at line - ' || MinIn+1 ;
-					   ELSE
-					   		SELECT COALESCE(SUM(T1."Quantity"),0) INTO SentQty FROM WTR1 T1 JOIN OWTR T0 ON T0."DocEntry" = T1."DocEntry" WHERE T0."DocEntry" = BaseDoc and T0."ObjType" = 67
-					   		AND T1."ItemCode" = ItemCode AND T0."CANCELED" = 'N' AND T1."Quantity" > 0;
+                IF :SendFromWhs <> :ToWhs THEN
+                    error := -1176;
+                    error_message := N'Please select ' || :SendFromWhs || ' in To Warehouse.';
+                ELSE
+                    -- 5. Check for items not in the Gate Pass (Base OWTR)
+                    SELECT COALESCE(MIN(T0."VisOrder" + 1), 0), COALESCE(MAX(T0."ItemCode"), '')
+                    INTO InvalidLine, InvalidItem
+                    FROM DRF1 T0
+                    INNER JOIN ODRF T1 ON T0."DocEntry" = T1."DocEntry"
+                    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+                      AND T1."ObjType" = 67
+                      AND T0."ItemCode" NOT IN (
+                          SELECT DISTINCT T3."ItemCode"
+                          FROM WTR1 T3
+                          WHERE T3."DocEntry" = :BaseDoc
+                      );
 
-					   		SELECT COALESCE(SUM(T1."Quantity"),0) INTO ReceivedQty FROM WTR1 T1 JOIN OWTR T0 ON T0."DocEntry" = T1."DocEntry" LEFT JOIN WTR21 T21 ON T21."DocEntry" = T0."DocEntry"
-					   		WHERE T21."RefDocEntr" = BaseDoc and T0."ObjType" = 67 AND T1."DocEntry" <> list_of_cols_val_tab_del and T1."Quantity" > 0
-					   		AND T1."ItemCode" = ItemCode AND T0."CANCELED" = 'N';
+                    IF :InvalidLine > 0 THEN
+                        error := -1177;
+                        error_message := N'You are not allowed to select item (' || :InvalidItem || ') other than gate pass items at line - ' || :InvalidLine;
+                    ELSE
+                        -- 6. Check for Over-Received Quantities across items
+                        SELECT
+                            COALESCE(MAX(DraftItems."ItemCode"), ''),
+                            COALESCE(MAX(DraftItems."DraftQty"), 0),
+                            COALESCE(MAX(Sent."SentQty"), 0),
+                            COALESCE(MAX(Rec."RecQty"), 0)
+                        INTO OverQtyItem, SendingQty, SentQty, ReceivedQty
+                        FROM (
+                            SELECT T0."ItemCode", SUM(T0."Quantity") AS "DraftQty"
+                            FROM DRF1 T0
+                            WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+                            GROUP BY T0."ItemCode"
+                        ) DraftItems
+                        INNER JOIN (
+                            SELECT T1."ItemCode", SUM(T1."Quantity") AS "SentQty"
+                            FROM WTR1 T1
+                            INNER JOIN OWTR T0 ON T0."DocEntry" = T1."DocEntry"
+                            WHERE T0."DocEntry" = :BaseDoc AND T0."CANCELED" = 'N'
+                            GROUP BY T1."ItemCode"
+                        ) Sent ON DraftItems."ItemCode" = Sent."ItemCode"
+                        LEFT JOIN (
+                            SELECT T1."ItemCode", SUM(T1."Quantity") AS "RecQty"
+                            FROM WTR1 T1
+                            INNER JOIN OWTR T0 ON T0."DocEntry" = T1."DocEntry"
+                            LEFT JOIN WTR21 T21 ON T21."DocEntry" = T0."DocEntry"
+                            WHERE T21."RefDocEntr" = :BaseDoc
+                              AND T0."ObjType" = 67
+                              AND T0."DocEntry" <> :list_of_cols_val_tab_del
+                              AND T0."CANCELED" = 'N'
+                            GROUP BY T1."ItemCode"
+                        ) Rec ON DraftItems."ItemCode" = Rec."ItemCode"
+                        WHERE (DraftItems."DraftQty" + COALESCE(Rec."RecQty", 0)) > Sent."SentQty";
 
-					   		IF SendingQty + ReceivedQty > SentQty THEN
-					   			error := -1178;
-					        	error_message := N''||ReceivedQty||'/'||SentQty||' is already received for ' || ItemCode;
-					        END IF;
-
-					   END IF;
-					MinIn := MinIn + 1;
-				    END WHILE;
-				END IF;
-			END IF;
-		END IF;
-	end if;
-End If;
+                        IF :OverQtyItem <> '' THEN
+                            error := -1178;
+                            error_message := N'' || :ReceivedQty || '/' || :SentQty || ' is already received for ' || :OverQtyItem;
+                        END IF;
+                    END IF;
+                END IF;
+            ELSE
+                error := -1179;
+                error_message := N'Please link a valid Gate Pass (Base Document) before saving.';
+            END IF;
+        END IF;
+    END IF;
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A' or :transaction_type ='U') THEN
 	DECLARE MinGR Int;
@@ -21757,6 +22105,7 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
     DECLARE v_InvExists NVARCHAR(25);
     DECLARE v_AirBillNo NVARCHAR(25);
     DECLARE v_Division NVARCHAR(5);
+    DECLARE v_HSC NVARCHAR(15);
 
     -- NEW: Declarations for RTO Validation fields
     DECLARE v_RTO NVARCHAR(5);
@@ -21831,10 +22180,12 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
         -- Retrieve values from QUT1 for mandatory fields for the current row (UPDATED WITH NEW FIELDS)
         SELECT T1."U_UNE_ITCD", T1."U_FRTXT", T1."U_PR_Type", T1."TaxCode", T1."U_Department",
                T1."U_ResFrCust", T1."U_ReasonFail", T1."U_Deal_ID", T1."U_ApprOnCOA", T1."U_PSS",
-               T1."U_NoOfBatchRequired", T1."U_RTO", T1."U_ResDate", T1."U_OrderRec", T1."U_OrderDate", t1."U_AirBillNo", T1."ItemCode", t1."U_Division"
+               T1."U_NoOfBatchRequired", T1."U_RTO", T1."U_ResDate", T1."U_OrderRec", T1."U_OrderDate", t1."U_AirBillNo", T1."ItemCode", t1."U_Division",
+               T1."FreeTxt"
         INTO v_U_UNE_ITCD, v_U_FRTXT, v_U_PR_TYPE, v_TaxCode, v_Department,
              v_ResFrCust, v_ReasonFail, v_DealNo, v_ApprCOA, v_PSS,
-             v_Batch, v_RTO, v_ResDate, v_OrderRec, v_OrderDate, v_AirBillNo, v_ItemCode, v_Division
+             v_Batch, v_RTO, v_ResDate, v_OrderRec, v_OrderDate, v_AirBillNo, v_ItemCode, v_Division,
+             v_HSC
         FROM QUT1 T1
         WHERE T1."DocEntry" = :list_of_cols_val_tab_del
         AND T1."VisOrder" = v_MINN;
@@ -21898,10 +22249,14 @@ IF (:object_type = '23') AND (:transaction_type IN ('A', 'U')) THEN
         ELSEIF v_ItemCode <> 'SER0248' THEN
             error := -1227;
             error_message := 'Item Code other than SER0248 not allowed.';
+        ELSEIF v_Department = 'RND'
+               AND (v_HSC IS NULL OR LENGTH(TRIM(v_HSC)) = 0) THEN
+            error := -1228;
+            error_message := 'HS Code cannot be empty when Department is RND.';
         END IF;
          ---Division must be not null and in PC, SC and OF
 	    IF v_Department = 'RND' and TRIM(IFNULL(v_Division,'')) NOT IN ('PC','SC','OF') THEN
-		        error := -1227;
+		        error := -1229;
 		        error_message := N'Division must be PC, SC, or OF.';
 		END IF;
 
@@ -22868,6 +23223,7 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
     DECLARE GRN_BPLId INT;           -- Variable for Branch ID
     DECLARE RowCount INT := 0;
     DECLARE WeighOut NVARCHAR(5);
+    DECLARE ItemCode NVARCHAR(15);
 
     -- 1. Fetch Aggregated GRN values (SUM of Actual Qty)
     SELECT TOP 1
@@ -22877,17 +23233,18 @@ IF object_type = '20' AND (:transaction_type = 'U') THEN
         T0."U_UNE_VehicleNo",
         T1."U_PTYPE",
         T0."BPLId",
-        T0."U_WeighOut"
+        T0."U_WeighOut",
+        T1."ItemCode"
     INTO
-        GRN_SlipNo_Num, GRN_TotalActualQty, GRN_GateDate, GRN_Vehicle, GRN_PType, GRN_BPLId, WeighOut
+        GRN_SlipNo_Num, GRN_TotalActualQty, GRN_GateDate, GRN_Vehicle, GRN_PType, GRN_BPLId, WeighOut, ItemCode
     FROM OPDN T0
     INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
     WHERE T0."DocEntry" = :list_of_cols_val_tab_del
     GROUP BY
-        T1."U_UNE_QTY", T0."U_UNE_GEDT", T0."U_UNE_VehicleNo", T1."U_PTYPE", T0."BPLId", T0."U_WeighOut";
+        T1."U_UNE_QTY", T0."U_UNE_GEDT", T0."U_UNE_VehicleNo", T1."U_PTYPE", T0."BPLId", T0."U_WeighOut", T1."ItemCode";
 
     -- 2. New Condition: Only validate if Packing Type is TANKER% and WeighOut is No
-    IF UPPER(:GRN_PType) LIKE 'TANKER%' AND :WeighOut = 'No' AND GRN_BPLId = 4 THEN
+    IF UPPER(:GRN_PType) LIKE 'TANKER%' AND :WeighOut = 'No' AND ItemCode NOT IN ('DIRM0019', 'PCRM0017') /*GRN_BPLId = 4*/ THEN
 
         -- Existing validation logic starts here
         IF :GRN_SlipNo_Num > 0 THEN
@@ -23019,7 +23376,7 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A') AND S
 
 --SLA Delay Validation--
 
-IF :DelayDays > 0 THEN
+/*IF :DelayDays > 0 THEN
     IF EXISTS (
         SELECT 1 FROM ODRF t0
         JOIN NNM1 S1 ON T0."Series" = S1."Series"
@@ -23031,12 +23388,14 @@ END IF;
 
 --System Date Backdate Restriction --
 
-IF EXISTS (SELECT 1 FROM ODRF t0
-    JOIN NNM1 S1 ON T0."Series" = S1."Series"
-    WHERE t0."DocEntry" = :list_of_cols_val_tab_del AND "ObjType" = '18' AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
-    error := -1268;
-    error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-END IF;
+	IF EXISTS (SELECT 1 FROM ODRF T0 JOIN NNM1 S1 ON T0."Series" = S1."Series"
+    				WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+				      AND T0."DocDate" < ADD_DAYS(CURRENT_DATE, -3)
+				      AND t0."ObjType" = '18'
+				      AND S1."SeriesName" NOT LIKE 'CL%') THEN
+    		error := -1270;
+		    error_message := 'AP Invoice Posting Date cannot be earlier than 3 days prior to the current date';
+	END IF;*/
 
 END IF;
 ---------------------------------AP Invoice Posting Delay Reason and Current Date------------------------
@@ -23063,7 +23422,7 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 
 --SLA Delay Validation--
 
-		IF :DelayDays > 0 THEN
+/*		IF :DelayDays > 0 THEN
 			IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND IFNULL("U_APInvDelayReason",'') = '' AND s1."SeriesName" NOT LIKE 'CL%') THEN
 				error := -1269;
 				error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
@@ -23071,10 +23430,13 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 		END IF;
 
 --System Date Backdate Restriction --
-		IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND "DocDate" < CURRENT_DATE AND s1."SeriesName" NOT LIKE 'CL%') THEN
-			error := -1270;
-			error_message := 'AP Invoice Posting Date cannot be earlier than the current system date';
-		END IF;
+	IF EXISTS (SELECT 1 FROM OPCH T0 JOIN NNM1 S1 ON T0."Series" = S1."Series"
+    				WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+				      AND T0."DocDate" < ADD_DAYS(CURRENT_DATE, -3)
+				      AND S1."SeriesName" NOT LIKE 'CL%') THEN
+    		error := -1270;
+		    error_message := 'AP Invoice Posting Date cannot be earlier than 3 days prior to the current date';
+	END IF;*/
 END IF;
 --------------------------AP Invoice License BL entry Compulsory-----------------------
 IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
@@ -23783,7 +24145,7 @@ END IF;
 -----------------------------------------------------------------------------------------
 -- PURCHASE ORDER DRAFT VALIDATION: License Balance Check
 -----------------------------------------------------------------------------------------
-IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '112' AND (:transaction_type = 'A') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE DraftObjType NVARCHAR(10);
         DECLARE ErrorLineStr NVARCHAR(10) := '';
@@ -23927,7 +24289,7 @@ END IF;
 -----------------------------------------------------------------------------------------
 -- PURCHASE ORDER POSTING VALIDATION: License Balance Check
 -----------------------------------------------------------------------------------------
-IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '22' AND (:transaction_type = 'A') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE ErrorLineStr NVARCHAR(10) := '';
         DECLARE ErrorItemStr NVARCHAR(50) := '';
@@ -25101,6 +25463,68 @@ DECLARE CustRef Nvarchar(200);
 			error_message := N'Enter Vendor Bill No.';
 		END IF;
 END IF;
+
+
+If object_type = '13' and (:transaction_type = 'A' OR :transaction_type = 'U') then
+
+	DECLARE TaxCode nvarchar(10);
+	DECLARE MINN int;
+	DECLARE MAXX int;
+
+	Select MIN(T0."VisOrder") into MINN from INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+	Select MAX(T0."VisOrder") into MAXX from INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+		WHILE MINN<=MAXX DO
+			select T1."TaxCode" into TaxCode FROM INV1 T1 WHERE T1."DocEntry"= :list_of_cols_val_tab_del and T1."VisOrder" = MINN;
+
+			IF TaxCode = 'RIGST18T' then
+				error := -1126;
+				error_message := N'RIGST18T Tax Code is not allowed.';
+			END IF;
+			MINN = MINN + 1;
+		END WHILE;
+END IF;
+
+IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE MinIN Int;
+DECLARE MaxIN Int;
+DECLARE TaxCode Nvarchar(10);
+
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 13 THEN
+	SELECT Min(T0."VisOrder") INTO MinIN from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxIN from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	WHILE :MinIN <= :MaxIN DO
+		SELECT DRF1."TaxCode" into TaxCode FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinIN;
+
+		IF TaxCode = 'RIGST18T' THEN
+			error := -1126;
+			error_message := N'RIGST18T Tax Code is not allowed.';
+		END IF;
+		MinIN := MinIN+1;
+	END WHILE;
+END IF;
+END IF;
+----------Direct Goods Receipt Lock Except 1BT and manager------------------
+/*IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE Srs Nvarchar(150);
+DECLARE UsrCod Nvarchar(50);
+DECLARE ICode Nvarchar(150);
+DECLARE LineNo int;
+
+	SELECT T1."SeriesName" INTO Srs FROM OIGN T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+	SELECT OUSR."USER_CODE" INTO UsrCod FROM OIGN INNER JOIN OUSR ON OUSR."USERID" = OIGN."UserSign" WHERE OIGN."DocEntry" = :list_of_cols_val_tab_del;
+
+	IF UsrCod <> 'manager' AND Srs NOT LIKE '%BT%' THEN
+		IF EXISTS (SELECT 1 FROM IGN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T1."BaseEntry",0) = 0) THEN
+			SELECT TOP 1 "ItemCode","VisOrder" INTO ICode, LineNo FROM IGN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T1."BaseEntry",0) = 0 AND T1."ItemCode"<>'PCPM0100';
+
+			error := -2001;
+			error_message := N'Direct Goods Receipt is not allowed for ' || ICode || ' at line ' || LineNo+1 || '. Please use a Base Document, or contact SAP team.';
+		END IF;
+	END IF;
+END IF;*/
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;

@@ -15,7 +15,7 @@ error_message nvarchar (200); 		-- Error string to be displayed
 DocEntry int;
 MailID nvarchar(200);
 Mobile nvarchar(200);
-EmailCC nvarchar(200);
+EmailCC nvarchar(300);
 EmailBCC nvarchar(200);
 ObjectType nvarchar(200);
 Mobi_TYPE nvarchar(200);
@@ -41,7 +41,7 @@ If :Temp > 0 then
 		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 		MailID:= 'eni@minalspecialities.com,project1@minalspecialities.com';
 		Mobile := '';
-		EmailCC := 'devarsh@minalspecialities.com,unithead@minalspecialities.com,purchasemgr@minalspecialities.com';
+		EmailCC := 'devarsh@minalspecialities.com,unithead@minalspecialities.com,dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com';
 		EmailBCC := '';
 		ObjectType := 'R';
 		Mobi_TYPE := 'Po Generated MSPL U1';
@@ -224,7 +224,7 @@ IF (:object_type = '19' AND (:transaction_type IN ('A'))) THEN
 			SELECT
 			    CASE
 			        WHEN LEFT("CardCode",4) IN ('VSRD','VSRI','VPRD','VPRI','VPPD','VORD','VORI') THEN 'purchasemgr1@minalspecialities.com,accounts8@minalspecialities.com'
-			        WHEN LEFT("CardCode",4) IN ('VEXP','VFAS','VGPR','VLAB') THEN 'purchasemgr@minalspecialities.com,accounts8@minalspecialities.com'
+			        WHEN LEFT("CardCode",4) IN ('VEXP','VFAS','VGPR','VLAB') THEN 'dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com,accounts8@minalspecialities.com'
 			    END
 			INTO EmailCC FROM ORPC WHERE "DocEntry" = :list_of_cols_val_tab_del;
 
@@ -285,6 +285,30 @@ IF (:object_type = '17' AND (:transaction_type IN ('A','U'))) THEN
 			EmailBCC := 'sap1@matangiindustries.com,sap2@matangiindustries.com,sap@matangiindustries.com';
 			ObjectType :='D';
 			Mobi_TYPE := 'Sales Order SC';
+			Select CURRENT_SCHEMA Into DBName from Dummy;
+			If(:DBName = 'MSPL') Then
+				CALL "MOBIALERT"."Add_Config_Proc" (117,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+			END IF;
+	End If;
+End If;
+
+-------------------------------------Sales Order Layouts ------------------------------------------------------------------------------------
+IF (:object_type = '17' AND (:transaction_type IN ('A','U'))) THEN
+
+	select count(*) into Temp from ordr where "CardCode" LIKE 'C_E%' and "DocEntry"=:list_of_cols_val_tab_del;
+
+	If :Temp > 0 then
+
+	SELECT T0."DocEntry" INTO DocEntry FROM ordr T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+	SELECT T2."Email", T2."Memo" INTO MailID, EmailCC
+	FROM ORDR T0 INNER JOIN OCRD T1 ON T0."CardCode" = T1."CardCode" INNER JOIN OSLP T2 ON T1."SlpCode" = T2."SlpCode"
+	WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+			Mobile := '';
+			EmailBCC := 'sap1@matangiindustries.com,sap2@matangiindustries.com,sap@matangiindustries.com';
+			ObjectType :='J';
+			Mobi_TYPE := 'Sales Order Layout';
 			Select CURRENT_SCHEMA Into DBName from Dummy;
 			If(:DBName = 'MSPL') Then
 				CALL "MOBIALERT"."Add_Config_Proc" (117,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
@@ -358,7 +382,7 @@ If :Temp > 0 then
 			where  T0."CardType"='S' and T2."Canceled"='N' and Left(T0."CardCode",4) in ('VEXP','VFAS','VGPR','VLAB') and T2."DocEntry"=:list_of_cols_val_tab_del) P;
 
 		Mobile := '';
-		EmailCC := 'purchasemgr@minalspecialities.com';
+		EmailCC := 'dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com';
 		EmailBCC := 'accounts@minalspecialities.com,accounts8@minalspecialities.com,sap@matangiindustries.com';
 		ObjectType := 'F';
 		Mobi_TYPE := 'Outgoing Payment Advice Engg MSPL';
@@ -628,13 +652,151 @@ WHERE T0."DocStatus" = 'O' AND T0."CANCELED" = 'N' AND (T1."ItemCode" LIKE 'E%' 
 
 		MailID = 'purchase2@minalspecialities.com';
 		Mobile := '';
-		EmailCC := 'purchasemgr@minalspecialities.com,ampurchase@minalspecialities.com';
+		EmailCC := 'dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com,ampurchase@minalspecialities.com';
 		EmailBCC := 'sap@matangiindustries.com';
 		ObjectType := 'I';
 		Mobi_TYPE := 'Engg_Service PR Updated';
 		Select CURRENT_SCHEMA Into DBName from Dummy;
 		If(:DBName = 'MSPL') Then
 			CALL "MOBIALERT"."Add_Config_Proc" (334,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+
+
+----------------------------Purchase Order Material Rpt Trigger CSGST----------------------
+IF (:object_type = '22' AND (:transaction_type = 'U' OR :transaction_type = 'A')) THEN
+
+select count(*) into Temp from OPOR T0
+Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
+Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
+where T0."CANCELED"='N' and T1."TaxCode" like 'CSGST%'
+and (T1."ItemCode" Not like '%SER%')
+and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE
+WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase@minalspecialities.com,sanjay@minalspecialities.com'
+WHEN (T1."ItemCode" Not like '%RM%' OR T1."ItemCode" Not like '%FG%' OR T1."ItemCode" Not like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase2@minalspecialities.com'
+			  		   END) INTO MailID
+FROM POR1 T1 WHERE  T1."TaxCode" like 'CSGST%' and (T1."ItemCode" Not like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE
+WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchasemgr1@minalspecialities.com'
+WHEN (T1."ItemCode" Not like '%RM%' OR T1."ItemCode" Not like '%FG%' OR T1."ItemCode" Not like '%TR%' OR T1."ItemCode" like '%PM%') then 'dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com'
+			  		   END) INTO EmailCC
+FROM POR1 T1 WHERE  T1."TaxCode" like 'CSGST%' and (T1."ItemCode" Not like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+		--EmailCC:='sap@matangiindustries.com';
+		Mobile := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'W';
+		Mobi_TYPE := 'Po Generated Material CSGST';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+---------Purchase Order Material Rpt Trigger IGST----------------------
+IF (:object_type = '22' AND (:transaction_type = 'U' OR :transaction_type = 'A')) THEN
+
+select count(*) into Temp from OPOR T0
+Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
+Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
+where T0."CANCELED"='X' and T1."TaxCode" like 'IGST%'
+and (T1."ItemCode" Not like '%SER%')
+and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE
+WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase@minalspecialities.com,sanjay@minalspecialities.com'
+WHEN (T1."ItemCode" Not like '%RM%' OR T1."ItemCode" Not like '%FG%' OR T1."ItemCode" Not like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase2@minalspecialities.com'
+			  		   END) INTO MailID
+FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" Not like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE
+WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchasemgr1@minalspecialities.com'
+WHEN (T1."ItemCode" Not like '%RM%' OR T1."ItemCode" Not like '%FG%' OR T1."ItemCode" Not like '%TR%' OR T1."ItemCode" like '%PM%') then 'dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com'
+			  		   END) INTO EmailCC
+FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" Not like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+		--EmailCC:='sap@matangiindustries.com';
+		Mobile := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'X';
+		Mobi_TYPE := 'Po Generated Material IGST';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+---------Purchase Order Service Rpt Trigger CSGST----------------------
+IF (:object_type = '22' AND (:transaction_type = 'U' OR :transaction_type = 'A')) THEN
+
+select count(*) into Temp from OPOR T0
+Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
+Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
+where T0."CANCELED"='N' and T1."TaxCode" like 'CSGST%'
+and (T1."ItemCode" like '%SER%')
+and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE WHEN (T1."ItemCode" like '%SER%') then 'purchase2@minalspecialities.com' END) INTO MailID
+FROM POR1 T1 WHERE  T1."TaxCode" like 'CSGST%' and (T1."ItemCode" like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE WHEN (T1."ItemCode" like '%SER%') then 'dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com' END) INTO EmailCC
+FROM POR1 T1 WHERE  T1."TaxCode" like 'CSGST%' and (T1."ItemCode" like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+		--EmailCC:='sap@matangiindustries.com';
+		Mobile := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'Y';
+		Mobi_TYPE := 'Po Generated Service CSGST';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+		END IF;
+	End If;
+End If;
+---------Purchase Order Service Rpt Trigger IGST----------------------
+IF (:object_type = '22' AND (:transaction_type = 'U' OR :transaction_type = 'A')) THEN
+
+select count(*) into Temp from OPOR T0
+Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
+Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
+where T0."CANCELED"='N' and T1."TaxCode" like 'IGST%'
+and (T1."ItemCode" like '%SER%')
+and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+If :Temp > 0 then
+
+		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE WHEN (T1."ItemCode" like '%SER%') then 'purchase2@minalspecialities.com' END) INTO MailID
+FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+Select DISTINCT (CASE WHEN (T1."ItemCode" like '%SER%') then 'dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com' END) INTO EmailCC
+FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
+
+		--EmailCC:='sap@matangiindustries.com';
+		Mobile := '';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		ObjectType := 'Z';
+		Mobi_TYPE := 'Po Generated Service IGST';
+		Select CURRENT_SCHEMA Into DBName from Dummy;
+		If(:DBName = 'MSPL') Then
+		CALL "MOBIALERT"."Add_Config_Proc" (122,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 		END IF;
 	End If;
 End If;

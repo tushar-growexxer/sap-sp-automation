@@ -1202,6 +1202,11 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 			    error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 			END IF;
 
+			IF TaxCode = 'RIGST18T' THEN
+    			error := 30094;
+    			error_message := N'RIGST18T Tax Code is not allowed.';
+			END IF;
+
 		IF (:transaction_type = 'A') THEN
 		IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 
@@ -1274,6 +1279,22 @@ IF Object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 			END IF;
 		END IF;
+
+		IF CardCodeSO LIKE 'C_D%' AND SODate >= '2026-09-15' THEN
+            -- 1. DAP Validation
+            -- Rule: ONLY FOB is allowed. Ex-Work and Freight MUST be blank/zero.
+            IF (IncoTerm = 'DAP') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+                error := 30096;
+                error_message := N'If Incoterm is DAP, ONLY FOB is allowed. Ex-Work and Freight must be blank at line - ' || MinSO+1;
+            END IF;
+
+            -- 2. EXW and DDP Validation
+            -- Rule: ONLY FOB and Freight are allowed. Ex-Work MUST be blank/zero.
+            IF (IncoTerm IN ('EXW', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000) THEN
+                error := 30097;
+                error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight are mandatory, and Ex-Work must be blank at line - ' || MinSO+1;
+            END IF;
+        END IF;
 
             MinSO := MinSO + 1;
         END WHILE;
@@ -1867,6 +1888,11 @@ IF SOPallet = 'NA'
     error_message := N'Pallet Code is mandatory when Packing Type is other than IBC Tank, ISO Tank, Tanker, or Loose.';
 END IF;
 
+IF TaxCode = 'RIGST18T' THEN
+    error := 30094;
+    error_message := N'RIGST18T Tax Code is not allowed.';
+END IF;
+
 IF (:transaction_type = 'A') THEN
 IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 
@@ -1939,6 +1965,22 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 			END IF;
 		END IF;
+
+		IF CardCode LIKE 'C_D%' AND SODate >= '2026-09-15' THEN
+            -- 1. DAP Validation
+            -- Rule: ONLY FOB is allowed. Ex-Work and Freight MUST be blank/zero.
+            IF (IncoTerm = 'DAP') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
+                error := 30096;
+                error_message := N'If Incoterm is DAP, ONLY FOB is allowed. Ex-Work and Freight must be blank at line - ' || MinSO+1;
+            END IF;
+
+            -- 2. EXW and DDP Validation
+            -- Rule: ONLY FOB and Freight are allowed. Ex-Work MUST be blank/zero.
+            IF (IncoTerm IN ('EXW', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000) THEN
+                error := 30097;
+                error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight are mandatory, and Ex-Work must be blank at line - ' || MinSO+1;
+            END IF;
+        END IF;
 
 
         MinSO := MinSO + 1;
@@ -2283,6 +2325,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         END IF;
     END IF;
 END IF;
+
 -- =========================================================================================================
 --  Draft Document Validations (Object Type: 112 for PO)
 -- =========================================================================================================
@@ -6532,7 +6575,7 @@ DECLARE ExportAR Nvarchar(50);
 				error :=148;
 				error_message := N'Please enter packing type';
 			END IF;
-			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND
+			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype not like 'Tank IBC%' AND pckngtype <> 'HDPE Drums' AND
 		 	pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
 				error :=148;
 				error_message := N'Please select proper packing type';
@@ -6670,7 +6713,7 @@ DECLARE ItemCd Nvarchar(10);
 				error :=1356;
 				error_message := N'Please enter packing type';
 			END IF;
-			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype <> 'IBC Tank' AND pckngtype <> 'HDPE Drums' AND pckngtype <> 'Loose' AND
+			IF pckngtype <> 'Bags' AND pckngtype <> 'Carboys' AND pckngtype <> 'Carboys' AND pckngtype not like 'Tank IBC%' AND pckngtype <> 'HDPE Drums' AND pckngtype <> 'Loose' AND
 		 		pckngtype <> 'MS Drum' AND pckngtype <> 'Jumbo bag' AND pckngtype <> 'Loose' AND pckngtype <> 'Tanker Load' AND pckngtype <> 'ISO Tank' AND pckngtype <> 'Box' then
 				error :=1353;
 				error_message := N'Please select proper packing type';
@@ -6837,7 +6880,7 @@ If object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 	END IF;
 END IF;
 
-If object_type = '18' and (:transaction_type = 'A' OR :transaction_type = 'U') then
+If object_type = '18' and (:transaction_type = 'A') then
 
 	DECLARE GRPOUNITPRICE varchar(50);
 	DECLARE APUNITPRICE varchar(50);
@@ -6924,7 +6967,7 @@ If object_type = '18' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 	END WHILE;
 END IF;
 
-IF object_type = '18' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+IF object_type = '18' AND (:transaction_type = 'A') THEN
 
 DECLARE APQTD Int;
 DECLARE MinLineAPQ Int;
@@ -10664,7 +10707,7 @@ END IF;
 
 IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 Declare ICode Nvarchar(150);
-Declare Iname Nvarchar(150);
+Declare Iname Nvarchar(200);
 Declare Srs Nvarchar(150);
 Declare IBE int;
 DECLARE MinGI int;
@@ -11759,7 +11802,7 @@ DECLARE BRGRN Int;
 	WHERE OIGN."DocEntry" = :list_of_cols_val_tab_del;
 
 		IF BRGRN = 3 THEN
-			IF (UserName = 'engg07' OR UserNameU =  'engg07') THEN
+			IF (UserName = 'engg02' OR UserNameU =  'engg07' OR UserNameU =  'store') THEN
 				error :=349;
 				error_message := N'You are not allowed for UNIT - I Goods receipt entry';
 			END IF;
@@ -11780,7 +11823,7 @@ DECLARE BRGRN Int;
 	WHERE OIGN."DocEntry" = :list_of_cols_val_tab_del;
 
 		IF BRGRN = 4 THEN
-			IF (UserName = 'engg02' OR UserNameU = 'engg02') THEN
+			IF (UserName = 'engg02' OR UserNameU =  'engg07' OR UserNameU =  'store') THEN
 				error :=350;
 				error_message := N'You are not allowed for UNIT - II Goods receipt entry';
 			END IF;
@@ -19154,14 +19197,13 @@ END IF;
 IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 
 Declare ICode Nvarchar(150);
-Declare Iname Nvarchar(150);
+Declare Iname Nvarchar(200);
 Declare Srs Nvarchar(150);
 Declare IBE int;
 DECLARE MinGI int;
 DECLARE MaxGI int;
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
-if DraftObj = 60
-THEN
+if DraftObj = 60 THEN
 	(SELECT min(T0."VisOrder") Into MinGI FROM DRF1 T0 where T0."DocEntry" = :list_of_cols_val_tab_del);
 	(SELECT max(T0."VisOrder") Into MaxGI FROM DRF1 T0 where T0."DocEntry" = :list_of_cols_val_tab_del);
 
@@ -19206,8 +19248,7 @@ DECLARE MinGR int;
 Declare DateP int;
 DECLARE MaxGR int;
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
-if DraftObj = 59
-THEN
+if DraftObj = 59 THEN
 	(SELECT min(T0."VisOrder") Into MinGR FROM DRF1 T0 where T0."DocEntry" = :list_of_cols_val_tab_del);
 	(SELECT max(T0."VisOrder") Into MaxGR FROM DRF1 T0 where T0."DocEntry" = :list_of_cols_val_tab_del);
 
@@ -21520,19 +21561,19 @@ DECLARE MaxIn int;
 	(SELECT T0."ItemCode" into GRNItemCode FROM PDN1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
 	(SELECT T0."WhsCode" into GRNWhsCode FROM PDN1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
 
-	  	IF (GRNItemCode in ('OFFG0001', 'OFFG0002','OFFG0003', 'OFFG0004', 'OFFG0005', 'OFRM0001', 'OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and GRNWhsCode <> 'JW-OF') then
+	  	IF (GRNItemCode in ('OFFG0001', 'OFFG0002','OFFG0003', 'OFFG0004', 'OFFG0005', 'OFRM0001', 'OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and GRNWhsCode not in ('PORT-HAZ')) then
 				error := -1195;
-				error_message := N'Please Select JW-OF Warehouse for Aniline.';
+				error_message := N'Please Select JW-RM Warehouse for Aniline.';
 		END IF;
-		IF (GRNWhsCode = 'JW-OF' and GRNItemCode not in ('OFFG0001', 'OFFG0002','OFFG0003', 'OFFG0004', 'OFFG0005', 'OFRM0001', 'OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013', 'PCPM0019')) then
+		IF (GRNWhsCode in ('PORT-HAZ') and GRNItemCode not in ('OFFG0001', 'OFFG0002','OFFG0003', 'OFFG0004', 'OFFG0005', 'OFRM0001', 'OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013', 'PCPM0019')) then
 				error := -1196;
-				error_message := N'Please Select Warehouse other than JW-OF.';
+				error_message := N'Please Select Warehouse other than JW-RM.';
 		END IF;
 	  MinIn := MinIn + 1;
 	END WHILE;
 END IF;
     ----------------------------------------------------------
-/*IF Object_type = '59' and (:transaction_type ='A' or :transaction_type ='U') Then
+IF Object_type = '59' and (:transaction_type ='A' or :transaction_type ='U') Then
 DECLARE ReceiptItemCode nvarchar(50);
 DECLARE ReceiptWhsCode nvarchar(50);
 DECLARE MinIn int;
@@ -21572,11 +21613,11 @@ DECLARE BaseTypee int;
 			MinIn := MinIn + 1;
 		END WHILE;
 	end if;
-END IF;*/
+END IF;
 
     ----------------------------------------------------------
 
-/*IF Object_type = '60' and (:transaction_type ='A' or :transaction_type ='U') Then
+IF Object_type = '60' and (:transaction_type ='A' or :transaction_type ='U') Then
 DECLARE IssueItemCode nvarchar(50);
 DECLARE IssueWhsCode nvarchar(50);
 DECLARE MinIn int;
@@ -21587,17 +21628,17 @@ DECLARE MaxIn int;
 	(SELECT T0."ItemCode" into IssueItemCode FROM IGE1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
 	(SELECT T0."WhsCode" into IssueWhsCode FROM IGE1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
 
-	  	IF (IssueItemCode = 'OFRM0001' and IssueWhsCode <> 'JW-OF') then
+	  	IF (IssueItemCode = 'OFRM0001' and IssueWhsCode not in ('JW-OF', 'RKSL')) then
 				error := -1201;
-				error_message := N'Please Select JW-OF Warehouse for Aniline.';
+				error_message := N'Please Select JW-OF/RKSL Warehouse for Aniline.';
 		END IF;
-		IF (IssueWhsCode = 'JW-OF' and IssueItemCode <> 'OFRM0001') then
+		IF (IssueWhsCode in ('JW-OF', 'RKSL') and IssueItemCode <> 'OFRM0001') then
 				error := -1202;
-				error_message := N'Please Select Warehouse other than JW-OF.';
+				error_message := N'Please Select Warehouse other than JW-OF/RKSL.';
 		END IF;
 		MinIn := MinIn + 1;
 	END WHILE;
-END IF;*/
+END IF;
 
     ----------------------------------------------------------
 
@@ -21635,7 +21676,7 @@ END IF;
 
     ----------------------------------------------------------
 
-/*IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U') Then
+IF Object_type = '202' and (:transaction_type ='A' or :transaction_type ='U') Then
 DECLARE ProdItemCode nvarchar(50);
 DECLARE ProdWhsCode nvarchar(50);
 DECLARE MinIn int;
@@ -21646,17 +21687,17 @@ DECLARE MaxIn int;
 	(SELECT T0."ItemCode" into ProdItemCode FROM WOR1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
 	(SELECT T0."wareHouse" into ProdWhsCode FROM WOR1 T0 WHERE T0."DocEntry"= :list_of_cols_val_tab_del and T0."VisOrder" = MinIn);
 
-	  	IF (ProdItemCode = 'OFRM0001' and ProdWhsCode <> 'JW-OF') then
+	  	IF (ProdItemCode = 'OFRM0001' and ProdWhsCode not in ('JW-OF', 'RKSL')) then
 				error := -1207;
-				error_message := N'Please Select JW-OF Warehouse for Aniline.';
+				error_message := N'Please Select JW-OF/RKSL Warehouse for Aniline.';
 		END IF;
-		IF (ProdWhsCode = 'JW-OF' and ProdItemCode <> 'OFRM0001') then
+		IF (ProdWhsCode in ('JW-OF', 'RKSL') and ProdItemCode <> 'OFRM0001') then
 				error := -1208;
-				error_message := N'Please Select Warehouse other than JW-OF.';
+				error_message := N'Please Select Warehouse other than JW-OF/RKSL.';
 		END IF;
 		MinIn := MinIn + 1;
 	END WHILE;
-END IF;*/
+END IF;
 
 ----------------------------------------------------------
 
@@ -23637,6 +23678,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             END IF;
         END IF;
 END IF;
+
 -----------------------------------------------------------------------------------------
 -- PURCHASE ORDER DRAFT VALIDATION: Check OITM."U_Sname" & License Linkage
 -----------------------------------------------------------------------------------------
@@ -23714,10 +23756,11 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error_message := 'Invalid License Linkage! The selected License Number is not linked to this item, or Item Master "ShortName(LicenseItem)" is blank. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
         END IF;
 END IF;
+
 -----------------------------------------------------------------------------------------
 -- PURCHASE ORDER DRAFT VALIDATION: License Balance Check
 -----------------------------------------------------------------------------------------
-IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE DraftObjType NVARCHAR(10);
         DECLARE ErrorLineStr NVARCHAR(10) := '';
@@ -23857,7 +23900,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                error_message := 'Total License Balance Quantity exceeded! You cannot allocate more quantity than the available balance for the selected license. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
             END IF;
         END IF;
-END IF;
+END IF;*/
 -----------------------------------------------------------------------------------------
 -- PURCHASE ORDER POSTING VALIDATION: License Balance Check
 -----------------------------------------------------------------------------------------
@@ -23973,6 +24016,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
            error_message := 'Total License Balance Quantity exceeded! You cannot allocate more quantity than the available balance for the selected license. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
         END IF;
 END IF;
+
 -----------------------------------------------------------------------------------------
 -- GRPO POSTING VALIDATION (ObjType 20) for ADVANCE License
 -----------------------------------------------------------------------------------------
@@ -24001,7 +24045,7 @@ END IF;
 -----------------------------------------------------------------------------------------
 -- A/P INVOICE DRAFT VALIDATION: Master License & Customs Check
 -----------------------------------------------------------------------------------------
-IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE DraftObjType NVARCHAR(10);
         DECLARE ErrorLineStr NVARCHAR(10) := '';
@@ -24258,12 +24302,12 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             END IF;
 
         END IF;
-END IF;
+END IF;*/
 
 -----------------------------------------------------------------------------------------
 -- A/P INVOICE POSTING VALIDATION: Master License & Customs Check
 -----------------------------------------------------------------------------------------
-IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE ErrorLineStr NVARCHAR(10) := '';
         DECLARE ErrorItemStr NVARCHAR(50) := '';
@@ -24529,7 +24573,7 @@ IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                 error_message := 'Sequence Error! You cannot skip license slots. If License 1 is "Not Required", License 2 & 3 must also be empty. Please move your active license to the first slot. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
             END IF;
         END IF;
-END IF;
+END IF;*/
 
 
 -- ==============================================================================
@@ -25100,6 +25144,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := 'Transaction blocked! The selected Item Code is missing from the Import Charges Master Configuration.';
     END IF;
 END IF;
+
 
 ---------------------------------------------------------------------------------------------
 -- VALIDATION 1: Restrict Transactions Before Custom Duty Entry is Processed (Obj 60/67/18)
@@ -25896,6 +25941,83 @@ IF :object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     END IF;
 
 END IF;
+
+------------------------ TaxCode  not usable -----------------------------------------------
+If object_type = '13' and (:transaction_type = 'A' OR :transaction_type = 'U') then
+
+	DECLARE TaxCode nvarchar(10);
+	DECLARE MINN int;
+	DECLARE MAXX int;
+
+	Select MIN(T0."VisOrder") into MINN from INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+	Select MAX(T0."VisOrder") into MAXX from INV1 T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+		WHILE MINN<=MAXX DO
+			select T1."TaxCode" into TaxCode FROM INV1 T1 WHERE T1."DocEntry"= :list_of_cols_val_tab_del and T1."VisOrder" = MINN;
+
+			IF TaxCode = 'RIGST18T' then
+				error := -1126;
+				error_message := N'RIGST18T Tax Code is not allowed.';
+			END IF;
+			MINN = MINN + 1;
+		END WHILE;
+END IF;
+
+IF object_type='112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE MinIN Int;
+DECLARE MaxIN Int;
+DECLARE TaxCode Nvarchar(10);
+
+(SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
+if DraftObj = 13 THEN
+	SELECT Min(T0."VisOrder") INTO MinIN from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+	SELECT Max(T0."VisOrder") INTO MaxIN from DRF1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
+
+	WHILE :MinIN <= :MaxIN DO
+		SELECT DRF1."TaxCode" into TaxCode FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinIN;
+
+		IF TaxCode = 'RIGST18T' THEN
+			error := -1126;
+			error_message := N'RIGST18T Tax Code is not allowed.';
+		END IF;
+		MinIN := MinIN+1;
+	END WHILE;
+END IF;
+END IF;
+---------------------------------- Inv Trsfr Aniline -------------------------------------------
+IF Object_type = '67' and (:transaction_type ='A' OR :transaction_type ='U') Then
+Declare FromWhs nvarchar(25);
+Declare ToWhs nvarchar(25);
+
+
+	select t4."Filler" into FromWhs from OWTR t4 where t4."DocEntry"=list_of_cols_val_tab_del;
+	select  t4."ToWhsCode" into ToWhs from OWTR t4 where t4."DocEntry"=list_of_cols_val_tab_del;
+
+		IF (FromWhs = 'PORT-HAZ' AND ToWhs <> 'RKSL') THEN
+			error := -1127;
+			error_message := N'Inventory Transfer not allowed to any Warehouse other than RKSL.';
+		END IF;
+END IF;
+----------Direct Goods Receipt Lock Except 1BT and manager------------------
+IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+DECLARE Srs Nvarchar(150);
+DECLARE UsrCod Nvarchar(50);
+DECLARE ICode Nvarchar(150);
+DECLARE LineNo int;
+
+	SELECT T1."SeriesName" INTO Srs FROM OIGN T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+	SELECT OUSR."USER_CODE" INTO UsrCod FROM OIGN INNER JOIN OUSR ON OUSR."USERID" = OIGN."UserSign" WHERE OIGN."DocEntry" = :list_of_cols_val_tab_del;
+
+	IF UsrCod <> 'account1' AND Srs NOT LIKE '%BT%' THEN
+		IF EXISTS (SELECT 1 FROM IGN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T1."BaseEntry",0) = 0) THEN
+			SELECT TOP 1 "ItemCode","VisOrder" INTO ICode, LineNo FROM IGN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T1."BaseEntry",0) = 0;
+
+			error := -2001;
+			error_message := N'Direct Goods Receipt is not allowed for ' || ICode || ' at line ' || LineNo+1 || '. Please use a Base Document, or contact SAP team.';
+		END IF;
+	END IF;
+END IF;
+
 -- Select the return values-
 select :error, :error_message FROM dummy;
 
