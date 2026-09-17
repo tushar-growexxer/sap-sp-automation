@@ -21691,7 +21691,7 @@ DECLARE MaxIn int;
 				error := -1207;
 				error_message := N'Please Select JW-OF/RKSL Warehouse for Aniline.';
 		END IF;
-		IF (ProdWhsCode in ('JW-OF', 'RKSL') and ProdItemCode <> 'OFRM0001') then
+		IF (ProdWhsCode in ('JW-OF', 'RKSL') and ProdItemCode <> 'OFRM0001' and ProdItemCode <> 'PCPM0002') then
 				error := -1208;
 				error_message := N'Please Select Warehouse other than JW-OF/RKSL.';
 		END IF;

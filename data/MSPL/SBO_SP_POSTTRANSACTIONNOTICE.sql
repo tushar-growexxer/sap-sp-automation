@@ -39,10 +39,10 @@ where T0."CANCELED"='N' and T1."BaseType"='1470000113' and T2."ItmsGrpCod" in ('
 If :Temp > 0 then
 
 		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
-		MailID:= 'eni@minalspecialities.com,project1@minalspecialities.com';
+		MailID:= 'eni@minalspecialities.com,project1@minalspecialities.com,Process2@minalspecialities.com,project@minalspecialities.com,eni.mgr@minalspecialities.com,processmgr@minalspecialities.com';
 		Mobile := '';
 		EmailCC := 'devarsh@minalspecialities.com,unithead@minalspecialities.com,dm.purchase@minalspecialities.com,purchasemgr@minalspecialities.com';
-		EmailBCC := '';
+		EmailBCC := 'sap@matangiindustries.com,sap1@matangiindustries.com';
 		ObjectType := 'R';
 		Mobi_TYPE := 'Po Generated MSPL U1';
 		Select CURRENT_SCHEMA Into DBName from Dummy;
