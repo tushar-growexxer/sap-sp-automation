@@ -7538,7 +7538,7 @@ If object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') t
 END IF;
 
 
-/*IF object_type = '20' AND (:transaction_type = 'A' ) THEN
+IF object_type = '20' AND (:transaction_type = 'A' ) THEN
 DECLARE DateGRN1 date;
 Declare Seris varchar(100);
 Declare ItemC varchar(100);
@@ -7562,7 +7562,7 @@ DECLARE MAXXIT int;
 			END IF;
 		MINNIT = MINNIT + 1;
 		END WHILE;
-END IF;*/
+END IF;
 
 
 IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
@@ -23294,7 +23294,7 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     IF :error = 0 THEN
         IF EXISTS (
             SELECT 1 FROM OCTG
-            WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 90
+            WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 102
               AND (
                   "GroupNum" = :v_GroupNum OR
                   (:v_GN1 <> '' AND CAST("GroupNum" AS NVARCHAR(10)) = :v_GN1) OR
