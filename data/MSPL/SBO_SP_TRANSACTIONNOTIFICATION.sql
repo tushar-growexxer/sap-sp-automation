@@ -232,7 +232,7 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
     -- ─────────────────────────────────────────────────────────────
     -- DUPLICATE GST CHECK — Customer
     -- ─────────────────────────────────────────────────────────────
-    IF CardType = 'C' THEN
+   IF CardType = 'C' THEN
         IF EXISTS (
             SELECT 1 FROM CRD1 T0
             INNER JOIN CRD1 T1 ON T0."GSTRegnNo" = T1."GSTRegnNo"

@@ -23376,7 +23376,7 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A') AND S
 
 --SLA Delay Validation--
 
-/*IF :DelayDays > 0 THEN
+IF :DelayDays > 0 THEN
     IF EXISTS (
         SELECT 1 FROM ODRF t0
         JOIN NNM1 S1 ON T0."Series" = S1."Series"
@@ -23395,7 +23395,7 @@ END IF;
 				      AND S1."SeriesName" NOT LIKE 'CL%') THEN
     		error := -1270;
 		    error_message := 'AP Invoice Posting Date cannot be earlier than 3 days prior to the current date';
-	END IF;*/
+	END IF;
 
 END IF;
 ---------------------------------AP Invoice Posting Delay Reason and Current Date------------------------
@@ -23422,7 +23422,7 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 
 --SLA Delay Validation--
 
-/*		IF :DelayDays > 0 THEN
+		IF :DelayDays > 0 THEN
 			IF EXISTS (SELECT 1 FROM OPCH t0 JOIN NNM1 S1 ON T0."Series" = S1."Series" WHERE t0."DocEntry" = :list_of_cols_val_tab_del  AND IFNULL("U_APInvDelayReason",'') = '' AND s1."SeriesName" NOT LIKE 'CL%') THEN
 				error := -1269;
 				error_message := 'A/P Invoice delayed by ' || :DelayDays || ' day(s) beyond SLA (7 days after GRN). Please select AP Invoice Delay Reason.';
@@ -23436,7 +23436,7 @@ AND (IFNULL(G."U_GRNDelayReason",'') = '' OR G."U_GRNDelayReason" = 'N/A');
 				      AND S1."SeriesName" NOT LIKE 'CL%') THEN
     		error := -1270;
 		    error_message := 'AP Invoice Posting Date cannot be earlier than 3 days prior to the current date';
-	END IF;*/
+	END IF;
 END IF;
 --------------------------AP Invoice License BL entry Compulsory-----------------------
 IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
