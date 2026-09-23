@@ -959,9 +959,17 @@ END IF;
             error := 30034;
             error_message := N'Please Enter Proper License Type in Sales Contract.';
         END IF;
-        IF Qty > 150000 THEN
-            error := 30035;
-            error_message := N'Sales Order Quantity should not be more than 150 MT';
+        IF (SOItemCode LIKE 'PC%') AND Qty > 150000 THEN
+            error := 32025;
+            error_message := N'Quantity cannot exceed 150 MT for this item.';
+        END IF;
+        IF (SOItemCode LIKE 'SC%') AND Qty > 1000000 THEN
+            error := 32025;
+            error_message := N'Quantity cannot exceed 1000 MT for this item.';
+        END IF;
+        IF (SOItemCode LIKE 'OF%') AND Qty > 2200000 THEN
+            error := 32025;
+            error_message := N'Quantity cannot exceed 1000 MT for this item.';
         END IF;
 
         -- Validation 30036-30037: License Number and PSS Checks
@@ -1265,22 +1273,6 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 			    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 			END IF;
 		END IF;
-
-	    IF CardCode LIKE 'C_D%' AND SODate >= '2026-09-15' THEN
-            -- 1. DAP Validation
-            -- Rule: ONLY FOB is allowed. Ex-Work and Freight MUST be blank/zero.
-            IF (IncoTerm = 'DAP') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
-                error := 30096;
-                error_message := N'If Incoterm is DAP, ONLY FOB is allowed. Ex-Work and Freight must be blank at line - ' || MinSO+1;
-            END IF;
-
-            -- 2. EXW and DDP Validation
-            -- Rule: ONLY FOB and Freight are allowed. Ex-Work MUST be blank/zero.
-            IF (IncoTerm IN ('EXW', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000) THEN
-                error := 30097;
-                error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight are mandatory, and Ex-Work must be blank at line - ' || MinSO+1;
-            END IF;
-        END IF;
 
         MinSO := MinSO + 1;
     END WHILE;
@@ -1647,10 +1639,18 @@ END IF;
                 error := 30063;
                 error_message := N'Please Enter Proper License Type in Sales Contract.';
             END IF;
-            IF Qty > 150000 THEN
-                error := 30064;
-                error_message := N'Sales Order Quantity should not be more than 150 MT';
-            END IF;
+        IF (SOItemCode LIKE 'PC%') AND Qty > 150000 THEN
+            error := 32025;
+            error_message := N'Quantity cannot exceed 150 MT for this item.';
+        END IF;
+        IF (SOItemCode LIKE 'SC%') AND Qty > 1000000 THEN
+            error := 32025;
+            error_message := N'Quantity cannot exceed 1000 MT for this item.';
+        END IF;
+        IF (SOItemCode LIKE 'OF%') AND Qty > 2200000 THEN
+            error := 32025;
+            error_message := N'Quantity cannot exceed 1000 MT for this item.';
+        END IF;
 
             -- Validation 30063: License Number and PSS Check
             IF (LicenseNoSO IS NULL OR LicenseNoSO = '') AND LicenseTypeSO LIKE 'A%' AND CardCodeSO LIKE 'C_E%' THEN
@@ -1804,7 +1804,7 @@ END IF;
             	error_message := N'Please select a valid EO Sell Type.';
             END IF;
             -----------------------------------------------------------------
-	IF SOSeries NOT LIKE 'CL%' then
+	/*IF SOSeries NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode NOT LIKE 'WS%' AND SOItemCode <> 'PCFG0424') THEN
 			IF SOName = Freetext then
 			else
@@ -1851,7 +1851,7 @@ END IF;
 				END IF;
 			END IF;
 		END IF;
-		END IF;
+		END IF;*/
 
 		IF IFNULL(TaxCode,'') = '' THEN
         	error := 30091;
@@ -1966,22 +1966,6 @@ IF LEFT(SOItemCode, 2) IN ('SC', 'PC', 'OF', 'DI') THEN
 				    error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight fields are mandatory at line - ' || MinSO+1;
 				END IF;
 			END IF;
-
-			IF CardCode LIKE 'C_D%' AND SODate >= '2026-09-15' THEN
-            -- 1. DAP Validation
-            -- Rule: ONLY FOB is allowed. Ex-Work and Freight MUST be blank/zero.
-            IF (IncoTerm = 'DAP') AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000 OR IFNULL(FreightPriceKG, 0.000) <> 0.000) THEN
-                error := 30096;
-                error_message := N'If Incoterm is DAP, ONLY FOB is allowed. Ex-Work and Freight must be blank at line - ' || MinSO+1;
-            END IF;
-
-            -- 2. EXW and DDP Validation
-            -- Rule: ONLY FOB and Freight are allowed. Ex-Work MUST be blank/zero.
-            IF (IncoTerm IN ('EXW', 'DDP')) AND (IFNULL(FOBPriceKG, 0.000) = 0.000 OR IFNULL(FreightPriceKG, 0.000) = 0.000 OR IFNULL(ExWorkPriceKG, 0.000) <> 0.000) THEN
-                error := 30097;
-                error_message := N'For Incoterm ' || IncoTerm || ', both FOB and Freight are mandatory, and Ex-Work must be blank at line - ' || MinSO+1;
-            END IF;
-        END IF;
             -- Increment loop counter
             MinSO := MinSO + 1;
         END WHILE;

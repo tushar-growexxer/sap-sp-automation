@@ -20,6 +20,8 @@ EmailBCC nvarchar(200);
 ObjectType nvarchar(200);
 Mobi_TYPE nvarchar(200);
 DBName nvarchar(200);
+TEMPQC int;
+TEMPRND int;
 TEMP int;
 
 begin
@@ -1070,7 +1072,7 @@ If :Temp > 0 then
 End If;
 
 -------------------------------------------- Sample Request ----------------------------------------------------------
-IF (:object_type = '23' AND (:transaction_type = 'A')) THEN
+/*IF (:object_type = '23' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from OQUT T0 JOIN QUT1 T1 ON T0."DocEntry" = T1."DocEntry"
 Where T0."CANCELED"='N' AND T1."U_Department" = 'QC' and T0."DocEntry"=:list_of_cols_val_tab_del;
@@ -1089,6 +1091,63 @@ If :Temp > 0 then
 		CALL "MOBIALERT"."Add_Config_Proc" (459,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 		END IF;
 	End If;
+End If;*/
+-------------------------------------------- Sample Request (Copy) ----------------------------------------------------------
+IF (:object_type = '23' AND (:transaction_type = 'A')) THEN
+
+    select count(*) into Temp
+    from OQUT T0 JOIN QUT1 T1 ON T0."DocEntry" = T1."DocEntry"
+    Where T0."CANCELED"='N'
+    AND T1."U_Department" IN ('QC', 'RND')
+    and T0."DocEntry"=:list_of_cols_val_tab_del;
+
+    If :Temp > 0 then
+
+        SELECT T0."DocEntry" INTO DocEntry
+        FROM OQUT T0
+        WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+
+        SELECT COUNT(*) INTO TempQC
+        FROM QUT1
+        WHERE "DocEntry" = :DocEntry
+        AND "U_Department" = 'QC';
+
+        SELECT COUNT(*) INTO TempRND
+        FROM QUT1
+        WHERE "DocEntry" = :DocEntry
+        AND "U_Department" = 'RND';
+
+        IF :TempQC > 0 AND :TempRND > 0 THEN
+
+            -- Both QC and RND
+            MailID := 'qc@matangiindustries.com,qclab@matangiindustries.com,rnd@matangiindustries.com,rnd2@matangiindustries.com,srtechad.rnd@matangiindustries.com';
+
+        ELSEIF :TempQC > 0 THEN
+
+            -- QC only
+            MailID := 'qc@matangiindustries.com,qclab@matangiindustries.com';
+
+        ELSEIF :TempRND > 0 THEN
+
+            -- RND only
+            MailID := 'rnd@matangiindustries.com,rnd2@matangiindustries.com,srtechad.rnd@matangiindustries.com';
+
+        END IF;
+
+        Mobile := '';
+        EmailCC := '';
+        EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com,sap1@matangiindustries.com';
+        ObjectType := 'K';
+        Mobi_TYPE := 'Sample Request';
+
+        Select CURRENT_SCHEMA Into DBName from Dummy;
+
+        If(:DBName = 'MILIVE') Then
+            CALL "MOBIALERT"."Add_Config_Proc"
+            (459,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
+        END IF;
+
+    End If;
 End If;
 ------------------------------------------------RND-OF MOBIALERT----------------------------------
 IF (:object_type = '23' AND (:transaction_type = 'A')) THEN
