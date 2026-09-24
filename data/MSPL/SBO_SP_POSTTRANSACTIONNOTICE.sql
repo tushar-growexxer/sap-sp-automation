@@ -707,13 +707,13 @@ IF (:object_type = '22' AND (:transaction_type = 'U' OR :transaction_type = 'A')
 select count(*) into Temp from OPOR T0
 Inner Join POR1 T1 on T0."DocEntry"=T1."DocEntry"
 Inner Join OITM T2 on T1."ItemCode"=T2."ItemCode"
-where T0."CANCELED"='X' and T1."TaxCode" like 'IGST%'
+where T0."CANCELED"='N' and T1."TaxCode" like 'IGST%'
 and (T1."ItemCode" Not like '%SER%')
 and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 If :Temp > 0 then
 
-		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
+SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 
 Select DISTINCT (CASE
 WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase@minalspecialities.com,sanjay@minalspecialities.com'
@@ -730,7 +730,7 @@ FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" Not like '%SER%
 		--EmailCC:='sap@matangiindustries.com';
 		Mobile := '';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
-		ObjectType := 'X';
+		ObjectType := 'L';
 		Mobi_TYPE := 'Po Generated Material IGST';
 		Select CURRENT_SCHEMA Into DBName from Dummy;
 		If(:DBName = 'MSPL') Then
@@ -738,7 +738,7 @@ FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" Not like '%SER%
 		END IF;
 	End If;
 End If;
----------Purchase Order Service Rpt Trigger CSGST----------------------
+------------------------------------------------Purchase Order Service Rpt Trigger CSGST----------------------
 IF (:object_type = '22' AND (:transaction_type = 'U' OR :transaction_type = 'A')) THEN
 
 select count(*) into Temp from OPOR T0
@@ -769,7 +769,7 @@ FROM POR1 T1 WHERE  T1."TaxCode" like 'CSGST%' and (T1."ItemCode" like '%SER%') 
 		END IF;
 	End If;
 End If;
----------Purchase Order Service Rpt Trigger IGST----------------------
+-------------------------------------Purchase Order Service Rpt Trigger IGST----------------------
 IF (:object_type = '22' AND (:transaction_type = 'U' OR :transaction_type = 'A')) THEN
 
 select count(*) into Temp from OPOR T0
