@@ -3349,7 +3349,7 @@ Declare ItmCode nvarchar(50);
 		END WHILE;
 End If;
 
-If Object_Type = '202' and (:transaction_type='A') then
+/*If Object_Type = '202' and (:transaction_type='A') then
 Declare PrdSeries  Nvarchar(50);
 Declare PrdUser  Nvarchar(50);
 select "SeriesName" into PrdSeries From OWOR INNER JOIN NNM1 ON NNM1."Series" = OWOR."Series" where "DocEntry"= :list_of_cols_val_tab_del;
@@ -3359,7 +3359,7 @@ select OUSR."USER_CODE" into PrdUser from OWOR INNER JOIN OUSR ON OUSR."USERID" 
         	error :=21;
         	error_message := N'You are not allowed to select SC Series1';
 		end if;
-end if;
+end if;*/
 
 /*If Object_Type = '59' and (:transaction_type='A' ) then
 Declare PrdSeries  Nvarchar(50);
@@ -5088,7 +5088,7 @@ Declare OcrCode nvarchar(50);
          End If;
 End If;
 
-/*----------------------------------------------
+----------------------------------------------
 -- FORM Name   : Delivery
 -- Added Date  :
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
@@ -5114,7 +5114,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -21601,7 +21601,7 @@ DECLARE BaseTypee int;
 				END IF;
 			END IF;
 			IF ProdType = 'P' then
-			  	IF (ReceiptItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and ReceiptWhsCode not in ('JW-QC','OF-PT-DI', 'SC-QC')) then
+			  	IF (ReceiptItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013') and ReceiptWhsCode not in ('JW-QC','OF-PT-DI','SC-QC','OF-PORT')) then
 						error := -1199;
 						error_message := N'Please select proper Warehouse.';
 				END IF;
@@ -21663,7 +21663,7 @@ DECLARE ProdOrderType nvarchar(50);
 		END IF;
 	END IF;
 	IF ProdOrderType = 'P' then
-	  	IF (ProdOrderItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013','SCFG0020') and ProdOrderWhsCode not in ('JW-QC','OF-PT-DI', 'SC-QC')) then
+	  	IF (ProdOrderItemCode in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013','SCFG0020') and ProdOrderWhsCode not in ('JW-QC','OF-PT-DI','SC-QC','OF-PORT')) then
 				error := -1205;
 				error_message := N'Please select proper Warehouse.';
 		END IF;
