@@ -7076,7 +7076,7 @@ If :object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') 
 	END IF;
 END IF;
 
-IF object_type = '20' AND (:transaction_type = 'A' ) THEN
+/*IF object_type = '20' AND (:transaction_type = 'A' ) THEN
 DECLARE DateGRN1 date;
 Declare Seris varchar(100);
 Declare ItemC varchar(100);
@@ -7100,7 +7100,7 @@ DECLARE MAXXIT int;
 			END IF;
 		MINNIT = MINNIT + 1;
 		END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
