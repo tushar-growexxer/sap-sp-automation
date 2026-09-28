@@ -2193,7 +2193,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             END IF;
         END IF;
 
-        IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
+        /*IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
             error := -40015;
             error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
         END IF;
@@ -2201,7 +2201,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         IF SeriesName LIKE 'DM%' AND ItemClass = '1' THEN
             error := -40016;
             error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-        END IF;
+        END IF;*/
 
         SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
         IF TempCounter > 0 THEN
@@ -2545,7 +2545,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 error_message := N'select NA as base type at row ' || MIN_ROW + 1;
             END IF;
 
-            IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
+            /*IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
                 error := -40041;
                 error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
             END IF;
@@ -2553,7 +2553,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             IF SeriesName LIKE 'DM%' AND ItemClass = '1' THEN
                 error := -40042;
                 error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-            END IF;
+            END IF;*/
 
             SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
             IF TempCounter > 0 THEN
@@ -7076,7 +7076,7 @@ If :object_type = '20' and (:transaction_type = 'A' OR :transaction_type = 'U') 
 	END IF;
 END IF;
 
-/*IF object_type = '20' AND (:transaction_type = 'A' ) THEN
+IF object_type = '20' AND (:transaction_type = 'A' ) THEN
 DECLARE DateGRN1 date;
 Declare Seris varchar(100);
 Declare ItemC varchar(100);
@@ -7100,7 +7100,7 @@ DECLARE MAXXIT int;
 			END IF;
 		MINNIT = MINNIT + 1;
 		END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 
