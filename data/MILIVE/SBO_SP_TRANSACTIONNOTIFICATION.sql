@@ -20336,7 +20336,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1025;
             error_message := 'The OFFG from 2OF-QCR cannot be moved to any warehouse other than 2EX1QCR,2BT';
         end if;
-		if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-FG','2EX1OFFG','2OF-FLOR','2OF-QCR','2EX1QCR','2OF-TRD') then
+		if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-FG','2EXOFFG','2OF-FLOR','2OF-QCR','2EX1QCR','2OF-TRD') then
             error := -1026;
             error_message := 'The OFFG from 2BT cannot be moved to any warehouse other than 1BT,2OF-FG,2EX1OFFG,2OF-FLOR,2OF-QCR,2EX1QCR';
         end if;
@@ -20344,9 +20344,9 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1027;
             error_message := 'The OFFG from 2EX1QCR cannot be moved to any warehouse other than 2BT,2OF-QCR';
         end if;
-        if FromWhs = '2EX1OFFG' and ToWhs not in ('2OF-FG','2OF-FLOR','2BT') then
+        if FromWhs = '2EXOFFG' and ToWhs not in ('2OF-FG','2OF-FLOR','2BT') then
             error := -1028;
-            error_message := 'The OFFG from 2EX1OFFG cannot be moved to any warehouse other than 2OF-FG,2OF-FLOR,2BT';
+            error_message := 'The OFFG from 2EXOFFG cannot be moved to any warehouse other than 2OF-FG,2OF-FLOR,2BT';
         end if;
 	end if;
 	if Item like 'OFRM%' then
@@ -20362,9 +20362,27 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The OFRM from 2OF-QC cannot be moved to any warehouse other than 2OF-QCR,2OF-RAW,2OF-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-RAW','2OF-FLOR','2OF-QC') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2OF-RAW','2OF-FLOR','2OF-QC','2EXOFRM') then
             error := -1033;
             error_message := 'The OFRM from 2BT cannot be moved to any warehouse other than 1BT,2OF-RAW,2OF-FLOR';
+        end if;
+        if FromWhs = '2EXOFRM' and ToWhs not in ('2OF-RM','2OF-FLOR','2BT') then
+            error := -1028;
+            error_message := 'The OFRM from 2EXOFRM cannot be moved to any warehouse other than 2OF-RM,2OF-FLOR,2BT';
+        end if;
+	end if;
+	if Item like 'DIFG%' then
+		if FromWhs = '2DI-QC' and ToWhs not in ('2DI-QCR','2DI-FG','2BT') then
+            error := -1031;
+            error_message := 'The DIFG from 2DI-QC cannot be moved to any warehouse other than 2OF-QCR,2OF-RAW,2OF-FLOR';
+        end if;
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2DI-FG','2DI-QC','2EXDIFG') then
+            error := -1033;
+            error_message := 'The DIFG from 2BT cannot be moved to any warehouse other than 1BT,2OF-RAW,2OF-FLOR';
+        end if;
+        if FromWhs = '2EXDIFG' and ToWhs not in ('2DI-FG','2BT') then
+            error := -1028;
+            error_message := 'The DIFG from 2EXDIFG cannot be moved to any warehouse other than 2DI-FG,2DI-FLOR,2BT';
         end if;
 	end if;
 			MinIT := MinIT+1;
@@ -20395,10 +20413,10 @@ if Item like '%FG%' then
             error := -1038;
             error_message := 'The PCFG from PC-QC cannot be moved to any warehouse other than PC-QCR,PC-FG';
         end if;
-		/*if FromWhs = 'PC-QCR' and ToWhs not in ('1BT') then
+		if FromWhs = 'PC-QCR' and ToWhs not in ('1BT') then
             error := -1039;
             error_message := 'The PCFG from PC-QCR cannot be moved to any warehouse other than 1BT';
-        end if;*/
+        end if;
 		if FromWhs = '1BT' and ToWhs not in ('2BT','PC-FG','PC-QCR','DI-FG','DI-QCR','OF-FG', 'OF-QC', 'OF-QCR','PC-QC-TR','PC-TRD','OF-TRD') then
             error := -1040;
             error_message := 'The PCFG from 1BT cannot be moved to any warehouse other than 2BT,PC-FG,PC-QCR,DI-FG,DI-QCR';

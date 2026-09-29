@@ -21509,7 +21509,7 @@ select OUSR."USER_CODE" into PrdUser from OIGE INNER JOIN OUSR ON OUSR."USERID" 
 	SELECT Max(T0."VisOrder") INTO MaxGI from IGE1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
 	WHILE :MinGI<= :MaxGI DO
 		(Select  T1."ItemCode",T1."U_IsFA",T0."WhsCode" into ItemCode,ISFA,FRWHS from IGE1 T0 JOIN OITM T1 ON T0."ItemCode" = T1."ItemCode" where T0."DocEntry"=list_of_cols_val_tab_del and T0."VisOrder"=MinGI);
-          IF (ItemCode like 'NU%' and ISFA = 'Y' and PrdUser not in ('account7') and FRWHS NOT LIKE '%BT%') then
+          IF (ItemCode like 'NU%' and ISFA = 'Y' and PrdUser not in ('account7','manager') and FRWHS NOT LIKE '%BT%') then
                   error :=-1187;
                   error_message := N''||ItemCode||' at Line-'||MinGI+1||' is Fixed Asset Item, you are not allowed to issue it.';
          End If;
