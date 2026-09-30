@@ -86,7 +86,7 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         END IF;
     END IF;
 
-    IF UsrCod NOT IN ('prof02','prof01', 'dipurchase', 'purchase01','purchase02', 'manager', 'sap01', 'engg01', 'engg02', 'engg04', 'engg05', 'engg06', 'engg07') THEN
+    IF UsrCod NOT IN ('account1','prof02','prof01', 'dipurchase', 'purchase01','purchase02', 'manager', 'sap01', 'engg01', 'engg02', 'engg04', 'engg05', 'engg06', 'engg07') THEN
     	error := -10008;
         error_message := N'You are not allowed to add/update Item Master';
     END IF;
@@ -5105,7 +5105,7 @@ END IF;
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-IF object_type = '13' AND (:transaction_type ='A') THEN
+/*IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -5114,7 +5114,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -8220,7 +8220,7 @@ DECLARE U_Mining nvarchar(50);
 	END WHILE;
 END IF;
 
-IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
+/*IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
 DECLARE SOItemCode nvarchar(50);
@@ -8316,7 +8316,7 @@ DECLARE U_Mining nvarchar(50);
 		END IF;
 	 MinSO=MinSO+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 ----------------- Alias name not match--------
 
@@ -26008,7 +26008,7 @@ DECLARE LineNo int;
 	SELECT T1."SeriesName" INTO Srs FROM OIGN T0 INNER JOIN NNM1 T1 ON T0."Series" = T1."Series" WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 	SELECT OUSR."USER_CODE" INTO UsrCod FROM OIGN INNER JOIN OUSR ON OUSR."USERID" = OIGN."UserSign" WHERE OIGN."DocEntry" = :list_of_cols_val_tab_del;
 
-	IF UsrCod <> 'account1' AND Srs NOT LIKE '%BT%' THEN
+	IF UsrCod <> 'manager' AND Srs NOT LIKE '%BT%' THEN
 		IF EXISTS (SELECT 1 FROM IGN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T1."BaseEntry",0) = 0) THEN
 			SELECT TOP 1 "ItemCode","VisOrder" INTO ICode, LineNo FROM IGN1 T1 WHERE T1."DocEntry" = :list_of_cols_val_tab_del AND IFNULL(T1."BaseEntry",0) = 0;
 

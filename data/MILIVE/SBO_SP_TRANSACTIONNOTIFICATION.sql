@@ -5294,7 +5294,7 @@ DECLARE ItemGR Nvarchar(50);
 END IF;
 
 -----BY pass DI product to store in Unit-II 2EX1PCFG--------
-IF object_type = '59' AND (:transaction_type = 'A') THEN
+/*IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5311,7 +5311,7 @@ DECLARE ItemGR Nvarchar(50);
 		END IF;
 		MinGR := MinGR+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 /*IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
