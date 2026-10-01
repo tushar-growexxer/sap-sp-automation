@@ -5105,7 +5105,7 @@ END IF;
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-/*IF object_type = '13' AND (:transaction_type ='A') THEN
+IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -5114,7 +5114,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -8220,7 +8220,7 @@ DECLARE U_Mining nvarchar(50);
 	END WHILE;
 END IF;
 
-/*IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
+IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
 DECLARE SOItemCode nvarchar(50);
@@ -8316,7 +8316,7 @@ DECLARE U_Mining nvarchar(50);
 		END IF;
 	 MinSO=MinSO+1;
 	END WHILE;
-END IF;*/
+END IF;
 
 ----------------- Alias name not match--------
 
@@ -21632,7 +21632,7 @@ DECLARE MaxIn int;
 				error := -1201;
 				error_message := N'Please Select JW-OF/RKSL Warehouse for Aniline.';
 		END IF;
-		IF (IssueWhsCode in ('JW-OF', 'RKSL') and IssueItemCode <> 'OFRM0001'  and IssueItemCode <> 'PCPM0002') then
+		IF (IssueWhsCode in ('JW-OF', 'RKSL') and IssueItemCode <> 'OFRM0001'  and IssueItemCode not like 'PCPM%' and IssueItemCode not like '%FG%') then
 				error := -1202;
 				error_message := N'Please Select Warehouse other than JW-OF/RKSL.';
 		END IF;
@@ -21691,7 +21691,7 @@ DECLARE MaxIn int;
 				error := -1207;
 				error_message := N'Please Select JW-OF/RKSL Warehouse for Aniline.';
 		END IF;
-		IF (ProdWhsCode in ('JW-OF', 'RKSL') and ProdItemCode <> 'OFRM0001' and ProdItemCode <> 'PCPM0002') then
+		IF (ProdWhsCode in ('JW-OF', 'RKSL') and ProdItemCode <> 'OFRM0001' and ProdItemCode not like 'PCPM%' and ProdItemCode not like '%FG%') then
 				error := -1208;
 				error_message := N'Please Select Warehouse other than JW-OF/RKSL.';
 		END IF;

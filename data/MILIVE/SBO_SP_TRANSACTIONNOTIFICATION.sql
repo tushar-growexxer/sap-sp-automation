@@ -2193,7 +2193,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             END IF;
         END IF;
 
-        /*IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
+        IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
             error := -40015;
             error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
         END IF;
@@ -2201,7 +2201,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         IF SeriesName LIKE 'DM%' AND ItemClass = '1' THEN
             error := -40016;
             error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-        END IF;*/
+        END IF;
 
         SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
         IF TempCounter > 0 THEN
@@ -2259,7 +2259,6 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
         MIN_ROW := MIN_ROW + 1;
     END WHILE;
-
 
     -- ========== Header/Document Level Validations ==========
 
@@ -2545,7 +2544,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 error_message := N'select NA as base type at row ' || MIN_ROW + 1;
             END IF;
 
-            /*IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
+            IF SeriesName LIKE 'DS%' AND ItemClass = '2' THEN
                 error := -40041;
                 error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
             END IF;
@@ -2553,7 +2552,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             IF SeriesName LIKE 'DM%' AND ItemClass = '1' THEN
                 error := -40042;
                 error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-            END IF;*/
+            END IF;
 
             SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
             IF TempCounter > 0 THEN
@@ -20376,7 +20375,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1031;
             error_message := 'The DIFG from 2DI-QC cannot be moved to any warehouse other than 2OF-QCR,2OF-RAW,2OF-FLOR';
         end if;
-        if FromWhs = '2BT' and ToWhs not in ('1BT','2DI-FG','2DI-QC','2EXDIFG') then
+        if FromWhs = '2BT' and ToWhs not in ('1BT','2DI-FG','2DI-QC','2EXDIFG','2DI-QCR') then
             error := -1033;
             error_message := 'The DIFG from 2BT cannot be moved to any warehouse other than 1BT,2OF-RAW,2OF-FLOR';
         end if;
