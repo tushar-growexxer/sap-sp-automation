@@ -22927,16 +22927,16 @@ IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
     DECLARE v_DiffQty         DECIMAL(19,6);
     DECLARE v_GLCount         INT := 0;
 
-    /* Sub-Challan Quantity */
+
     SELECT IFNULL(SUM("U_UNE_TQTY"), 0) INTO v_SubChallanQty FROM PCH1
     WHERE "DocEntry" = :list_of_cols_val_tab_del;
 
-    /* Job-Work Billing Quantity */
+
     SELECT IFNULL(SUM(T1."CmpltQty"), 0) INTO v_JobworkBillQty FROM PCH21 T0
     INNER JOIN OWOR T1 ON T0."RefDocEntr" = T1."DocEntry" AND T0."RefObjType" = T1."ObjType"
     WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
 
-    /* Check specific GL presence */
+
     SELECT COUNT(*) INTO v_GLCount FROM PCH1
     WHERE "AcctCode" = '50201027' AND "DocEntry" = :list_of_cols_val_tab_del;
 
@@ -22949,13 +22949,13 @@ IF :object_type = '18' AND :transaction_type IN ('A','U') THEN
             	error_message := N'The Challan Quantity does not match with the Total Billing Quantity. Difference: ' || TO_NVARCHAR(v_DiffQty);
 			END IF;
     END IF;
-        /*IF v_GLCount > 0 THEN
+        IF v_GLCount > 0 THEN
 	        IF  v_SubChallanQty = 0 THEN
 
         	    error := 1321;
             	error_message := N'Enter the Jobwork Challan "Total Quantity" at row level and link the Production Order via the Accounting tab --> Reference Document. This is mandatory for Jobwork bill.';
 			END IF;
-    END IF;*/
+    END IF;
 END IF;
 ---------------------------- Consignee Master Validation-------------------------------
 IF Object_type = 'Consignee Master' AND (:transaction_type = 'A' OR :transaction_type = 'U' OR :transaction_type = 'C') THEN

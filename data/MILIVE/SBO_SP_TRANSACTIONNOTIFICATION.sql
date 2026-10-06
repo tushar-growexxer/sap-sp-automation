@@ -3904,7 +3904,7 @@ DECLARE JrnlMemo Nvarchar(50);
 END IF;
 -------------2PC-FLOR
 ----------------UNIT-II-----Goods issue------
-IF object_type = '60' AND (:transaction_type = 'A') THEN
+/*IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -3950,7 +3950,7 @@ DECLARE JrnlMemo Nvarchar(50);
 		MinGI := MinGI+1;
 	END WHILE;
 	END IF;
-END IF;
+END IF;*/
 
 ----------------UNIT-II -----issue for production------
 IF object_type = '60' AND (:transaction_type = 'A') THEN
@@ -4409,7 +4409,7 @@ DECLARE CdGI Nvarchar(50);
 	END IF;
 END IF;
 
-IF object_type = '60' AND (:transaction_type = 'A') THEN
+/*IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
 Declare MinIT Int;
 Declare MaxIT Int;
@@ -4443,7 +4443,7 @@ entry:=0;
 			END IF;
 			MinIT := MinIT+1;
 		END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinGI Int;
@@ -4846,7 +4846,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-IF object_type = '15' AND (:transaction_type ='A' ) THEN
+/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4868,7 +4868,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -11598,7 +11598,7 @@ DECLARE MaxLinePDQ Int;
 	END WHILE;
 END IF;
 
-IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+/*IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 DECLARE warehouse Nvarchar(50);
 DECLARE MinLinePDQ Int;
 DECLARE MaxLinePDQ Int;
@@ -11615,7 +11615,7 @@ DECLARE MaxLinePDQ Int;
 			END IF;
 	MinLinePDQ := MinLinePDQ+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
@@ -11908,7 +11908,7 @@ DECLARE FFchargesOld Double;
 		END IF;
 END IF;
 ---------------Equipment list fot Engg issue---------------
-IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+/*IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 DECLARE MinLine INT;
 DECLARE MaxLine INT;
 DECLARE BPLName Nvarchar(10);
@@ -11947,7 +11947,7 @@ DECLARE Warehouse Nvarchar(50);
 		END WHILE;
 	END IF;
 	END IF;
-END IF;
+END IF;*/
 
 IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 
@@ -12794,7 +12794,7 @@ END IF;
 END IF;
 
 ----------------------Draft version of UNIT-I Issue for Production Warehouse Check (27011-27041)------------------
-IF object_type='112' AND (:transaction_type = 'A') THEN
+/*IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -12848,7 +12848,7 @@ if DraftObj = 60 THEN
 	END WHILE;
 	END IF;
 END IF;
-END IF;
+END IF;*/
 
 ----------------------Draft version of UNIT-II Goods Issue Warehouse Check (27021-27024)------------------
 IF object_type='112' AND (:transaction_type = 'A') THEN
@@ -13604,7 +13604,7 @@ if DraftObj = 60 THEN
 			WHERE T2."Warehouse" = T1."WhsCode" and T1."VisOrder"=MinIT and T1."DocEntry" IS NOT NULL
 			AND T2."DocDate" <= T1."DocDate" AND T1."DocEntry" = :list_of_cols_val_tab_del
 			Group By T1."DocEntry"
-			HAVING Sum(T2."InQty"-T2."OutQty") < 0)a;
+			HAVING Sum(T2."InQty"-T2."OutQty") < 0) a;
 
 			SELECT "ItemCode" into IC FROM DRF1 WHERE DRF1."DocEntry" = :list_of_cols_val_tab_del and DRF1."VisOrder"=MinIT;
 
