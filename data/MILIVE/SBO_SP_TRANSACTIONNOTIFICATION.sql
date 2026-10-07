@@ -5246,7 +5246,7 @@ DECLARE GRNItemCode nvarchar(50);
 	END WHILE;
 END IF;
 
-IF object_type = '59' AND (:transaction_type = 'A') THEN
+/*IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5270,7 +5270,7 @@ DECLARE Series Nvarchar(50);
 			MinGR := MinGR+1;
 		END WHILE;
 	END IF;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
@@ -9648,7 +9648,7 @@ DECLARE MaxGI int;
 		END WHILE;
 END IF;*/
 
-IF object_type = '59' AND (:transaction_type = 'A')  THEN
+/*IF object_type = '59' AND (:transaction_type = 'A')  THEN
 Declare ICode Nvarchar(150);
 DECLARE MinGR int;
 Declare DateP int;
@@ -9675,7 +9675,7 @@ DECLARE MaxGR int;
 	     	End If;
 	     MinGR=MinGR+1;
 		END WHILE;
-END IF;
+END IF;*/
 
 ------------------------------- Gate pass return-----------------------
 
