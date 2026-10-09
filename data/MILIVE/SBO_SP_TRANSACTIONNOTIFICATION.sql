@@ -3794,7 +3794,7 @@ END IF;
 
 ----------------------Goods issue-------------------
 ----------------UNIT-I
-IF object_type = '60' AND (:transaction_type = 'A') THEN
+/*IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -3846,7 +3846,7 @@ DECLARE JrnlMemo Nvarchar(50);
 		MinGI := MinGI+1;
 	END WHILE;
 	END IF;
-END IF;
+END IF;*/
 ------------------Issue for prodcution-------
 ----------Unit-I--------
 IF object_type = '60' AND (:transaction_type = 'A') THEN
@@ -12737,7 +12737,7 @@ END IF;
 END IF;
 
 ----------------------Draft version of UNIT-I Goods Issue Warehouse Check (2701-2704)------------------
-IF object_type='112' AND (:transaction_type = 'A') THEN
+/*IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -12791,7 +12791,7 @@ if DraftObj = 60 THEN
 	END WHILE;
 	END IF;
 END IF;
-END IF;
+END IF;*/
 
 ----------------------Draft version of UNIT-I Issue for Production Warehouse Check (27011-27041)------------------
 /*IF object_type='112' AND (:transaction_type = 'A') THEN

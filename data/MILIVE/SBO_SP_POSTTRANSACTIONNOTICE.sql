@@ -652,7 +652,7 @@ IF (:object_type = 'SHIPMASTER' AND (:transaction_type = 'A' OR :transaction_typ
 END IF;
 
 ---Sales Order Generate alert to Business Head(SC,DI,OF)----
-IF (:object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
+/*IF (:object_type = '17' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
 
 select count(*) into Temp from ORDR T0
 where T0."CANCELED"='N'
@@ -673,7 +673,7 @@ If :Temp > 0 then
 		CALL "MOBIALERT"."Add_Config_Proc" (117,:DocEntry,:transaction_type,:MailID,:Mobile,:EmailCC,:EmailBCC,:ObjectType,:Mobi_TYPE);
 		END IF;
 	End If;
-End If;
+End If;*/
 ----------------------------- PR of RM is generated --------------------------------------------
 IF (:object_type = '1470000113' AND (:transaction_type = 'A')) THEN
 
@@ -1422,7 +1422,7 @@ WHERE T0."DocEntry" =:list_of_cols_val_tab_del
 	End If;
 End If;
 ---Sales Order Generate alert to Business Head(PC)----
-IF (:object_type = '17' AND (:transaction_type = 'A')) THEN
+/*IF (:object_type = '17' AND (:transaction_type = 'A')) THEN
 
 select count(*) into Temp from ORDR T0
 where T0."CANCELED"='N'  and (T0."CardCode" like 'CPE%' or T0."CardCode" like 'CPD%') and T0."DocEntry"=:list_of_cols_val_tab_del;
@@ -1442,7 +1442,7 @@ If :Temp > 0 then
 		END IF;
 	End If;
 End If;
-
+*/
 ------------------------------------------------QC-Parameter Trigger----------------------------------------------------------------------
 IF (:object_type = 'Q_QCTS' AND (:transaction_type = 'A' OR :transaction_type = 'U')) THEN
 
