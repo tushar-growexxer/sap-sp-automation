@@ -7756,7 +7756,7 @@ DECLARE U_Mining nvarchar(50);
 	select "U_Pharma" into U_Pharma  from oitm where "ItemCode"= SOItemCode;
 	select "U_Mining" into U_Mining  from oitm where "ItemCode"= SOItemCode;
 
-		IF Series NOT LIKE 'CL%' then
+	/*	IF Series NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE '%SER%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode <> 'PCFG0424') THEN
 				IF Freetext = U_Agro_Chem then
 				else
@@ -7800,7 +7800,7 @@ DECLARE U_Mining nvarchar(50);
 					END IF;
 				END IF;
 			END IF;
-		END IF;
+		END IF;*/
 	 MinSO=MinSO+1;
 	END WHILE;
 END IF;
@@ -17320,7 +17320,7 @@ if DraftObj = 13 THEN
 	select "U_Pharma" into U_Pharma  from oitm where "ItemCode"= SOItemCode;
 	select "U_Mining" into U_Mining  from oitm where "ItemCode"= SOItemCode;
 
-		IF Series NOT LIKE 'CL%' then
+		/*IF Series NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode <> 'PCFG0424') THEN
 			IF SOName = Freetext then
 			else
@@ -17367,7 +17367,7 @@ if DraftObj = 13 THEN
 				END IF;
 			END IF;
 		END IF;
-		END IF;
+		END IF;*/
 	 MinSO=MinSO+1;
 	END WHILE;
 END IF;
