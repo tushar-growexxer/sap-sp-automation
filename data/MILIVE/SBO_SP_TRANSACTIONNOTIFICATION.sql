@@ -1804,7 +1804,7 @@ END IF;
             	error_message := N'Please select a valid EO Sell Type.';
             END IF;
             -----------------------------------------------------------------
-	/*IF SOSeries NOT LIKE 'CL%' then
+	IF SOSeries NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode NOT LIKE 'WS%' AND SOItemCode <> 'PCFG0424') THEN
 			IF SOName = Freetext then
 			else
@@ -1851,7 +1851,7 @@ END IF;
 				END IF;
 			END IF;
 		END IF;
-		END IF;*/
+		END IF;
 
 		IF IFNULL(TaxCode,'') = '' THEN
         	error := 30091;
@@ -3794,7 +3794,7 @@ END IF;
 
 ----------------------Goods issue-------------------
 ----------------UNIT-I
-/*IF object_type = '60' AND (:transaction_type = 'A') THEN
+IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -3846,7 +3846,7 @@ DECLARE JrnlMemo Nvarchar(50);
 		MinGI := MinGI+1;
 	END WHILE;
 	END IF;
-END IF;*/
+END IF;
 ------------------Issue for prodcution-------
 ----------Unit-I--------
 IF object_type = '60' AND (:transaction_type = 'A') THEN
@@ -3904,7 +3904,7 @@ DECLARE JrnlMemo Nvarchar(50);
 END IF;
 -------------2PC-FLOR
 ----------------UNIT-II-----Goods issue------
-/*IF object_type = '60' AND (:transaction_type = 'A') THEN
+IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -3950,7 +3950,7 @@ DECLARE JrnlMemo Nvarchar(50);
 		MinGI := MinGI+1;
 	END WHILE;
 	END IF;
-END IF;*/
+END IF;
 
 ----------------UNIT-II -----issue for production------
 IF object_type = '60' AND (:transaction_type = 'A') THEN
@@ -4409,7 +4409,7 @@ DECLARE CdGI Nvarchar(50);
 	END IF;
 END IF;
 
-/*IF object_type = '60' AND (:transaction_type = 'A') THEN
+IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
 Declare MinIT Int;
 Declare MaxIT Int;
@@ -4443,7 +4443,7 @@ entry:=0;
 			END IF;
 			MinIT := MinIT+1;
 		END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinGI Int;
@@ -4846,7 +4846,7 @@ End If;
 ----------------------------------------------
 -- FORM Name   : Delivery
 -- Note        : This SP will restrict user to create Delivery after 6:15 PM.
-/*IF object_type = '15' AND (:transaction_type ='A' ) THEN
+IF object_type = '15' AND (:transaction_type ='A' ) THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from ODLN WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4868,7 +4868,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;*/
+END IF;
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -5246,7 +5246,7 @@ DECLARE GRNItemCode nvarchar(50);
 	END WHILE;
 END IF;
 
-/*IF object_type = '59' AND (:transaction_type = 'A') THEN
+IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5270,7 +5270,7 @@ DECLARE Series Nvarchar(50);
 			MinGR := MinGR+1;
 		END WHILE;
 	END IF;
-END IF;*/
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
@@ -5293,7 +5293,7 @@ DECLARE ItemGR Nvarchar(50);
 END IF;
 
 -----BY pass DI product to store in Unit-II 2EX1PCFG--------
-/*IF object_type = '59' AND (:transaction_type = 'A') THEN
+IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5310,9 +5310,9 @@ DECLARE ItemGR Nvarchar(50);
 		END IF;
 		MinGR := MinGR+1;
 	END WHILE;
-END IF;*/
+END IF;
 
-/*IF object_type = '59' AND (:transaction_type = 'A') THEN
+IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5332,7 +5332,7 @@ DECLARE ItemGR Nvarchar(50);
 		END IF;
 		MinGR := MinGR+1;
 	END WHILE;
-END IF;*/
+END IF;
 --------------------------------------
 -- when creating/updating/deleting a Goods Receipt (object_type = 59)
 IF :object_type = '59' AND (:transaction_type = 'A') THEN
@@ -9604,7 +9604,7 @@ DECLARE MaxPR int;
 	END WHILE;
 END IF;
 
-/*IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
+IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 Declare ICode Nvarchar(150);
 Declare Iname Nvarchar(500);
 Declare Srs Nvarchar(150);
@@ -9646,9 +9646,9 @@ DECLARE MaxGI int;
 	     	END IF;
 	     MinGI=MinGI+1;
 		END WHILE;
-END IF;*/
+END IF;
 
-/*IF object_type = '59' AND (:transaction_type = 'A')  THEN
+IF object_type = '59' AND (:transaction_type = 'A')  THEN
 Declare ICode Nvarchar(150);
 DECLARE MinGR int;
 Declare DateP int;
@@ -9675,7 +9675,7 @@ DECLARE MaxGR int;
 	     	End If;
 	     MinGR=MinGR+1;
 		END WHILE;
-END IF;*/
+END IF;
 
 ------------------------------- Gate pass return-----------------------
 
@@ -9880,40 +9880,6 @@ DECLARE WHSIN Nvarchar(50);
 		MinIN := MinIN+1;
 	END WHILE;
 END IF;
-
-/*
-IF object_type = '15' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
-DECLARE MinDL Int;
-DECLARE MaxDL Int;
-DECLARE cnt Int;
-DECLARE BtchDL Nvarchar(50);
-DECLARE ICDL Nvarchar(50);
-DECLARE WHSDL Nvarchar(50);
-
-	SELECT Min(T0."VisOrder") INTO MinDL from DLN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT Max(T0."VisOrder") INTO MaxDL from DLN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-
-	WHILE :MinDL <= :MaxDL DO
-		SELECT DLN1."ItemCode" into ICDL FROM DLN1 WHERE DLN1."DocEntry" = :list_of_cols_val_tab_del and DLN1."VisOrder"=MinDL;
-		SELECT DLN1."WhsCode" into WHSDL FROM DLN1 WHERE DLN1."DocEntry" = :list_of_cols_val_tab_del and DLN1."VisOrder"=MinDL;
-		select Count(*) into cnt from (Select "BatchNum"  from ODLN INNER JOIN DLN1 ON ODLN."DocEntry" = DLN1."DocEntry"
-		LEFT JOIN IBT1  ON IBT1."BaseEntry" = DLN1."DocEntry" AND IBT1."ItemCode" = ICDL and IBT1."WhsCode" = WHSDL
-		AND IBT1."BaseLinNum" = DLN1."LineNum" AND IBT1."BaseType" = 15 WHERE "BatchNum" IN
-		(select T2."BatchNum" from PDN1 t1
-		LEFT Outer JOIN OPDN T0 ON T0."DocEntry" = t1."DocEntry"
-		LEFT Outer JOIN IBT1 T2 ON T2."BaseEntry" = t1."DocEntry" AND T2."ItemCode" = t1."ItemCode"
-		AND T2."BaseLinNum" = t1."LineNum" AND T2."BaseType" = 20 ));
-
-		IF cnt <> 0 THEN
-			IF WHSDL NOT LIKE '%TR%' THEN
-				error :=304;
-				error_message := N'Warehouse may wrong. please contact SAP Team'||ICDL;
-			END IF;
-		END IF;
-		MinDL := MinDL+1;
-	END WHILE;
-END IF;
-*/
 
 IF object_type = '18' AND (:transaction_type = 'A' or :transaction_type='U') THEN
 DECLARE APDate date;
@@ -11598,7 +11564,7 @@ DECLARE MaxLinePDQ Int;
 	END WHILE;
 END IF;
 
-/*IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 DECLARE warehouse Nvarchar(50);
 DECLARE MinLinePDQ Int;
 DECLARE MaxLinePDQ Int;
@@ -11615,7 +11581,7 @@ DECLARE MaxLinePDQ Int;
 			END IF;
 	MinLinePDQ := MinLinePDQ+1;
 	END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
@@ -11908,7 +11874,7 @@ DECLARE FFchargesOld Double;
 		END IF;
 END IF;
 ---------------Equipment list fot Engg issue---------------
-/*IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 DECLARE MinLine INT;
 DECLARE MaxLine INT;
 DECLARE BPLName Nvarchar(10);
@@ -11947,7 +11913,7 @@ DECLARE Warehouse Nvarchar(50);
 		END WHILE;
 	END IF;
 	END IF;
-END IF;*/
+END IF;
 
 IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 
@@ -12737,7 +12703,7 @@ END IF;
 END IF;
 
 ----------------------Draft version of UNIT-I Goods Issue Warehouse Check (2701-2704)------------------
-/*IF object_type='112' AND (:transaction_type = 'A') THEN
+IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -12791,10 +12757,10 @@ if DraftObj = 60 THEN
 	END WHILE;
 	END IF;
 END IF;
-END IF;*/
+END IF;
 
 ----------------------Draft version of UNIT-I Issue for Production Warehouse Check (27011-27041)------------------
-/*IF object_type='112' AND (:transaction_type = 'A') THEN
+IF object_type='112' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -12848,7 +12814,7 @@ if DraftObj = 60 THEN
 	END WHILE;
 	END IF;
 END IF;
-END IF;*/
+END IF;
 
 ----------------------Draft version of UNIT-II Goods Issue Warehouse Check (27021-27024)------------------
 IF object_type='112' AND (:transaction_type = 'A') THEN
@@ -17320,7 +17286,7 @@ if DraftObj = 13 THEN
 	select "U_Pharma" into U_Pharma  from oitm where "ItemCode"= SOItemCode;
 	select "U_Mining" into U_Mining  from oitm where "ItemCode"= SOItemCode;
 
-		/*IF Series NOT LIKE 'CL%' then
+	/*	IF Series NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode <> 'PCFG0424') THEN
 			IF SOName = Freetext then
 			else
@@ -21337,7 +21303,7 @@ IF Object_type = '112' and (:transaction_type ='A' OR :transaction_type ='U' ) T
 	end if;
 End If;
 
-/*IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 	DECLARE MinGRN INT;
     DECLARE MaxGRN INT;
     DECLARE CurrentItemCode NVARCHAR(50);
@@ -21407,7 +21373,7 @@ End If;
 			END WHILE;
 		end if;
 	END IF;
-END IF;*/
+END IF;
 
 IF Object_type = '112' and (:transaction_type ='A' or :transaction_type ='U' ) Then
 	DECLARE FromWhs NVARCHAR(15);
