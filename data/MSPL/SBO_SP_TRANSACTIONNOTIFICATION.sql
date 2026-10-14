@@ -4893,35 +4893,7 @@ Declare COUNT1 Int;
 	END WHILE;
 END IF;
 
-IF object_type = '20' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
-DECLARE GRPOQTD Int;
-DECLARE MinLinePDQ Int;
-DECLARE MaxLinePDQ Int;
-DECLARE POQTB Int;
-DECLARE ItemCDPQD Nvarchar(50);
-DECLARE DOCTPDQ Nvarchar (50);
-Declare COUNT1 Int;
 
-	SELECT Min(T0."VisOrder") INTO MinLinePDQ from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	SELECT Max(T0."VisOrder") INTO MaxLinePDQ from PDN1 T0 where T0."DocEntry" =:list_of_cols_val_tab_del;
-	WHILE :MinLinePDQ<=MaxLinePDQ DO
-		SELECT Distinct (PDN1."Quantity") INTO GRPOQTD FROM PDN1  where PDN1."DocEntry" =:list_of_cols_val_tab_del and PDN1."VisOrder"=MinLinePDQ ;
-		SELECT Distinct (PDN1."BaseOpnQty") INTO POQTB FROM PDN1  where PDN1."DocEntry" =:list_of_cols_val_tab_del and PDN1."VisOrder"=MinLinePDQ ;
-		SELECT Distinct (PDN1."ItemCode") INTO ItemCDPQD FROM PDN1 where PDN1."DocEntry" =:list_of_cols_val_tab_del and PDN1."VisOrder"=MinLinePDQ ;
-		SELECT Distinct (OPDN."DocType") INTO DOCTPDQ FROM OPDN Inner JOIN PDN1 ON OPDN."DocEntry"=PDN1."DocEntry" Where OPDN."DocEntry" =:list_of_cols_val_tab_del ;
-		select Count(*) INTO COUNT1 from "@TANKERLOAD" WHERE "Code" IN(ItemCDPQD);
-
-		IF COUNT1 = 0 THEN
-			IF ItemCDPQD NOT LIKE 'E%' THEN
-			IF  :DOCTPDQ = 'I' And (:GRPOQTD > POQTB) THEN
-				error :=54;
-				error_message := N'GRPO Qty. should not greater then P.O Qty...!'||ItemCDPQD;
-			END IF;
-			END IF;
-		END IF;
-		MinLinePDQ := MinLinePDQ+1;
-	END WHILE;
-END IF;
 
 IF object_type = '20' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 DECLARE GRPOQTD Int;
@@ -26017,6 +25989,110 @@ DECLARE LineNo int;
 			error_message := N'Direct Goods Receipt is not allowed for ' || ICode || ' at line ' || LineNo+1 || '. Please use a Base Document, or contact SAP team.';
 		END IF;
 	END IF;
+END IF;
+-- ==========================================================================
+-- Standard GRN Validation (Bypasses Tanker Load)
+-- Object Type 20 = Goods Receipt PO (GRN)
+-- ==========================================================================
+IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+    DECLARE GRPOQTD DECIMAL(19,6);
+    DECLARE MinLinePDQ INT;
+    DECLARE MaxLinePDQ INT;
+    DECLARE POQTB DECIMAL(19,6);
+    DECLARE ItemCDPQD NVARCHAR(50);
+    DECLARE DOCTPDQ NVARCHAR(50);
+    DECLARE PackType NVARCHAR(100);
+    DECLARE COUNT1 INT;
+
+    -- Fetch header DocType once
+    SELECT T0."DocType" INTO DOCTPDQ FROM OPDN T0 WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+    SELECT MIN(T0."VisOrder"), MAX(T0."VisOrder") INTO MinLinePDQ, MaxLinePDQ FROM PDN1 T0
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del;
+
+    WHILE :MinLinePDQ <= :MaxLinePDQ DO
+
+        -- Fetch line details and U_PTYPE from base PO (POR1) or GRN (PDN1)
+        SELECT T0."Quantity",T0."BaseOpnQty",T0."ItemCode",IFNULL(T1."U_PTYPE", IFNULL(T0."U_PTYPE", ''))
+        INTO GRPOQTD,POQTB,ItemCDPQD,PackType
+        FROM PDN1 T0
+        LEFT JOIN POR1 T1 ON T0."BaseEntry" = T1."DocEntry" AND T0."BaseLine" = T1."LineNum" AND T0."BaseType" = 22
+        WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = :MinLinePDQ;
+
+        SELECT COUNT(*) INTO COUNT1 FROM "@TANKERLOAD" WHERE "Code" = :ItemCDPQD;
+
+        -- Bypass validation completely if PackType is Tanker Load
+        IF :PackType <> 'Tanker Load' AND :PackType NOT LIKE '%Tanker%' AND :COUNT1 = 0 THEN
+            IF :ItemCDPQD NOT LIKE 'E%' AND :ItemCDPQD NOT IN ('PCPM0099','PCPM0100') THEN
+                IF :DOCTPDQ = 'I' AND (:GRPOQTD > :POQTB) THEN
+                    error := 54;
+                    error_message := N'GRPO Qty. should not greater then P.O Qty...!' || :ItemCDPQD;
+                    BREAK;
+                END IF;
+            END IF;
+        END IF;
+
+        MinLinePDQ := :MinLinePDQ + 1;
+    END WHILE;
+END IF;
+-- ==========================================================================
+-- SAP HANA: 0.1% GRN Tolerance (Simple Line-Level Message, No Loop)
+-- Object Type 20 = Goods Receipt PO (GRN)
+-- ==========================================================================
+IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+
+    DECLARE v_cnt INT := 0;
+    DECLARE v_line INT := 0;
+    DECLARE v_item NVARCHAR(50) := '';
+    DECLARE v_curr_qty DECIMAL(19,6) := 0;
+    DECLARE v_max_allow_curr DECIMAL(19,6) := 0;
+
+    -- Validate current GRN line and calculate maximum allowed quantity for this GRN
+    SELECT
+        COUNT(1),
+        IFNULL(MAX(T1."VisOrder" + 1), 0),
+        IFNULL(MAX(T1."ItemCode"), ''),
+        IFNULL(MAX(T1."Quantity"), 0),
+        -- Formula: Total Allowed (PO + 0.1%) - Previous GRNs = Max allowed in current GRN
+        IFNULL(MAX(GREATEST(0, (T2."Quantity" + ((T2."Quantity" * 0.1) / 100)) - (T3."TotalGRN" - T1."Quantity"))), 0)
+    INTO
+        v_cnt,
+        v_line,
+        v_item,
+        v_curr_qty,
+        v_max_allow_curr
+    FROM OPDN T0
+    INNER JOIN PDN1 T1 ON T0."DocEntry" = T1."DocEntry"
+    INNER JOIN POR1 T2 ON T1."BaseEntry" = T2."DocEntry"
+                      AND T1."BaseLine" = T2."LineNum"
+                      AND T1."BaseType" = 22
+    INNER JOIN (
+        -- Sum total cumulative receipts against the PO line (including current doc)
+        SELECT
+            P1."BaseEntry",
+            P1."BaseLine",
+            SUM(P1."Quantity") AS "TotalGRN"
+        FROM PDN1 P1
+        INNER JOIN OPDN P0 ON P0."DocEntry" = P1."DocEntry"
+        WHERE P0."CANCELED" = 'N'
+          AND P1."BaseType" = 22
+        GROUP BY P1."BaseEntry", P1."BaseLine"
+    ) T3 ON T2."DocEntry" = T3."BaseEntry" AND T2."LineNum" = T3."BaseLine"
+    WHERE T0."DocEntry" = :list_of_cols_val_tab_del
+      AND T0."DocType" = 'I'
+      AND T2."U_PTYPE" = 'Tanker Load'
+      AND T3."TotalGRN" > (T2."Quantity" + ((T2."Quantity" * 0.1) / 100));
+
+    -- Display simplified error message formatted to 2 decimal places
+    IF :v_cnt > 0 THEN
+        error := 20001;
+        error_message := N'Line ' || TO_VARCHAR(:v_line) ||
+                         ': For Item (' || :v_item ||
+                         '), entered GRN Qty is ' || TO_VARCHAR(CAST(:v_curr_qty AS DECIMAL(19,2))) ||
+                         '. Based on 0.1% tolerance, maximum allowed qty in this GRN is ' ||
+                         TO_VARCHAR(CAST(:v_max_allow_curr AS DECIMAL(19,2))) || '.';
+    END IF;
+
 END IF;
 
 -- Select the return values-
