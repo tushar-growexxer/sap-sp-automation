@@ -1206,8 +1206,11 @@ END IF;
 ----------------------------- PR Generated - QuotePilot --------------------------------------------
 IF (:object_type = '1470000113' AND (:transaction_type IN ('A'))) THEN
 
-	select count(T0."DocEntry") INTO Temp from OPRQ T0 JOIN PRQ1 T1 ON T0."DocEntry" = T1."DocEntry"
-	WHERE (T1."ItemCode" LIKE 'OF%')
+	select count(T0."DocEntry") INTO Temp
+	from OPRQ T0
+	JOIN PRQ1 T1 ON T0."DocEntry" = T1."DocEntry"
+	JOIN OITM T2 ON T2."ItemCode" = T1."ItemCode"
+	WHERE (T1."ItemCode" LIKE 'OF%' OR T1."ItemCode" LIKE 'PC%' or T1."ItemCode" LIKE 'SC%' or T1."ItemCode" LIKE 'DI%') and T2."U_QPSendRFQ" = 'Yes'
 	and T0."DocEntry"=:list_of_cols_val_tab_del;
 
 	If :Temp > 0 then

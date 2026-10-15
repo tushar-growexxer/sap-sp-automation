@@ -7728,7 +7728,7 @@ DECLARE U_Mining nvarchar(50);
 END IF;
 
 
-IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
+/*IF Object_type = '13' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
 DECLARE SOItemCode nvarchar(50);
@@ -7820,6 +7820,7 @@ DECLARE U_Mining nvarchar(50);
 	 MinSO=MinSO+1;
 	END WHILE;
 END IF;
+*/
 
 ----------------- Alias name not match--------
 
@@ -17255,7 +17256,7 @@ END IF;
 
 
 
-IF Object_type='112' and (:transaction_type ='A' OR :transaction_type = 'U') Then
+/*IF Object_type='112' and (:transaction_type ='A' OR :transaction_type = 'U') Then
 DECLARE MinSO int;
 DECLARE MaxSO int;
 DECLARE SOItemCode nvarchar(50);
@@ -17354,6 +17355,7 @@ if DraftObj = 13 THEN
 	END WHILE;
 END IF;
 END IF;
+*/
 
 ----------------- Alias name not match--------
 
