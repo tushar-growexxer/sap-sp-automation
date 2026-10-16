@@ -5262,7 +5262,7 @@ DECLARE GRNItemCode nvarchar(50);
 	END WHILE;
 END IF;
 
-IF object_type = '59' AND (:transaction_type = 'A') THEN
+/*IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5286,7 +5286,7 @@ DECLARE Series Nvarchar(50);
 			MinGR := MinGR+1;
 		END WHILE;
 	END IF;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
@@ -9162,7 +9162,7 @@ DECLARE Series Nvarchar(150);
 	END IF;
 END IF;
 
-IF object_type = '59' AND ( :transaction_type = 'A') THEN
+/*IF object_type = '59' AND ( :transaction_type = 'A') THEN
 DECLARE CNT Int;
 	SELECT COUNT(*) INTO CNT FROM IGN1 T1 INNER JOIN IBT1 T0 ON T1."DocEntry" = T0."BaseEntry" and T0."BaseType" = '59'
 	INNER JOIN OBTN ON OBTN."DistNumber" = T0."BatchNum"
@@ -9176,7 +9176,7 @@ DECLARE CNT Int;
 		error_message := 'Duplicate Batch Number Exist Check Batch No Again';
 		CNT:= 0;
 	END IF;
-END IF;
+END IF;*/
 ----------------------------------------------------------------------------------------------------
 IF object_type = '202' AND (:transaction_type ='A' or :transaction_type ='U') THEN
 DECLARE TotalAttachment Int; -- CHANGES 1.4
@@ -9620,8 +9620,8 @@ DECLARE MaxPR int;
 	    MinPR=MinPR+1;
 	END WHILE;
 END IF;
-
-IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
+---------------RM Direct Issue-------------
+/*IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 Declare ICode Nvarchar(150);
 Declare Iname Nvarchar(500);
 Declare Srs Nvarchar(150);
@@ -9663,9 +9663,9 @@ DECLARE MaxGI int;
 	     	END IF;
 	     MinGI=MinGI+1;
 		END WHILE;
-END IF;
+END IF;*/
 
-IF object_type = '59' AND (:transaction_type = 'A')  THEN
+/*IF object_type = '59' AND (:transaction_type = 'A')  THEN
 Declare ICode Nvarchar(150);
 DECLARE MinGR int;
 Declare DateP int;
@@ -9692,7 +9692,7 @@ DECLARE MaxGR int;
 	     	End If;
 	     MinGR=MinGR+1;
 		END WHILE;
-END IF;
+END IF;*/
 
 ------------------------------- Gate pass return-----------------------
 
@@ -18353,25 +18353,6 @@ End If;
 END IF;
 
 IF object_type='112' AND ( :transaction_type = 'A') THEN
-DECLARE CNT Int;
-	SELECT COUNT(*) INTO CNT FROM DRF1 T1 INNER JOIN IBT1 T0 ON T1."DocEntry" = T0."BaseEntry" and T0."BaseType" = '59'
-	INNER JOIN OBTN ON OBTN."DistNumber" = T0."BatchNum"
-	where T1."DocEntry" = :list_of_cols_val_tab_del and T1."WhsCode" NOT LIKE '%BT%' and T1."ItemCode" Like '%FG%' AND OBTN."MnfSerial" in
-	(Select Ifnull(OBTN."MnfSerial",'') from IBT1 T0 INNER JOIN OBTN ON OBTN."DistNumber" = T0."BatchNum"
-	INNER JOIN DRF1 T1 ON T1."DocEntry" = T0."BaseEntry" and T0."BaseType" = '59'
-	where T1."ItemCode" Like '%FG%' and T1."DocEntry" <> :list_of_cols_val_tab_del);
-
-	IF :CNT>0 THEN
-		error := 25600;
-		error_message := 'Duplicate Batch Number Exist Check Batch No Again';
-		CNT:= 0;
-	END IF;
-END IF;
-
-
-
-IF object_type='112' AND ( :transaction_type = 'A') THEN
-
 DECLARE remark varchar(500);
 DECLARE Ref varchar(50);
 DECLARE Series varchar(50);
