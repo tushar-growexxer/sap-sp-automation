@@ -3904,7 +3904,7 @@ DECLARE JrnlMemo Nvarchar(50);
 END IF;
 -------------2PC-FLOR
 ----------------UNIT-II-----Goods issue------
-IF object_type = '60' AND (:transaction_type = 'A') THEN
+/*IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -3950,7 +3950,7 @@ DECLARE JrnlMemo Nvarchar(50);
 		MinGI := MinGI+1;
 	END WHILE;
 	END IF;
-END IF;
+END IF;*/
 
 ----------------UNIT-II -----issue for production------
 IF object_type = '60' AND (:transaction_type = 'A') THEN
@@ -4875,7 +4875,7 @@ END IF;
 -- FORM Name   : A/R Invoice
 -- Added Date  :
 -- Note        : This SP will restrict user to create A/R Invoice after 6:15 PM.
-IF object_type = '13' AND (:transaction_type ='A') THEN
+/*IF object_type = '13' AND (:transaction_type ='A') THEN
 DECLARE tim varchar(50);
 DECLARE Series varchar(50);
 	(select "CreateTS" into tim from OINV WHERE "DocEntry" = list_of_cols_val_tab_del);
@@ -4884,7 +4884,7 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
+END IF;*/
 
 ----------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
@@ -11581,7 +11581,7 @@ DECLARE MaxLinePDQ Int;
 	END WHILE;
 END IF;
 
-IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
+/*IF object_type = '60' AND (:transaction_type = 'A' Or :transaction_type = 'U') THEN
 DECLARE warehouse Nvarchar(50);
 DECLARE MinLinePDQ Int;
 DECLARE MaxLinePDQ Int;
@@ -11598,7 +11598,7 @@ DECLARE MaxLinePDQ Int;
 			END IF;
 	MinLinePDQ := MinLinePDQ+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '67' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE MinIT Int;
