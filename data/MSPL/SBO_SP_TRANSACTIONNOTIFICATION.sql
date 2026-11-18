@@ -86,7 +86,7 @@ IF Object_type = '4' AND (:transaction_type = 'A' OR :transaction_type = 'U') TH
         END IF;
     END IF;
 
-    IF UsrCod NOT IN ('account1','prof02','prof01', 'dipurchase', 'purchase01','purchase02', 'manager', 'sap01', 'engg01', 'engg02', 'engg04', 'engg05', 'engg06', 'engg07') THEN
+    IF UsrCod NOT IN ('account1','prof02','prof01', 'dipurchase', 'purchase01','purchase02', 'manager', 'sap01', 'engg01', 'engg02', 'engg04', 'engg05', 'engg06', 'engg07','account5') THEN
     	error := -10008;
         error_message := N'You are not allowed to add/update Item Master';
     END IF;
@@ -264,11 +264,11 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
 
 
     IF (((Series like 'COD%' or Series like 'CPD%' or Series like 'CSD%') AND GroupTypee <> '100')
-    	or ((Series like 'VSRD%' or Series like 'VPRD%' or Series like 'VORD%') AND GroupTypee <> '101')
+    	or ((Series like 'VSRD%' or Series like 'VPRD%' or Series like 'VORD%') AND GroupTypee <> '106')
     	or ((Series like 'COE%' or Series like 'CPE%' or Series like 'CSE%') AND GroupTypee <> '102')
     	or ((Series like 'VSRI%' or Series like 'VPRI%' or Series like 'VORI%') AND GroupTypee <> '105')
     	or ((Series like 'VFAS%' or Series like 'VLAB%' or Series like 'VEXP%' or Series like 'VGPR%') AND GroupTypee <> '106')
-    	or ((Series like 'VPPD%') AND GroupTypee <> '109')
+    	or ((Series like 'VPPD%') AND GroupTypee <> '106')
     	or ((Series like 'EMP%') AND GroupTypee <> '110')
     	or ((Series like 'STLO%') AND GroupTypee <> '113')) THEN
 
@@ -2046,13 +2046,15 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 	DECLARE MaxShipDate DATE;
     DECLARE IsRM INT;
 
+	DECLARE ETDPO Date;
+	DECLARE ImpDomHeader NVARCHAR(10);
 
     -- ========== Data Retrieval (Header) ==========
     SELECT T0."BPLId", T0."DocCur", T0."CardCode", T0."Footer", T0."U_Tag_number", T0."U_Del_Terms",
            T2."PymntGroup", T3."USER_CODE", T4."U_Base_Doc", T0."DocDate", T0."DocDueDate", T5."SeriesName",
-           (CASE WHEN T5."SeriesName" LIKE 'DM%' THEN 'PO' ELSE T5."BeginStr" END)
+           (CASE WHEN T5."SeriesName" LIKE 'DM%' THEN 'PO' ELSE T5."BeginStr" END), T0."U_ImpDom"
     INTO HeaderBranch, DocCurrency, VendorCode, FooterText, TagNumber, DeliveryTerm, PaymentTerm, UserCode,
-         BpBaseDocRequired, DocDate, DeliveryDate, SeriesName, Suffix
+         BpBaseDocRequired, DocDate, DeliveryDate, SeriesName, Suffix, ImpDomHeader
     FROM OPOR T0
     INNER JOIN OCTG T2 ON T0."GroupNum" = T2."GroupNum"
     INNER JOIN OUSR T3 ON T0."UserSign" = T3."USERID"
@@ -2075,10 +2077,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 
         SELECT T0."ItemCode", T0."Dscription", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
                T0."Project", T0."BaseEntry", T0."BaseType", T0."U_BASETYPE", T0."U_BASEDOCNO", T1."ItemClass",
-               T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType",T0."U_CapxOpex",T0."BaseLine"
+               T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType",T0."U_CapxOpex",T0."BaseLine", T0."U_ETDSO"
         INTO ItemCode, ItemDescription, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
              Project, BaseDocEntry, BaseDocType, BaseTypeUDF, BaseDocNumUDF, ItemClass,
-             PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType,PO_CapexOpex,PO_BaseLine
+             PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType,PO_CapexOpex,PO_BaseLine, ETDPO
         FROM POR1 T0
         INNER JOIN OITM T1 ON T0."ItemCode" = T1."ItemCode"
         WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = MIN_ROW;
@@ -2182,10 +2184,10 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
 	            error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
     	    END IF;
 
-        	IF Suffix LIKE 'PO%' AND ItemClass = '1' AND SeriesName like 'DM%' THEN
+        	/*IF Suffix LIKE 'PO%' AND ItemClass = '1' AND SeriesName like 'DM%' THEN
             	error := -40016;
 	            error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-    	    END IF;
+    	    END IF;*/
         END IF;
 
         SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
@@ -2241,6 +2243,11 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
             error := -40065;
             error_message := N'Please select proper Warehouse at row ' || MIN_ROW + 1;
         END IF;
+
+        IF DocDate >= '2026-10-26' AND (ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%' OR ItemCode LIKE '%PM%') AND ETDPO IS NULL THEN
+	        error := -40070;
+	        error_message := N'Please enter ETD at Line ' || MIN_ROW + 1;
+	    END IF;
 
         MIN_ROW := MIN_ROW + 1;
     END WHILE;
@@ -2324,6 +2331,14 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
                              N') must exactly match the Header Delivery Date (' || TO_VARCHAR(:DeliveryDate, 'YYYY-MM-DD') || N').';
         END IF;
     END IF;
+
+    select count(*) into TempCounter from POR1 T1 JOIN OPOR T0 ON T0."DocEntry" = T1."DocEntry"
+    where (T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%TR%') AND T0."DocEntry" = :list_of_cols_val_tab_del;
+    IF IFNULL(ImpDomHeader,'') = '' AND DocDate >= '2026-11-05' AND TempCounter > 0 THEN
+    	error := -40032;
+        error_message := 'Select Import/Domestic in UDF.';
+    END IF;
+
 END IF;
 
 -- =========================================================================================================
@@ -2388,12 +2403,15 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 		DECLARE MaxShipDate DATE;
     	DECLARE IsRM INT;
 
+    	DECLARE ETDPO Date;
+    	DECLARE ImpDomHeader NVARCHAR(10);
+
         -- ========== Data Retrieval (Header) ==========
         SELECT T0."BPLId", T0."DocCur", T0."CardCode", T0."Footer", T0."U_Tag_number", T0."U_Del_Terms",
                T2."PymntGroup", T3."USER_CODE", T4."U_Base_Doc", T0."DocDate", T0."DocDueDate", T5."SeriesName",
-               (CASE WHEN T5."SeriesName" LIKE 'DM%' THEN 'PO' ELSE T5."BeginStr" END)
+               (CASE WHEN T5."SeriesName" LIKE 'DM%' THEN 'PO' ELSE T5."BeginStr" END), T0."U_ImpDom"
         INTO HeaderBranch, DocCurrency, VendorCode, FooterText, TagNumber, DeliveryTerm, PaymentTerm, UserCode,
-             BpBaseDocRequired, DocDate, DeliveryDate, SeriesName, Suffix
+             BpBaseDocRequired, DocDate, DeliveryDate, SeriesName, Suffix , ImpDomHeader
         FROM ODRF T0
         INNER JOIN OCTG T2 ON T0."GroupNum" = T2."GroupNum"
         INNER JOIN OUSR T3 ON T0."UserSign" = T3."USERID"
@@ -2416,10 +2434,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 
             SELECT T0."ItemCode", T0."Dscription", T1."ItemName", T0."OcrCode", T0."TaxCode", T0."U_EntryType", T0."WhsCode",
                    T0."Project", T0."BaseEntry", T0."BaseType", T0."U_BASETYPE", T0."U_BASEDOCNO", T1."ItemClass",
-                   T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType",T0."U_CapxOpex",T0."BaseLine"
+                   T0."U_PTYPE", T0."U_Pcode", T0."Factor1", T0."HsnEntry", T0."SacEntry", T1."ItemType",T0."U_CapxOpex",T0."BaseLine",T0."U_ETDSO"
             INTO ItemCode, ItemDescription, MasterItemName, OcrCode, TaxCode, EntryType, Warehouse,
                  Project, BaseDocEntry, BaseDocType, BaseTypeUDF, BaseDocNumUDF, ItemClass,
-                 PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType,PO_CapexOpex,PO_BaseLine
+                 PackingType, PackingCode, PackingCapacity, HsnEntry, SacEntry, ItemType,PO_CapexOpex,PO_BaseLine,ETDPO
             FROM DRF1 T0
             INNER JOIN OITM T1 ON T0."ItemCode" = T1."ItemCode"
             WHERE T0."DocEntry" = :list_of_cols_val_tab_del AND T0."VisOrder" = MIN_ROW;
@@ -2496,10 +2514,10 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
         	        error_message := N'You have selected a Service Series. Please select a Service item at row ' || MIN_ROW + 1;
             	END IF;
 
-	            IF Suffix LIKE 'PO%' AND ItemClass = '1' and SeriesName like 'DM%' THEN
+	            /*IF Suffix LIKE 'PO%' AND ItemClass = '1' and SeriesName like 'DM%' THEN
     	            error := -40042;
         	        error_message := N'You have selected a Material Series. Please select a Material item at row ' || MIN_ROW + 1;
-            	END IF;
+            	END IF;*/
             END IF;
 
             SELECT COUNT(*) INTO TempCounter FROM DUMMY WHERE ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%';
@@ -2588,6 +2606,11 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 END IF;
             END IF;
 
+            IF DocDate >= '2026-10-26' AND (ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%' OR ItemCode LIKE '%PM%') AND ETDPO IS NULL THEN
+	        	error := -40070;
+	            error_message := N'Please enter ETD at Line ' || MIN_ROW + 1;
+	        END IF;
+
             MIN_ROW := MIN_ROW + 1;
         END WHILE;
 
@@ -2664,6 +2687,14 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 	                             N') must exactly match the Header Delivery Date (' || TO_VARCHAR(:DeliveryDate, 'YYYY-MM-DD') || N').';
 	        END IF;
 	    END IF;
+
+	    select count(*) into TempCounter from DRF1 T1 JOIN ODRF T0 ON T0."DocEntry" = T1."DocEntry"
+	    where (T1."ItemCode" LIKE '%RM%' OR T1."ItemCode" LIKE '%FG%' OR T1."ItemCode" LIKE '%TR%') AND T0."DocEntry" = :list_of_cols_val_tab_del AND T0."ObjType" = 22;
+	    IF IFNULL(ImpDomHeader,'') = '' AND DocDate >= '2026-11-05' AND TempCounter > 0 THEN
+	    	error := -40032;
+	        error_message := 'Select Import/Domestic in UDF.';
+	    END IF;
+
     END IF;
 
 END IF;
@@ -5086,8 +5117,8 @@ DECLARE Series varchar(50);
 			error :=73;
 			error_message := N'Not allowed to enter after 6:15 PM..';
 		END IF;
-END IF;
-*/
+END IF;*/
+
 -------------------------------------------------
 IF object_type = '15' AND (:transaction_type = 'A') THEN
 DECLARE entry int;
@@ -6434,7 +6465,7 @@ DECLARE PerUntQty Nvarchar(50);
 DECLARE Ttlunt Nvarchar(50);
 DECLARE Wghtpckng Nvarchar(50);
 DECLARE Packitm Nvarchar(50);
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE lictype Nvarchar(50);
 DECLARE licno Nvarchar(50);
 DECLARE pltibc Nvarchar(50);
@@ -6501,7 +6532,7 @@ DECLARE PerUntQty Nvarchar(50);
 DECLARE Ttlunt Nvarchar(50);
 DECLARE Wghtpckng Nvarchar(50);
 DECLARE pckngtype Nvarchar(50);
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE lictype Nvarchar(50);
 DECLARE licno Nvarchar(50);
 DECLARE pltibc Nvarchar(50);
@@ -6604,7 +6635,7 @@ END IF;
 IF object_type = '13' AND (:transaction_type = 'A') THEN
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE Nopltibc Nvarchar(50);
 DECLARE SeriesAR Nvarchar(50);
 
@@ -6643,7 +6674,7 @@ DECLARE PerUntQty Nvarchar(50);
 DECLARE Ttlunt Nvarchar(50);
 DECLARE Wghtpckng Nvarchar(50);
 DECLARE pckngtype Nvarchar(50);
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE lictype Nvarchar(50);
 DECLARE licno Nvarchar(50);
 DECLARE pltibc Nvarchar(50);
@@ -6742,8 +6773,7 @@ Declare BaseType nvarchar(50);
          End If;
 End If;
 
-IF object_type = '18' and (:transaction_type = 'A' or :transaction_type = 'U') THEN
-
+/*IF object_type = '18' and (:transaction_type = 'A' or :transaction_type = 'U') THEN
 	Declare BASEDOCNO int;
 	Declare ITEMCODE  varchar(50);
 	Declare BSITEMCODE  varchar(50);
@@ -6776,7 +6806,7 @@ IF object_type = '18' and (:transaction_type = 'A' or :transaction_type = 'U') T
 				 MINN = MINN + 1;
 			END WHILE;
 	END IF;
-END IF;
+END IF;*/
 
 IF object_type = '18' and (:transaction_type = 'A' ) THEN
 	Declare BASEDOCTYPE  varchar(50);
@@ -15899,7 +15929,7 @@ DECLARE PerUntQty Nvarchar(50);
 DECLARE Ttlunt Nvarchar(50);
 DECLARE Wghtpckng Nvarchar(50);
 DECLARE pckngtype Nvarchar(50);
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE lictype Nvarchar(50);
 DECLARE licno Nvarchar(50);
 DECLARE pltibc Nvarchar(50);
@@ -15978,7 +16008,7 @@ DECLARE PerUntQty Nvarchar(50);
 DECLARE Ttlunt Nvarchar(50);
 DECLARE Wghtpckng Nvarchar(50);
 DECLARE pckngtype Nvarchar(50);
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE lictype Nvarchar(50);
 DECLARE licno Nvarchar(50);
 DECLARE pltibc Nvarchar(50);
@@ -16089,7 +16119,7 @@ IF object_type='112' AND (:transaction_type = 'A') THEN
 
 DECLARE MinAR Int;
 DECLARE MaxAR Int;
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE Nopltibc Nvarchar(50);
 DECLARE SeriesAR Nvarchar(50);
 (SELECT ODRF."ObjType" into DraftObj FROM ODRF WHERE ODRF."DocEntry"=:list_of_cols_val_tab_del );
@@ -16130,7 +16160,7 @@ DECLARE PerUntQty decimal(18,2);
 DECLARE Ttlunt decimal(18,2);
 DECLARE Wghtpckng decimal(18,2);
 DECLARE pckngtype Nvarchar(50);
-DECLARE typpltibc Nvarchar(50);
+DECLARE typpltibc Nvarchar(100);
 DECLARE lictype Nvarchar(50);
 DECLARE licno Nvarchar(50);
 DECLARE pltibc Nvarchar(50);
@@ -21578,7 +21608,7 @@ DECLARE BaseTypee int;
 						error := -1199;
 						error_message := N'Please select proper Warehouse.';
 				END IF;
-				IF (ReceiptWhsCode in ('JW-QC','OF-PT-DI', 'SC-QC') and ReceiptItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013', 'SCFG0020')) then
+				IF (ReceiptWhsCode in ('JW-QC','OF-PT-DI', 'SC-QC') and ReceiptItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013','SCFG0020','SCFG0022')) then
 						error := -1200;
 						error_message := N'Please select proper Item.';
 				END IF;
@@ -21640,7 +21670,7 @@ DECLARE ProdOrderType nvarchar(50);
 				error := -1205;
 				error_message := N'Please select proper Warehouse.';
 		END IF;
-		IF (ProdOrderWhsCode in ('JW-QC','OF-PT-DI', 'SC-QC') and ProdOrderItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013','SCFG0020')) then
+		IF (ProdOrderWhsCode in ('JW-QC','OF-PT-DI', 'SC-QC') and ProdOrderItemCode not in ('OFFG0009', 'OFFG0010', 'OFFG0011', 'OFFG0012', 'OFFG0013','SCFG0020','SCFG0022')) then
 				error := -1206;
 				error_message := N'Please select proper Item.';
 		END IF;
@@ -23733,7 +23763,7 @@ END IF;
 -----------------------------------------------------------------------------------------
 -- PURCHASE ORDER DRAFT VALIDATION: License Balance Check
 -----------------------------------------------------------------------------------------
-/*IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE DraftObjType NVARCHAR(10);
         DECLARE ErrorLineStr NVARCHAR(10) := '';
@@ -23873,11 +23903,11 @@ END IF;
                error_message := 'Total License Balance Quantity exceeded! You cannot allocate more quantity than the available balance for the selected license. [Draft - Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
             END IF;
         END IF;
-END IF;*/
+END IF;
 -----------------------------------------------------------------------------------------
 -- PURCHASE ORDER POSTING VALIDATION: License Balance Check
 -----------------------------------------------------------------------------------------
-IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE ErrorLineStr NVARCHAR(10) := '';
         DECLARE ErrorItemStr NVARCHAR(50) := '';
@@ -23988,7 +24018,7 @@ IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
            error := 50010;
            error_message := 'Total License Balance Quantity exceeded! You cannot allocate more quantity than the available balance for the selected license. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
         END IF;
-END IF;
+END IF;*/
 
 -----------------------------------------------------------------------------------------
 -- GRPO POSTING VALIDATION (ObjType 20) for ADVANCE License
@@ -24018,7 +24048,7 @@ END IF;
 -----------------------------------------------------------------------------------------
 -- A/P INVOICE DRAFT VALIDATION: Master License & Customs Check
 -----------------------------------------------------------------------------------------
-/*IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE DraftObjType NVARCHAR(10);
         DECLARE ErrorLineStr NVARCHAR(10) := '';
@@ -24275,12 +24305,12 @@ END IF;
             END IF;
 
         END IF;
-END IF;*/
+END IF;
 
 -----------------------------------------------------------------------------------------
 -- A/P INVOICE POSTING VALIDATION: Master License & Customs Check
 -----------------------------------------------------------------------------------------
-/*IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+IF :object_type = '18' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
         DECLARE ErrorCount INT := 0;
         DECLARE ErrorLineStr NVARCHAR(10) := '';
         DECLARE ErrorItemStr NVARCHAR(50) := '';
@@ -24546,7 +24576,7 @@ END IF;*/
                 error_message := 'Sequence Error! You cannot skip license slots. If License 1 is "Not Required", License 2 & 3 must also be empty. Please move your active license to the first slot. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
             END IF;
         END IF;
-END IF;*/
+END IF;
 
 
 -- ==============================================================================
@@ -24737,7 +24767,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
     END IF;
 
     -- Rule 2A: Delivery Drafts for Vessel shipments must use BE1 or BE2 series
-    /*IF :error = 0 THEN
+    IF :error = 0 THEN
         SELECT COUNT(*) INTO ErrorCount
         FROM "DRF1" T0
         INNER JOIN "ODRF" D ON T0."DocEntry" = D."DocEntry"
@@ -24763,7 +24793,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
             error := 111;
             error_message := 'Series must be BE1 or BE2 for Vessel Delivery Draft. [Row: ' || :ErrorLineStr || ', Item: ' || :ErrorItemStr || ']';
         END IF;
-    END IF;*/
+    END IF;
 
     -- Rule 2B: Non-Vessel Delivery Drafts cannot use BE1 or BE2 series
     IF :error = 0 THEN
