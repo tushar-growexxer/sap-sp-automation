@@ -5340,7 +5340,7 @@ DECLARE ItemGR Nvarchar(50);
 END IF;
 
 -----BY pass DI product to store in Unit-II 2EX1PCFG--------
-IF object_type = '59' AND (:transaction_type = 'A') THEN
+/*IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5357,7 +5357,7 @@ DECLARE ItemGR Nvarchar(50);
 		END IF;
 		MinGR := MinGR+1;
 	END WHILE;
-END IF;
+END IF;*/
 
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
@@ -7804,7 +7804,7 @@ DECLARE U_Mining nvarchar(50);
 	select "U_Pharma" into U_Pharma  from oitm where "ItemCode"= SOItemCode;
 	select "U_Mining" into U_Mining  from oitm where "ItemCode"= SOItemCode;
 
-		IF Series NOT LIKE 'CL%' then
+		/*IF Series NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE '%SER%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode <> 'PCFG0424') THEN
 				IF Freetext = U_Agro_Chem then
 				else
@@ -7848,7 +7848,7 @@ DECLARE U_Mining nvarchar(50);
 					END IF;
 				END IF;
 			END IF;
-		END IF;
+		END IF;*/
 	 MinSO=MinSO+1;
 	END WHILE;
 END IF;
@@ -20239,10 +20239,10 @@ select T1."WhsCode" into ToWhs from WTR1 T1 where T1."DocEntry" = :list_of_cols_
 select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_val_tab_del and T1."VisOrder"=MinIT;
 
 	if Item like 'PCFG%' then
-    	/*if FromWhs = '2PC-FG' and ToWhs not in ('2EX1PCFG','2PC-FLOR','2BT','2PC-TRD') then
+    	if FromWhs = '2PC-FG' and ToWhs not in ('2EX1PCFG','2PC-FLOR','2BT','2PC-TRD') then
             error := -1022;
             error_message := 'The PCFG from 2PC-FG cannot be moved to any warehouse other than 2EX1PCFG,2PC-FLOR,2BT';
-        end if;*/
+        end if;
         if FromWhs = '2PC-FLOR' and ToWhs not in ('2PC-FG','2PC-QC','2EX1PCFG','2BT') then
             error := -1023;
             error_message := 'The PCFG from 2PC-FLOR cannot be moved to any warehouse other than 2PC-FG,2PC-QC,2EX1PCFG';
@@ -25512,7 +25512,8 @@ DECLARE LineNo int;
 END IF;*/
 
 -- ==========================================================================
--- SAP HANA: 0.1% GRN Tolerance (Simple Line-Level Message, No Loop)
+-- SAP HANA: 0.1% GRN Tolerance
+-- Revised 2% GRN Tolerance
 -- Object Type 20 = Goods Receipt PO (GRN)
 -- ==========================================================================
 IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
@@ -25530,7 +25531,7 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         IFNULL(MAX(T1."ItemCode"), ''),
         IFNULL(MAX(T1."Quantity"), 0),
         -- Formula: Total Allowed (PO + 0.1%) - Previous GRNs = Max allowed in current GRN
-        IFNULL(MAX(GREATEST(0, (T2."Quantity" + ((T2."Quantity" * 0.1) / 100)) - (T3."TotalGRN" - T1."Quantity"))), 0)
+        IFNULL(MAX(GREATEST(0, (T2."Quantity" + ((T2."Quantity" * 2) / 100)) - (T3."TotalGRN" - T1."Quantity"))), 0)
     INTO
         v_cnt,
         v_line,
@@ -25557,7 +25558,7 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     WHERE T0."DocEntry" = :list_of_cols_val_tab_del
       AND T0."DocType" = 'I'
       AND T2."U_PTYPE" = 'Tanker Load'
-      AND T3."TotalGRN" > (T2."Quantity" + ((T2."Quantity" * 0.1) / 100));
+      AND T3."TotalGRN" > (T2."Quantity" + ((T2."Quantity" * 2) / 100));
 
     -- Display simplified error message formatted to 2 decimal places
     IF :v_cnt > 0 THEN
@@ -25565,7 +25566,7 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := N'Line ' || TO_VARCHAR(:v_line) ||
                          ': For Item (' || :v_item ||
                          '), entered GRN Qty is ' || TO_VARCHAR(CAST(:v_curr_qty AS DECIMAL(19,2))) ||
-                         '. Based on 0.1% tolerance, maximum allowed qty in this GRN is ' ||
+                         '. Based on 2% tolerance, maximum allowed qty in this GRN is ' ||
                          TO_VARCHAR(CAST(:v_max_allow_curr AS DECIMAL(19,2))) || '.';
     END IF;
 

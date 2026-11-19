@@ -26066,7 +26066,8 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     END WHILE;
 END IF;
 -- ==========================================================================
--- SAP HANA: 0.1% GRN Tolerance (Simple Line-Level Message, No Loop)
+-- SAP HANA: 0.1% GRN Tolerance
+-- Revised 2% GRN Tolerance
 -- Object Type 20 = Goods Receipt PO (GRN)
 -- ==========================================================================
 IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
@@ -26083,8 +26084,8 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         IFNULL(MAX(T1."VisOrder" + 1), 0),
         IFNULL(MAX(T1."ItemCode"), ''),
         IFNULL(MAX(T1."Quantity"), 0),
-        -- Formula: Total Allowed (PO + 0.1%) - Previous GRNs = Max allowed in current GRN
-        IFNULL(MAX(GREATEST(0, (T2."Quantity" + ((T2."Quantity" * 0.1) / 100)) - (T3."TotalGRN" - T1."Quantity"))), 0)
+        -- Formula: Total Allowed (PO + 2%) - Previous GRNs = Max allowed in current GRN
+        IFNULL(MAX(GREATEST(0, (T2."Quantity" + ((T2."Quantity" * 2) / 100)) - (T3."TotalGRN" - T1."Quantity"))), 0)
     INTO
         v_cnt,
         v_line,
@@ -26111,7 +26112,7 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     WHERE T0."DocEntry" = :list_of_cols_val_tab_del
       AND T0."DocType" = 'I'
       AND T2."U_PTYPE" = 'Tanker Load'
-      AND T3."TotalGRN" > (T2."Quantity" + ((T2."Quantity" * 0.1) / 100));
+      AND T3."TotalGRN" > (T2."Quantity" + ((T2."Quantity" * 2) / 100));
 
     -- Display simplified error message formatted to 2 decimal places
     IF :v_cnt > 0 THEN
@@ -26119,7 +26120,7 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
         error_message := N'Line ' || TO_VARCHAR(:v_line) ||
                          ': For Item (' || :v_item ||
                          '), entered GRN Qty is ' || TO_VARCHAR(CAST(:v_curr_qty AS DECIMAL(19,2))) ||
-                         '. Based on 0.1% tolerance, maximum allowed qty in this GRN is ' ||
+                         '. Based on 2% tolerance, maximum allowed qty in this GRN is ' ||
                          TO_VARCHAR(CAST(:v_max_allow_curr AS DECIMAL(19,2))) || '.';
     END IF;
 
