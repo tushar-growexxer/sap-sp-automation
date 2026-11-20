@@ -538,7 +538,7 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
         END IF;
 
         -- PT Rule 4: No payment term (standard or UDF) can exceed 90 days
-        /*IF :error = 0 THEN
+        IF :error = 0 THEN
             IF EXISTS (
                 SELECT 1 FROM OCTG
                 WHERE ("ExtraDays" + ("ExtraMonth" * 30)) > 102
@@ -553,7 +553,7 @@ IF :object_type = '2' AND (:transaction_type = 'A' OR :transaction_type = 'U') T
                 error := -8007;
                 error_message := N'Policy Error: You cannot select a Payment Term that exceeds 90 days. Please select a shorter term.';
             END IF;
-        END IF;*/
+        END IF;
 
     END IF; -- CardType = 'C'
 
@@ -3008,10 +3008,9 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
 		END IF;
 
 		IF ItemCode NOT LIKE '%PM%' AND ItemCode NOT LIKE 'SER%' AND PackingType NOT IN (
-	        SELECT T2."ItemName"
-	        FROM "@PO_ITEM_PACKING" T1
-	        INNER JOIN OITM T2 ON T2."ItemCode" = T1."U_PackCode"
-	        WHERE T1."Name" = ItemCode
+	        SELECT T0."ItemName"
+			FROM OITM T0
+			WHERE T0."ItemName" like '%(SP)%' AND T0."ItemCode" like 'PCPM%'
 
 	        UNION ALL
 
@@ -3279,10 +3278,9 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
 			END IF;*/
 
 			IF ItemCode NOT LIKE '%PM%' AND ItemCode NOT LIKE 'SER%' AND PackingType NOT IN (
-		        SELECT T2."ItemName"
-		        FROM "@PO_ITEM_PACKING" T1
-		        INNER JOIN OITM T2 ON T2."ItemCode" = T1."U_PackCode"
-		        WHERE T1."Name" = ItemCode
+		        SELECT T0."ItemName"
+				FROM OITM T0
+				WHERE T0."ItemName" like '%(SP)%' AND T0."ItemCode" like 'PCPM%'
 
 		        UNION ALL
 
@@ -3935,7 +3933,7 @@ DECLARE JrnlMemo Nvarchar(50);
 END IF;
 -------------2PC-FLOR
 ----------------UNIT-II-----Goods issue------
-/*IF object_type = '60' AND (:transaction_type = 'A') THEN
+IF object_type = '60' AND (:transaction_type = 'A') THEN
 DECLARE MinGI Int;
 DECLARE MaxGI Int;
 DECLARE WhsGI Nvarchar(50);
@@ -3981,7 +3979,7 @@ DECLARE JrnlMemo Nvarchar(50);
 		MinGI := MinGI+1;
 	END WHILE;
 	END IF;
-END IF;*/
+END IF;
 
 ----------------UNIT-II -----issue for production------
 IF object_type = '60' AND (:transaction_type = 'A') THEN
@@ -5340,7 +5338,7 @@ DECLARE ItemGR Nvarchar(50);
 END IF;
 
 -----BY pass DI product to store in Unit-II 2EX1PCFG--------
-/*IF object_type = '59' AND (:transaction_type = 'A') THEN
+IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
 DECLARE MaxGR Int;
 DECLARE WhsGR Nvarchar(50);
@@ -5357,7 +5355,7 @@ DECLARE ItemGR Nvarchar(50);
 		END IF;
 		MinGR := MinGR+1;
 	END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A') THEN
 DECLARE MinGR Int;
@@ -7804,7 +7802,7 @@ DECLARE U_Mining nvarchar(50);
 	select "U_Pharma" into U_Pharma  from oitm where "ItemCode"= SOItemCode;
 	select "U_Mining" into U_Mining  from oitm where "ItemCode"= SOItemCode;
 
-		/*IF Series NOT LIKE 'CL%' then
+		IF Series NOT LIKE 'CL%' then
 		IF (SOItemCode NOT LIKE 'DI%' AND SOItemCode NOT LIKE 'PCPM%' AND SOItemCode NOT LIKE 'WSTG%' AND SOItemCode NOT LIKE '%SER%' AND SOItemCode NOT LIKE 'FA%' AND SOItemCode <> 'PCFG0424') THEN
 				IF Freetext = U_Agro_Chem then
 				else
@@ -7848,7 +7846,7 @@ DECLARE U_Mining nvarchar(50);
 					END IF;
 				END IF;
 			END IF;
-		END IF;*/
+		END IF;
 	 MinSO=MinSO+1;
 	END WHILE;
 END IF;
@@ -9653,7 +9651,7 @@ DECLARE MaxPR int;
 	END WHILE;
 END IF;
 ---------------RM Direct Issue-------------
-/*IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
+IF object_type = '60' AND (:transaction_type = 'A' OR :transaction_type = 'U')   THEN
 Declare ICode Nvarchar(150);
 Declare Iname Nvarchar(500);
 Declare Srs Nvarchar(150);
@@ -9695,7 +9693,7 @@ DECLARE MaxGI int;
 	     	END IF;
 	     MinGI=MinGI+1;
 		END WHILE;
-END IF;*/
+END IF;
 
 IF object_type = '59' AND (:transaction_type = 'A')  THEN
 Declare ICode Nvarchar(150);
