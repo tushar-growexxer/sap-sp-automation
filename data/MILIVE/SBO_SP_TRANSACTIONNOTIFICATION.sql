@@ -20289,7 +20289,7 @@ select T1."ItemCode" into Item from WTR1 T1 where T1."DocEntry" = :list_of_cols_
             error := -1034;
             error_message := 'The PCPM from 2PC-PAC cannot be moved to any warehouse other than 2EX1PCPM,2BT';
         end if;
-		if FromWhs = '2EX1PCPM' and ToWhs not in ('2PC-PAC','2BT') then
+		if FromWhs = '2EX1PCPM' and ToWhs not in ('2PC-PAC','2BT','2RGP') then
             error := -1035;
             error_message := 'The PCPM from 2EX1PCPM cannot be moved to any warehouse other than 2PC-PAC,2BT';
         end if;
