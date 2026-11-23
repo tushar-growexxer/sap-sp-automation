@@ -9116,8 +9116,7 @@ Declare dominvoice int;
 	End If;
 END IF;*/
 
-IF Object_type = 'SHIPMASTER' and (:transaction_type ='U') Then
-
+/*IF Object_type = 'SHIPMASTER' and (:transaction_type ='U') Then
 Declare pterm date;
 Declare InvDet Int;
 Declare DlDet Int;
@@ -9145,7 +9144,7 @@ Declare Invremark varchar(500);
 			End If;
 		END IF;
 
-END IF;
+END IF;*/
 
 IF Object_type = 'SHIPMASTER' and (:transaction_type ='U') Then
 
