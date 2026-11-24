@@ -26001,7 +26001,7 @@ Declare ToWhs nvarchar(25);
 		END IF;
 END IF;
 ----------Direct Goods Receipt Lock Except 1BT and manager------------------
-IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+/*IF object_type = '59' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
 DECLARE Srs Nvarchar(150);
 DECLARE UsrCod Nvarchar(50);
 DECLARE ICode Nvarchar(150);
@@ -26018,7 +26018,7 @@ DECLARE LineNo int;
 			error_message := N'Direct Goods Receipt is not allowed for ' || ICode || ' at line ' || LineNo+1 || '. Please use a Base Document, or contact SAP team.';
 		END IF;
 	END IF;
-END IF;
+END IF;*/
 -- ==========================================================================
 -- Standard GRN Validation (Bypasses Tanker Load)
 -- Object Type 20 = Goods Receipt PO (GRN)
