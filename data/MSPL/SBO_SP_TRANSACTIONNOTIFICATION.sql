@@ -26124,6 +26124,73 @@ IF :object_type = '20' AND (:transaction_type = 'A' OR :transaction_type = 'U') 
     END IF;
 
 END IF;
+--------------Base Document Quantity Validation------------------------------------
+IF :object_type = '112' AND :transaction_type IN ('A', 'U') AND :error = 0 THEN
+
+    DECLARE v_DrfCnt INT := 0;
+
+    /* 1. Validate Qty mandatory when Base Type = AP INVOICE */
+    SELECT COUNT(*) INTO v_DrfCnt
+    FROM ODRF H
+    INNER JOIN DRF1 T1 ON H."DocEntry" = T1."DocEntry"
+    WHERE H."DocEntry" = :list_of_cols_val_tab_del
+      AND H."ObjType"  = '18'
+      AND T1."U_BASETYPE" = 'AP INVOICE'
+      AND IFNULL(T1."U_UNE_VLQT", 0) <= 0;
+
+    IF :v_DrfCnt > 0 THEN
+        error := 50011;
+        error_message := 'Validate Qty is mandatory when Base Type is AP Invoice.';
+    END IF;
+
+    /* 2. Validate Qty should not be more than reference AP Invoice quantity */
+    IF :error = 0 THEN
+        SELECT COUNT(*) INTO v_DrfCnt
+        FROM ODRF H
+        INNER JOIN DRF1 R ON H."DocEntry" = R."DocEntry"
+        WHERE H."DocEntry" = :list_of_cols_val_tab_del
+          AND H."ObjType"  = '18'
+          AND R."U_BASETYPE" = 'AP INVOICE'
+          AND
+          (   /* Booked in posted A/P Invoices */
+              (SELECT IFNULL(SUM(B."U_UNE_VLQT"), 0)
+               FROM OPCH A
+               INNER JOIN PCH1 B ON A."DocEntry" = B."DocEntry"
+               WHERE A."CANCELED"     = 'N'
+                 AND B."U_BASETYPE"   = R."U_BASETYPE"
+                 AND B."U_FiscalYear" = R."U_FiscalYear"
+                 AND CAST(B."U_BASEDOCNO" AS NVARCHAR(20)) = CAST(R."U_BASEDOCNO" AS NVARCHAR(20))
+                 AND B."U_PARTYNAME"  = R."U_PARTYNAME")
+            + /* Booked in open A/P Invoice drafts (including this draft) */
+              (SELECT IFNULL(SUM(F."U_UNE_VLQT"), 0)
+               FROM ODRF E
+               INNER JOIN DRF1 F ON E."DocEntry" = F."DocEntry"
+               WHERE E."ObjType"   = '18'
+                 AND E."DocStatus" = 'O'
+                 AND IFNULL(E."WddStatus", '-') <> 'N'
+                 AND F."U_BASETYPE"   = R."U_BASETYPE"
+                 AND F."U_FiscalYear" = R."U_FiscalYear"
+                 AND CAST(F."U_BASEDOCNO" AS NVARCHAR(20)) = CAST(R."U_BASEDOCNO" AS NVARCHAR(20))
+                 AND F."U_PARTYNAME"  = R."U_PARTYNAME")
+          )
+          >
+          (   /* Reference AP Invoice quantity */
+              SELECT IFNULL(SUM(D."Quantity"), 0)
+              FROM OPCH C
+              INNER JOIN PCH1 D ON C."DocEntry" = D."DocEntry"
+              WHERE C."CANCELED"   = 'N'
+                AND CAST(C."DocNum" AS NVARCHAR(20)) = CAST(R."U_BASEDOCNO" AS NVARCHAR(20))
+                AND C."PIndicator" = R."U_FiscalYear"
+                AND C."CardName"   = R."U_PARTYNAME"
+          );
+
+        IF :v_DrfCnt > 0 THEN
+            error := 50012;
+            error_message := 'Validate Qty should not be more than reference AP Invoice quantity.';
+        END IF;
+    END IF;
+
+END IF;
 
 -- Select the return values-
 select :error, :error_message FROM dummy;
