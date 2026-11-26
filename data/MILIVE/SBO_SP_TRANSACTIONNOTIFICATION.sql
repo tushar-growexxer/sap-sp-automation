@@ -25598,6 +25598,203 @@ IF :object_type = '1470000113' AND (:transaction_type = 'A' OR :transaction_type
     END IF;
 
 END IF;
+--------------------------Freight Mandatory for Purchase Order [Draft]---------------------------------
+IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+  DECLARE v_drf_cnt INT := 0;
+
+  -- a) DAP Vatva: freight must not be entered
+  SELECT COUNT(*) INTO v_drf_cnt
+  FROM ODRF H
+  WHERE H."DocEntry" = :list_of_cols_val_tab_del
+    AND H."ObjType" = '22'
+    AND H."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD')
+    AND UPPER(TRIM(IFNULL(H."U_Del_Terms", ''))) = 'DAP VATVA'
+    AND IFNULL(H."U_UNE_FRGT", 0) <> 0;
+
+  IF :v_drf_cnt > 0 THEN
+    error := 1;
+    error_message := 'Draft PO: Freight is not allowed when Delivery Terms is DAP Vatva.';
+  END IF;
+
+  -- b) Other delivery terms: freight mandatory for RM/FG/TR items
+  IF :error = 0 THEN
+    SELECT COUNT(*) INTO v_drf_cnt
+    FROM ODRF H
+    WHERE H."DocEntry" = :list_of_cols_val_tab_del
+      AND H."ObjType" = '22'
+      AND H."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD')
+      AND UPPER(TRIM(IFNULL(H."U_Del_Terms", ''))) <> 'DAP VATVA'
+      AND IFNULL(H."U_UNE_FRGT", 0) <= 0
+      AND EXISTS (SELECT 1 FROM DRF1 R
+                  WHERE R."DocEntry" = H."DocEntry"
+                    AND (R."ItemCode" LIKE '%RM%'
+                      OR R."ItemCode" LIKE '%FG%'
+                      OR R."ItemCode" LIKE '%TR%'));
+
+    IF :v_drf_cnt > 0 THEN
+      error := 1;
+      error_message := 'Draft PO: Freight/kg is mandatory for RM/FG/TR items unless Delivery Terms is DAP Vatva.';
+    END IF;
+  END IF;
+END IF;
+--------------------------Freight Mandatory for Purchase Order---------------------------------
+IF :object_type = '22' AND (:transaction_type = 'A' OR :transaction_type = 'U') THEN
+  DECLARE v_po_cnt INT := 0;
+
+  -- a) DAP Vatva: freight must not be entered
+  SELECT COUNT(*) INTO v_po_cnt
+  FROM OPOR H
+  WHERE H."DocEntry" = :list_of_cols_val_tab_del
+    AND H."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD')
+    AND UPPER(TRIM(IFNULL(H."U_Del_Terms", ''))) = 'DAP VATVA'
+    AND IFNULL(H."U_UNE_FRGT", 0) <> 0;
+
+  IF :v_po_cnt > 0 THEN
+    error := 1;
+    error_message := 'Freight is not allowed when Delivery Terms is DAP Vatva.';
+  END IF;
+
+  -- b) Other delivery terms: freight mandatory for RM/FG/TR items
+  IF :error = 0 THEN
+    SELECT COUNT(*) INTO v_po_cnt
+    FROM OPOR H
+    WHERE H."DocEntry" = :list_of_cols_val_tab_del
+      AND H."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD')
+      AND UPPER(TRIM(IFNULL(H."U_Del_Terms", ''))) <> 'DAP VATVA'
+      AND IFNULL(H."U_UNE_FRGT", 0) <= 0
+      AND EXISTS (SELECT 1 FROM POR1 R
+                  WHERE R."DocEntry" = H."DocEntry"
+                    AND (R."ItemCode" LIKE '%RM%'
+                      OR R."ItemCode" LIKE '%FG%'
+                      OR R."ItemCode" LIKE '%TR%'));
+
+    IF :v_po_cnt > 0 THEN
+      error := 1;
+      error_message := 'Freight/kg is mandatory for RM/FG/TR items unless Delivery Terms is DAP Vatva.';
+    END IF;
+  END IF;
+END IF;
+--------------------Landed Cost Mandatory for Freight-----------------------
+IF :object_type = '69' AND :transaction_type = 'A' THEN
+  DECLARE v_lc_cnt   INT := 0;
+  DECLARE v_dup_grn  INT := 0;
+  DECLARE v_lc_amt   DECIMAL(19,6) := 0;
+  DECLARE v_calc_amt DECIMAL(19,6) := 0;
+
+  -- 0) Only one GRN allowed per Landed Cost
+  SELECT COUNT(DISTINCT L."BaseEntry") INTO v_lc_cnt
+  FROM IPF1 L
+  INNER JOIN OIPF LH ON LH."DocEntry" = L."DocEntry"
+  WHERE L."DocEntry" = :list_of_cols_val_tab_del
+    AND L."BaseType" = 20
+    AND LH."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD');
+
+  IF :v_lc_cnt > 1 THEN
+    error := 1;
+    error_message := 'Only one GRN is allowed in a Landed Cost. Book a separate Landed Cost for each GRN.';
+  END IF;
+
+  -- a) Duplicate Landed Cost for the same GRN
+  IF :error = 0 THEN
+    SELECT COUNT(*), IFNULL(MAX(GH."DocNum"), 0) INTO v_lc_cnt, v_dup_grn
+    FROM IPF1 L
+    INNER JOIN OIPF LH ON LH."DocEntry" = L."DocEntry"
+    INNER JOIN IPF1 L2 ON L2."BaseEntry" = L."BaseEntry"
+                      AND L2."OrigLine"  = L."OrigLine"
+                      AND L2."BaseType"  = L."BaseType"
+                      AND L2."DocEntry" <> L."DocEntry"
+    INNER JOIN OPDN GH ON GH."DocEntry" = L."BaseEntry"
+    WHERE L."DocEntry" = :list_of_cols_val_tab_del
+      AND L."BaseType" = 20
+      AND LH."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD');
+
+    IF :v_lc_cnt > 0 THEN
+      error := 1;
+      error_message := 'Landed Cost already booked for GRN No. ' || TO_VARCHAR(:v_dup_grn) || '. Duplicate entry not allowed.';
+    END IF;
+  END IF;
+
+  -- b) Allowed only if freight exists in the PO of the GRN
+  IF :error = 0 THEN
+    SELECT COUNT(*) INTO v_lc_cnt
+    FROM IPF1 L
+    INNER JOIN PDN1 G  ON G."DocEntry"  = L."BaseEntry"
+                      AND G."LineNum"   = L."OrigLine"
+    INNER JOIN OPDN GH ON GH."DocEntry" = G."DocEntry"
+    LEFT JOIN OPOR P   ON P."DocEntry"  = G."BaseEntry"
+                      AND G."BaseType"  = 22
+    WHERE L."DocEntry" = :list_of_cols_val_tab_del
+      AND L."BaseType" = 20
+      AND GH."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD')
+      AND IFNULL(P."U_UNE_FRGT", 0) <= 0;
+
+    IF :v_lc_cnt > 0 THEN
+      error := 1;
+      error_message := 'Landed Cost not allowed: Freight is not entered in the Purchase Order of this GRN.';
+    END IF;
+  END IF;
+
+  -- c) Freight Inward Charges must equal GRN Qty x PO freight rate
+  IF :error = 0 THEN
+    SELECT COUNT(*) INTO v_lc_cnt
+    FROM IPF1 L
+    INNER JOIN OPDN GH ON GH."DocEntry" = L."BaseEntry"
+    WHERE L."DocEntry" = :list_of_cols_val_tab_del
+      AND L."BaseType" = 20
+      AND GH."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD');
+
+    IF :v_lc_cnt > 0 THEN
+      SELECT IFNULL(SUM(C."CostSum"), 0) INTO v_lc_amt
+      FROM IPF2 C
+      WHERE C."DocEntry" = :list_of_cols_val_tab_del
+        AND C."AlcCode" = (SELECT "AlcCode" FROM OALC
+                           WHERE "AlcName" = 'Freight Inward Charges');
+
+      SELECT IFNULL(SUM(G."Quantity" * IFNULL(P."U_UNE_FRGT", 0)), 0) INTO v_calc_amt
+      FROM IPF1 L
+      INNER JOIN PDN1 G ON G."DocEntry" = L."BaseEntry"
+                       AND G."LineNum"  = L."OrigLine"
+      INNER JOIN OPOR P ON P."DocEntry" = G."BaseEntry"
+                       AND G."BaseType" = 22
+      WHERE L."DocEntry" = :list_of_cols_val_tab_del
+        AND L."BaseType" = 20;
+
+      IF ABS(:v_lc_amt - :v_calc_amt) > 0.01 THEN
+        error := 1;
+        error_message := 'Freight Inward Charges must be ' || TO_VARCHAR(ROUND(:v_calc_amt, 2))
+                         || ' as per GRN. Do not change the calculated amount.';
+      END IF;
+    END IF;
+  END IF;
+END IF;
+------------------Batch Consumption Blocked until Landed Cost Booked------------------
+IF (:object_type = '67' OR :object_type = '60' OR :object_type = '15' OR :object_type = '13')
+   AND :transaction_type = 'A' THEN
+  DECLARE v_bt_cnt   INT := 0;
+  DECLARE v_batch_no NVARCHAR(100) := '';
+
+  SELECT COUNT(*), IFNULL(MAX(B."DistNumber"), '') INTO v_bt_cnt, v_batch_no
+  FROM OITL O
+  INNER JOIN ITL1 I  ON I."LogEntry"   = O."LogEntry"
+  INNER JOIN ITL1 RI ON RI."ItemCode"  = I."ItemCode" AND RI."SysNumber" = I."SysNumber"
+  INNER JOIN OITL R  ON R."LogEntry"   = RI."LogEntry" AND R."DocType"   = 20
+  INNER JOIN PDN1 G  ON G."DocEntry"   = R."DocEntry"  AND G."LineNum"   = R."DocLine"
+  INNER JOIN OPDN GH ON GH."DocEntry"  = G."DocEntry"  AND GH."CANCELED" = 'N'
+  INNER JOIN OPOR P  ON P."DocEntry"   = G."BaseEntry" AND G."BaseType"  = 22
+  INNER JOIN OBTN B  ON B."ItemCode"   = I."ItemCode"  AND B."SysNumber" = I."SysNumber"
+  WHERE O."DocEntry" = :list_of_cols_val_tab_del
+    AND O."DocType"  = CAST(:object_type AS INT)
+    AND GH."DocDate" >= TO_DATE('2026-12-01', 'YYYY-MM-DD')
+    AND IFNULL(P."U_UNE_FRGT", 0) > 0
+    AND NOT EXISTS (SELECT 1 FROM IPF1 L
+                    WHERE L."BaseEntry" = G."DocEntry"
+                      AND L."OrigLine"  = G."LineNum" AND L."BaseType" = 20);
+
+  IF :v_bt_cnt > 0 THEN
+    error := 1;
+    error_message := 'Batch ' || :v_batch_no || ' cannot be used. Landed Cost is not booked for its GRN.';
+  END IF;
+END IF;
 ------------------------------------------------------------------------------------------------
 -- Select the return values-
 select :error, :error_message FROM dummy;

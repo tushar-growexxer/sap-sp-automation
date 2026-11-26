@@ -838,7 +838,7 @@ If :Temp > 0 then
 							  ,'mgrppc@matangiindustries.com,ea1@matangiindustries.com,exppc@matangiindustries.com') INTO EmailCC
 		FROM POR1 T1 WHERE T1."DocEntry"=DocEntry;
 
-		MailID:= 'purchasemgr1@matangiindustries.com,purchase@matangiindustries.com,sanjay@matangiindustries.com,deepak@matangiindustries.com';
+		MailID:= 'purchasemgr1@matangiindustries.com,purchase@matangiindustries.com,sanjay@matangiindustries.com,deepak@matangiindustries.com,purchase4@matangiindustries.com';
 		Mobile := '';
 		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
 		ObjectType := 'B';
