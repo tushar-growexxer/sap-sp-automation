@@ -2657,7 +2657,7 @@ IF :object_type = '112' AND (:transaction_type = 'A' OR :transaction_type = 'U')
                 END IF;
             END IF;
 
-            IF DocDate >= '2026-10-26' AND (ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%') AND ETDPO IS NULL THEN
+            IF DocDate >= '2026-10-26' AND (ItemCode LIKE '%RM%' OR ItemCode LIKE '%FG%' OR ItemCode LIKE '%TR%' or ItemCode LIKE '%PM%') AND ETDPO IS NULL THEN
 	        	error := -40070;
 	            error_message := N'Please enter ETD at Line ' || MIN_ROW + 1;
 	        END IF;

@@ -1483,7 +1483,7 @@ If :Temp > 0 then
 		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 
 Select DISTINCT (CASE
-WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase@matangiindustries.com,sanjay@matangiindustries.com'
+WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase@matangiindustries.com,sanjay@matangiindustries.com,purchase4@matangiindustries.com'
 WHEN (T1."ItemCode" Not like '%RM%' OR T1."ItemCode" Not like '%FG%' OR T1."ItemCode" Not like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase3@matangiindustries.com,ampurchase@matangiindustries.com'
 			  		   END) INTO MailID
 FROM POR1 T1 WHERE  T1."TaxCode" like 'CSGST%' and (T1."ItemCode" Not like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
@@ -1496,7 +1496,7 @@ FROM POR1 T1 WHERE  T1."TaxCode" like 'CSGST%' and (T1."ItemCode" Not like '%SER
 
 		--EmailCC:='sap@matangiindustries.com';
 		Mobile := '';
-		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com,sap1@matangiindustries.com';
 		ObjectType := 'H';
 		Mobi_TYPE := 'Po Generated Material CSGST';
 		Select CURRENT_SCHEMA Into DBName from Dummy;
@@ -1520,7 +1520,7 @@ If :Temp > 0 then
 		SELECT T0."DocEntry" INTO DocEntry FROM OPOR T0 WHERE T0."DocEntry"=:list_of_cols_val_tab_del;
 
 Select DISTINCT (CASE
-WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase@matangiindustries.com,sanjay@matangiindustries.com'
+WHEN (T1."ItemCode" like '%RM%' OR T1."ItemCode" like '%FG%' OR T1."ItemCode" like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase@matangiindustries.com,sanjay@matangiindustries.com,purchase4@matangiindustries.com'
 WHEN (T1."ItemCode" Not like '%RM%' OR T1."ItemCode" Not like '%FG%' OR T1."ItemCode" Not like '%TR%' OR T1."ItemCode" like '%PM%') then 'purchase3@matangiindustries.com,ampurchase@matangiindustries.com'
 			  		   END) INTO MailID
 FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" Not like '%SER%') and T1."DocEntry"=:list_of_cols_val_tab_del;
@@ -1533,7 +1533,7 @@ FROM POR1 T1 WHERE  T1."TaxCode" like 'IGST%' and (T1."ItemCode" Not like '%SER%
 
 		--EmailCC:='sap@matangiindustries.com';
 		Mobile := '';
-		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com';
+		EmailBCC := 'sap@matangiindustries.com,sap2@matangiindustries.com,sap1@matangiindustries.com';
 		ObjectType := 'I';
 		Mobi_TYPE := 'Po Generated Material IGST';
 		Select CURRENT_SCHEMA Into DBName from Dummy;
